@@ -120,15 +120,16 @@ async def fact_get(interaction: discord.Interaction, public: bool = True):
     """Post a totally legitimate factoid"""
     with closing(sqlite3.connect("facts.db")) as factdb:
         with closing(factdb.cursor()) as cursor:
-            fact = cursor.execute('SELECT * from facts order by random() limit 1').fetchall()
+            fact = cursor.execute('SELECT * from facts order by random() limit 1').fetchall()[0]
             if len(fact) == 0:
                 await interaction.response.send_message(":no_entry_sign: No facts available!")
                 return
 
     template = """**Fact:** {factstr}
-    -# {source}
+-# Source: <{source}>
+-# Disclaimer: Facts reported by this command are not factual, informative, or any combination of the prior."""
 
-    -# Disclaimer: Facts reported by this command are not factual, informative, or any combination of the prior."""
+    print(fact)
 
     await interaction.response.send_message(template.format(
         factstr=fact[0],
