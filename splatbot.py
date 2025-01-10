@@ -147,6 +147,8 @@ async def fact_get(interaction: discord.Interaction, fact: str, keyword: str, so
                 await interaction.response.send_message(f":white_check_mark: Added successfully. "
                     "Items: {cursor.lastrowid + 1}")
 
+splatbot.tree.add_command(factgroup)
+
 @splatbot.event
 async def on_ready():
     logger.info(f"Logged in. I am {splatbot.user} (ID: {splatbot.user.id})")
