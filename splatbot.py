@@ -9,11 +9,10 @@ import sqlite3
 from contextlib import closing
 from discord import app_commands
 from discord.ext import commands
-from systemd.journal import JournalHandler
 
 # setup logging
 logger = logging.getLogger('discord')
-handler = JournalHandler()
+handler = logging.StreamHandler()
 logger.setLevel(logging.INFO)
 logger.addHandler(handler)
 
