@@ -138,9 +138,10 @@ async def fact_get(interaction: discord.Interaction, public: bool = True):
 @factgroup.command(name="add")
 async def fact_get(interaction: discord.Interaction, fact: str, keyword: str, source: str = "no source"):
     """Add a fact to the database"""
+    row = (fact, source, keyword)
     with closing(sqlite3.connect("facts.db")) as factdb:
         with closing(factdb.cursor()) as cursor:
-            cursor.execute(f"insert into facts values (?,?,?)", fact, source, keyword)
+            cursor.execute(f"insert into facts values (?,?,?)", row)
             factdb.commit()
             if bool(cursor.lastrowid):
                 await interaction.response.send_message(f":white_check_mark: Added successfully. "
