@@ -146,7 +146,7 @@ async def fact_get(interaction: discord.Interaction, fact: str, keyword: str, so
             factdb.commit()
             if bool(cursor.lastrowid):
                 await interaction.response.send_message(":white_check_mark: Added successfully. "
-                    f"Items: {cursor.lastrowid + 1}", ephemral=True)
+                    f"Items: {cursor.lastrowid + 1}", ephemeral=True)
 
 splatbot.tree.add_command(factgroup)
 
