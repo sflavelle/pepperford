@@ -45,8 +45,17 @@ splatbot = commands.Bot(
 @splatbot.tree.command()
 @app_commands.describe(room_url="Link to the Archipelago room",
                        comment="Additional comment to prefix the room details with",
-                       public="Whether to post publically or to yourself")
-async def ap_roomdetails(interaction: discord.Interaction, room_url: str, comment: str = None, public: bool = True):
+                       public="Whether to post publically or to yourself",
+                       include_log="Include a link to the server log",
+                       include_files="Set a link to patch files etc to include in the post",
+                       include_games="List out each player's games as well")
+async def ap_roomdetails(interaction: discord.Interaction,
+                         room_url: str,
+                         comment: str = None,
+                         public: bool = True,
+                         include_log: bool = False,
+                         include_files: str = None,
+                         include_games: bool = False):
     """Post the details of an Archipelago room to the channel."""
 
     deferpost = await interaction.response.defer(ephemeral=not public, thinking=True)
@@ -72,8 +81,10 @@ async def ap_roomdetails(interaction: discord.Interaction, room_url: str, commen
     msg = ""
     if comment: msg = comment + "\n"
     msg += room_url + "\n"
-    msg += f"Players: {", ".join(sorted(players))}"
-
+    if include_games: msg += f"Players: {", ".join(sorted([f"{p[0]} (*{p[1]}*)" for p in room_json['players']]))}"
+    else: msg += f"Players: {", ".join(sorted(players))}"
+    if bool(include_files): msg += "\n" + f"Patches + Misc Files: {include_files}"
+    if include_log: msg += "\n" + f"Server Log: https://{hostname}/log/{room_id}"
     await newpost.edit(content=msg)
 
 
