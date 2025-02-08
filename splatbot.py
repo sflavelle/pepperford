@@ -117,18 +117,6 @@ async def ap_itemlog_stop(interaction: discord.Interaction):
     else:
         await interaction.response.send_message("No log monitoring script is currently running.", ephemeral=True)
 
-ap_spoilers = app_commands.Group(name='ap_spoil',description='Spoil something for an Archipelago game')
-
-@ap_spoilers.command(name="item")
-@app_commands.describe(seed="Archipelago seed URL")
-async def ap_spoil(interaction: discord.Interaction,
-                   seed_url: str,
-                   player: str,
-                   item: str):
-
-    seed_id = seed_url.split('/')[-1]
-    hostname = seed_url.split('/')[2]
-
 @splatbot.tree.command()
 @app_commands.describe(command="Command to send to Home Assistant")
 async def home(interaction: discord.Interaction, command: str):
