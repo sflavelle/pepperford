@@ -84,7 +84,8 @@ def send_release_messages():
 
 def fetch_log(url):
     try:
-        response = requests.get(url, headers={'Cookie': session_cookie})
+        cookies = {'session': session_cookie}
+        response = requests.get(url, cookies=cookies)
         response.raise_for_status()
         return response.text.splitlines()
     except requests.RequestException as e:
