@@ -84,10 +84,11 @@ async def ap_roomdetails(interaction: discord.Interaction,
     msg = ""
     if comment: msg = comment + "\n"
     msg += room_url + "\n"
-    if include_games: msg += f"Players: {", ".join(sorted([f"{p[0]} (*{p[1]}*)" for p in room_json['players']]))}"
-    else: msg += f"Players: {", ".join(sorted(players))}"
     if bool(include_files): msg += "\n" + f"Patches + Misc Files: {include_files}"
-    if include_log: msg += "\n" + f"Server Log: https://{hostname}/log/{room_id}"
+    if include_games:
+        msg += f"Players:\n{"\n".join(sorted([f"**{p[0]}**: {p[1]}" for p in room_json['players']]))}"
+    else:
+        msg += f"Players: {", ".join(sorted(players))}"
     await newpost.edit(content=msg)
 
 ap_itemlog = app_commands.Group(name="ap_itemlog",description="Manage an item logging webhook")
