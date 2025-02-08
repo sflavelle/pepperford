@@ -41,7 +41,8 @@ def process_new_log_lines(new_lines):
     for line in new_lines:
         if match := regex_patterns['sent_items'].match(line):
             timestamp, sender, item, receiver, item_location = match.groups()
-            message = f"{sender} sent **{item}** to **{receiver}** ({item_location})"
+            if sender == receiver: message = f"{sender} found their own **{item}** ({item_location})"
+            else: message = f"{sender} sent **{item}** to **{receiver}** ({item_location})"
             if sender in release_buffer and (time.time() - release_buffer[sender]['timestamp'] <= 2):
                 release_buffer[sender]['items'][receiver].append(item)
             else:
