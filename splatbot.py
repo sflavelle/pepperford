@@ -1,6 +1,9 @@
 # Import essential libraries
 import json
 import logging
+import os
+import subprocess
+import signal
 
 import discord
 import requests
@@ -87,6 +90,44 @@ async def ap_roomdetails(interaction: discord.Interaction,
     if include_log: msg += "\n" + f"Server Log: https://{hostname}/log/{room_id}"
     await newpost.edit(content=msg)
 
+ap_itemlog = app_commands.Group(name="ap_itemlog",description="Manage an item logging webhook")
+itemlog_processes = {}
+
+@ap_itemlog.command(name="start")
+async def ap_itemlog_start(interaction: discord.Interaction, webhook: str, log_url: str, session_cookie: str):
+    """Start logging messages from an Archipelago room log to a specified webhook"""
+    script_path = os.path.join(os.path.dirname(__file__), 'ap_logwatch.py')
+
+    env = os.environ.copy()
+    env['LOG_URL'] = log_url
+    env['WEBHOOK_URL'] = webhook
+    env['SESSION_COOKIE'] = session_cookie
+
+    process = subprocess.Popen(['python', script_path], env=env)
+    itemlog_processes[interaction.guild.id] = process.pid
+    await interaction.response.send_message(f"Started logging messages from {log_url} to a webhook. PID: {process.pid}", ephemeral=True)
+
+async def ap_itemlog_stop(interaction: discord.Interaction):
+    """Stops the log monitoring script."""
+    pid = itemlog_processes.get(interaction.guild.id)
+    if pid:
+        os.kill(pid, signal.SIGTERM)
+        await interaction.response.send_message(f"Stopped log monitoring script with PID: {pid}", ephemeral=True)
+        del itemlog_processes[interaction.guild.id]
+    else:
+        await interaction.response.send_message("No log monitoring script is currently running.", ephemeral=True)
+
+ap_spoilers = app_commands.Group(name='ap_spoil',description='Spoil something for an Archipelago game')
+
+@ap_spoilers.command(name="item")
+@app_commands.describe(seed="Archipelago seed URL")
+async def ap_spoil(interaction: discord.Interaction,
+                   seed_url: str,
+                   player: str,
+                   item: str):
+
+    seed_id = seed_url.split('/')[-1]
+    hostname = seed_url.split('/')[2]
 
 @splatbot.tree.command()
 @app_commands.describe(command="Command to send to Home Assistant")
@@ -160,6 +201,7 @@ async def fact_get(interaction: discord.Interaction, fact: str, keyword: str, so
                     f"Items: {cursor.lastrowid + 1}", ephemeral=True)
 
 splatbot.tree.add_command(factgroup)
+splatbot.tree.add_command(ap_itemlog)
 
 @splatbot.event
 async def on_ready():
