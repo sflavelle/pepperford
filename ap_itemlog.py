@@ -41,7 +41,7 @@ def process_new_log_lines(new_lines):
     for line in new_lines:
         if match := regex_patterns['sent_items'].match(line):
             timestamp, sender, item, receiver, item_location = match.groups()
-            if sender == receiver: message = f"{sender} found their own **{item}** ({item_location})"
+            if sender == receiver: message = f"**{sender}** found their own **{item}** ({item_location})"
             else: message = f"{sender} sent **{item}** to **{receiver}** ({item_location})"
             if sender in release_buffer and (time.time() - release_buffer[sender]['timestamp'] <= 2):
                 release_buffer[sender]['items'][receiver].append(item)
@@ -71,7 +71,7 @@ def send_to_discord(message):
         response = requests.post(webhook_url, json=payload)
         response.raise_for_status()
     except requests.RequestException as e:
-        print(f"Error sending message to Discord: {e}")
+        logging.error(f"Error sending message to Discord: {e}")
 
 
 def send_release_messages():
