@@ -107,6 +107,7 @@ async def ap_itemlog_start(interaction: discord.Interaction, webhook: str, log_u
     itemlog_processes[interaction.guild.id] = process.pid
     await interaction.response.send_message(f"Started logging messages from {log_url} to a webhook. PID: {process.pid}", ephemeral=True)
 
+@ap_itemlog.command(name="stop")
 async def ap_itemlog_stop(interaction: discord.Interaction):
     """Stops the log monitoring script."""
     pid = itemlog_processes.get(interaction.guild.id)
