@@ -23,12 +23,12 @@ interval = 20
 
 # Regular expressions for different log message types
 regex_patterns = {
-    'sent_items': re.compile(r'\[(.*?)\]: \(Team #\d\) (.*?) sent (.*?) to (.*?) \((.*?)\)'),
+    'sent_items': re.compile(r'\[(.*?)\]: \(Team #\d\) (.*?) sent (.*) to (.*?) \((.*?)\)$'),
     'item_hints': re.compile(
         r'\[(.*?)\]: Notice \(Team #\d\): \[Hint\]: (.*?)\'s (.*?) is at (.*?) in (.*?)\'s World\.'),
-    'goals': re.compile(r'\[(.*?)\]: Notice \(all\): (.*?) \(Team #\d\) has completed their goal\.'),
+    'goals': re.compile(r'\[(.*?)\]: Notice \(all\): (.*?) \(Team #\d\) has completed their goal\.$'),
     'releases': re.compile(
-        r'\[(.*?)\]: Notice \(all\): (.*?) \(Team #\d\) has released all remaining items from their world\.')
+        r'\[(.*?)\]: Notice \(all\): (.*?) \(Team #\d\) has released all remaining items from their world\.$')
 }
 
 # Buffer to store release and related sent item messages
