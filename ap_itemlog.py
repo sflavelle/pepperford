@@ -2,9 +2,16 @@ import requests
 import time
 import re
 import os
+import logging
 from collections import defaultdict
 
-# I got Copilot to help me write this file. I'm so sorry
+# setup logging
+logger = logging.getLogger('ap_itemlog')
+handler = logging.StreamHandler()
+logger.setLevel(logging.INFO)
+logger.addHandler(handler)
+
+# I got Copilot to help me write most of this file. I'm so sorry
 
 # URL of the log file and Discord webhook URL from environment variables
 log_url = os.getenv('LOG_URL')
@@ -34,14 +41,14 @@ def process_new_log_lines(new_lines):
     for line in new_lines:
         if match := regex_patterns['sent_items'].match(line):
             timestamp, sender, item, receiver, item_location = match.groups()
-            message = f"{sender} sent {item} to {receiver} ({item_location})"
+            message = f"{sender} sent **{item}** to **{receiver}** ({item_location})"
             if sender in release_buffer and (time.time() - release_buffer[sender]['timestamp'] <= 2):
                 release_buffer[sender]['items'][receiver].append(item)
             else:
                 message_buffer.append(message)
         elif match := regex_patterns['item_hints'].match(line):
             timestamp, receiver, item, item_location, sender = match.groups()
-            message = f"**[Hint]** {receiver}'s {item} is at {item_location} in {sender}'s World."
+            message = f"**[Hint]** **{receiver}'s {item}** is at {item_location} in {sender}'s World."
             message_buffer.append(message)
         elif match := regex_patterns['goals'].match(line):
             timestamp, sender = match.groups()
@@ -89,13 +96,13 @@ def fetch_log(url):
         response.raise_for_status()
         return response.text.splitlines()
     except requests.RequestException as e:
-        print(f"Error fetching log file: {e}")
+        logger.error(f"Error fetching log file: {e}")
         return []
 
 
 def watch_log(url, interval):
     previous_lines = fetch_log(url)
-    print(f"Initial log lines: {len(previous_lines)}")
+    logger.info(f"Initial log lines: {len(previous_lines)}")
 
     while True:
         time.sleep(interval)
@@ -106,9 +113,11 @@ def watch_log(url, interval):
             send_release_messages()
             if message_buffer:
                 send_to_discord('\n'.join(message_buffer))
+                logger.info(f"sent {len(message_buffer)} messages to webhook")
                 message_buffer.clear()
             previous_lines = current_lines
 
 
 if __name__ == "__main__":
+    logger.info(f"logging messages from {log_url} to webhook {webhook_url}")
     watch_log(log_url, interval)
