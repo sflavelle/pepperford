@@ -25,7 +25,7 @@ interval = 20
 regex_patterns = {
     'sent_items': re.compile(r'\[(.*?)\]: \(Team #\d\) (.*?) sent (.*) to (.*?) \((.*?)\)$'),
     'item_hints': re.compile(
-        r'\[(.*?)\]: Notice \(Team #\d\): \[Hint\]: (.*?)\'s (.*?) is at (.*?) in (.*?)\'s World\.'),
+        r'\[(.*?)\]: Notice \(Team #\d\): \[Hint\]: (.*?)\'s (.*) is at (.*?) in (.*?)\'s World\.(?<! \(found\))$'),
     'goals': re.compile(r'\[(.*?)\]: Notice \(all\): (.*?) \(Team #\d\) has completed their goal\.$'),
     'releases': re.compile(
         r'\[(.*?)\]: Notice \(all\): (.*?) \(Team #\d\) has released all remaining items from their world\.$')
@@ -35,32 +35,46 @@ regex_patterns = {
 release_buffer = {}
 message_buffer = []
 
+# Store for item_hints
+item_hints_store = {}
 
-def process_new_log_lines(new_lines):
+
+def process_new_log_lines(new_lines, skip_msg: bool = False):
     global release_buffer
     for line in new_lines:
         if match := regex_patterns['sent_items'].match(line):
             timestamp, sender, item, receiver, item_location = match.groups()
-            if sender == receiver: message = f"**{sender}** found their own **{item}** ({item_location})"
-            else: message = f"{sender} sent **{item}** to **{receiver}** ({item_location})"
-            if sender in release_buffer and (time.time() - release_buffer[sender]['timestamp'] <= 2):
-                release_buffer[sender]['items'][receiver].append(item)
+            if sender == receiver:
+                message = f"**{sender}** found their own {"hinted " if (f"{sender} - {item_location}" in item_hints_store and item in item_hints_store[f"{sender} - {item_location}"]) else ""}**{item}** ({item_location})"
+                if f"{sender} - {item_location}" in item_hints_store and item in item_hints_store[f"{sender} - {item_location}"]:
+                    del item_hints_store[f"{sender} - {item_location}"]
+            elif f"{sender} - {item_location}" in item_hints_store and item in item_hints_store[f"{sender} - {item_location}"]:
+                message = f"{sender} found **{receiver}'s hinted {item}** ({item_location})"
+                del item_hints_store[f"{sender} - {item_location}"]
             else:
-                message_buffer.append(message)
+                message = f"{sender} sent **{item}** to **{receiver}** ({item_location})"
+            if sender in release_buffer and (time.time() - release_buffer[sender]['timestamp'] <= 2):
+                if not skip_msg: release_buffer[sender]['items'][receiver].append(item)
+            else:
+                if not skip_msg: message_buffer.append(message)
         elif match := regex_patterns['item_hints'].match(line):
             timestamp, receiver, item, item_location, sender = match.groups()
+            if receiver not in item_hints_store:
+                item_hints_store[f"{sender} - {item_location}"] = set()
+            item_hints_store[f"{sender} - {item_location}"].add(item)
             message = f"**[Hint]** **{receiver}'s {item}** is at {item_location} in {sender}'s World."
-            message_buffer.append(message)
+            if not skip_msg: message_buffer.append(message)
         elif match := regex_patterns['goals'].match(line):
             timestamp, sender = match.groups()
             message = f"**{sender} has finished!**"
-            message_buffer.append(message)
+            if not skip_msg: message_buffer.append(message)
         elif match := regex_patterns['releases'].match(line):
             timestamp, sender = match.groups()
-            release_buffer[sender] = {
+            if not skip_msg:
+                release_buffer[sender] = {
                 'timestamp': time.time(),
                 'items': defaultdict(list)
-            }
+                }
 
 
 def send_to_discord(message):
@@ -103,7 +117,9 @@ def fetch_log(url):
 
 def watch_log(url, interval):
     previous_lines = fetch_log(url)
+    process_new_log_lines(previous_lines, True) # Read for hints etc
     logger.info(f"Initial log lines: {len(previous_lines)}")
+    logger.info(f"Currently active hints: {len(item_hints_store)}")
 
     while True:
         time.sleep(interval)
