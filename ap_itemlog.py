@@ -1,4 +1,5 @@
 import requests
+import datetime
 import time
 import re
 import os
@@ -42,6 +43,7 @@ players = {}
 # small functions
 goaled = lambda player : "goaled" in players[player] and players[player]["goaled"] == True
 dim_if_goaled = lambda p : "-# " if goaled(p) else ""
+to_epoch = lambda timestamp : time.mktime(datetime.datetime.strptime(timestamp, "%Y-%m-%d %H:%M:%S,%f").timetuple())
 
 def process_new_log_lines(new_lines, skip_msg: bool = False):
     global release_buffer
@@ -51,7 +53,7 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
             timestamp, sender, item, receiver, item_location = match.groups()
             if sender not in players: players[sender] = {}
             if receiver not in players: players[receiver] = {}
-            if sender in release_buffer and (time.time() - release_buffer[sender]['timestamp'] <= 2):
+            if sender in release_buffer and (to_epoch(timestamp) - release_buffer[sender]['timestamp'] <= 2):
                     release_buffer[sender]['items'][receiver].append(item)
                     if not skip_msg: logger.info(f"Adding {item} for {receiver} to release buffer.")
             else:
@@ -85,7 +87,7 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
             if not skip_msg:
                 logging.info("Release detected.")
                 release_buffer[sender] = {
-                    'timestamp': time.time(),
+                    'timestamp': to_epoch(timestamp),
                     'items': defaultdict(list)
                 }
 
@@ -117,7 +119,7 @@ def send_release_messages():
                 message += f"\n{dim_if_goaled(receiver)}**{receiver}** receives: {item_list}"
             send_to_discord(message)
             logger.info(f"{sender} release sent.")
-    release_buffer = {}
+            del release_buffer[sender]
 
 
 def fetch_log(url):
