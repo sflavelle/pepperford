@@ -44,18 +44,19 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
     for line in new_lines:
         if match := regex_patterns['sent_items'].match(line):
             timestamp, sender, item, receiver, item_location = match.groups()
-            if sender == receiver:
-                message = f"**{sender}** found their own {"hinted " if (f"{sender} - {item_location}" in item_hints_store and item in item_hints_store[f"{sender} - {item_location}"]) else ""}**{item}** ({item_location})"
-                if f"{sender} - {item_location}" in item_hints_store and item in item_hints_store[f"{sender} - {item_location}"]:
-                    del item_hints_store[f"{sender} - {item_location}"]
-            elif f"{sender} - {item_location}" in item_hints_store and item in item_hints_store[f"{sender} - {item_location}"]:
-                message = f"{sender} found **{receiver}'s hinted {item}** ({item_location})"
-                del item_hints_store[f"{sender} - {item_location}"]
-            else:
-                message = f"{sender} sent **{item}** to **{receiver}** ({item_location})"
             if sender in release_buffer and (time.time() - release_buffer[sender]['timestamp'] <= 2):
-                if not skip_msg: release_buffer[sender]['items'][receiver].append(item)
+                if not skip_msg:
+                    release_buffer[sender]['items'][receiver].append(item)
             else:
+                if sender == receiver:
+                    message = f"**{sender}** found their own {"hinted " if (f"{sender} - {item_location}" in item_hints_store and item in item_hints_store[f"{sender} - {item_location}"]) else ""}**{item}** ({item_location})"
+                    if f"{sender} - {item_location}" in item_hints_store and item in item_hints_store[f"{sender} - {item_location}"]:
+                        del item_hints_store[f"{sender} - {item_location}"]
+                elif f"{sender} - {item_location}" in item_hints_store and item in item_hints_store[f"{sender} - {item_location}"]:
+                    message = f"{sender} found **{receiver}'s hinted {item}** ({item_location})"
+                    del item_hints_store[f"{sender} - {item_location}"]
+                else:
+                    message = f"{sender} sent **{item}** to **{receiver}** ({item_location})"
                 if not skip_msg: message_buffer.append(message)
         elif match := regex_patterns['item_hints'].match(line):
             timestamp, receiver, item, item_location, sender = match.groups()
