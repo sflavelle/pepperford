@@ -104,9 +104,16 @@ async def ap_itemlog_start(interaction: discord.Interaction, webhook: str, log_u
     env['WEBHOOK_URL'] = webhook
     env['SESSION_COOKIE'] = session_cookie
 
-    process = subprocess.Popen(['python', script_path], env=env)
-    itemlog_processes[interaction.guild.id] = process.pid
-    await interaction.response.send_message(f"Started logging messages from {log_url} to a webhook. PID: {process.pid}", ephemeral=True)
+    ping = requests.get(log_url, timeout=1)
+
+    if ping.status_code == 200 and 'application/json' in ping.headers['content-type']:
+        process = subprocess.Popen(['python', script_path], env=env)
+        itemlog_processes[interaction.guild.id] = process.pid
+        await interaction.response.send_message(f"Started logging messages from {log_url} to a webhook. PID: {process.pid}", ephemeral=True)
+    else:
+        wait
+        interaction.response.send_message(f"Could not validate {log_url}: Status code {ping.status_code}.",
+                                          ephemeral=True)
 
 @ap_itemlog.command(name="stop")
 async def ap_itemlog_stop(interaction: discord.Interaction):
