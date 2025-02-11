@@ -111,8 +111,7 @@ async def ap_itemlog_start(interaction: discord.Interaction, webhook: str, log_u
         itemlog_processes[interaction.guild.id] = process.pid
         await interaction.response.send_message(f"Started logging messages from {log_url} to a webhook. PID: {process.pid}", ephemeral=True)
     else:
-        wait
-        interaction.response.send_message(f"Could not validate {log_url}: Status code {ping.status_code}.",
+        await interaction.response.send_message(f"Could not validate {log_url}: Status code {ping.status_code}.",
                                           ephemeral=True)
 
 @ap_itemlog.command(name="stop")
