@@ -45,7 +45,6 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
         if match := regex_patterns['sent_items'].match(line):
             timestamp, sender, item, receiver, item_location = match.groups()
             if sender in release_buffer and (time.time() - release_buffer[sender]['timestamp'] <= 2):
-                if not skip_msg:
                     release_buffer[sender]['items'][receiver].append(item)
             else:
                 if sender == receiver:
@@ -71,11 +70,10 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
             if not skip_msg: message_buffer.append(message)
         elif match := regex_patterns['releases'].match(line):
             timestamp, sender = match.groups()
-            if not skip_msg:
-                release_buffer[sender] = {
-                'timestamp': time.time(),
-                'items': defaultdict(list)
-                }
+            release_buffer[sender] = {
+            'timestamp': time.time(),
+            'items': defaultdict(list)
+            }
 
 
 def send_to_discord(message):
