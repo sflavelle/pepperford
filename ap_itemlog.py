@@ -23,6 +23,11 @@ if not (bool(log_url) or bool(webhook_url) or bool(session_cookie)):
     logger.error("Something required isn't configured properly!")
     exit(1)
 
+room_id = log_url.split('/')[-1]
+hostname = log_url.split('/')[2]
+
+api_url = f"https://{hostname}/api/room_status/{room_id}"
+
 # Time interval between checks (in seconds)
 interval = 20
 
@@ -112,7 +117,7 @@ def send_release_messages():
 
 
     for sender, data in release_buffer.items():
-        if time.time() - data['timestamp'] > 2:
+        if time.time() - data['timestamp'] > interval:
             message = f"**{sender}** has released their remaining items."
             for receiver, items in data['items'].items():
                 item_counts = defaultdict(int)
@@ -121,7 +126,7 @@ def send_release_messages():
                 item_list = ', '.join(
                     [f"{item} (x{count})" if count > 1 else item for item, count in item_counts.items()])
                 message += f"\n{dim_if_goaled(receiver)}**{receiver}** receives: {item_list}"
-            send_to_discord(message)
+            message_buffer.append(message)
             logger.info(f"{sender} release sent.")
             del release_buffer[sender]
 
@@ -139,6 +144,10 @@ def fetch_log(url):
 
 def watch_log(url, interval):
     global release_buffer
+    global players
+    logger.info("Fetching room info.")
+    for player in requests.get(api_url).json()["players"]:
+        players[player[0]]["game"] = player[1]
     previous_lines = fetch_log(url)
     process_new_log_lines(previous_lines, True) # Read for hints etc
     release_buffer = {}
@@ -147,10 +156,10 @@ def watch_log(url, interval):
 
     while True:
         time.sleep(interval)
+        send_release_messages() # Send releases first, if any are cued up
         current_lines = fetch_log(url)
         if len(current_lines) > len(previous_lines):
             new_lines = current_lines[len(previous_lines):]
-            send_release_messages() # Send releases first, if any are cued up
             process_new_log_lines(new_lines)
             if message_buffer:
                 send_to_discord('\n'.join(message_buffer))
