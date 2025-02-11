@@ -116,7 +116,7 @@ def send_release_messages():
     global release_buffer
 
 
-    for sender, data in release_buffer.items():
+    for sender, data in release_buffer.copy().items():
         if time.time() - data['timestamp'] > interval:
             message = f"**{sender}** has released their remaining items."
             for receiver, items in data['items'].items():
