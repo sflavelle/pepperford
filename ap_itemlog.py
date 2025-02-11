@@ -46,6 +46,7 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
             timestamp, sender, item, receiver, item_location = match.groups()
             if sender in release_buffer and (time.time() - release_buffer[sender]['timestamp'] <= 2):
                     release_buffer[sender]['items'][receiver].append(item)
+                    logger.info(f"Adding {item} for {receiver} to release buffer.")
             else:
                 if sender == receiver:
                     message = f"**{sender}** found their own {"hinted " if (f"{sender} - {item_location}" in item_hints_store and item in item_hints_store[f"{sender} - {item_location}"]) else ""}**{item}** ({item_location})"
@@ -71,9 +72,10 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
         elif match := regex_patterns['releases'].match(line):
             timestamp, sender = match.groups()
             release_buffer[sender] = {
-            'timestamp': time.time(),
-            'items': defaultdict(list)
+                'timestamp': time.time(),
+                'items': defaultdict(list)
             }
+            logging.info("Release detected.")
 
 
 def send_to_discord(message):
@@ -99,7 +101,8 @@ def send_release_messages():
                 item_list = ', '.join(
                     [f"{item} (x{count})" if count > 1 else item for item, count in item_counts.items()])
                 message += f"\n**{receiver}** receives: {item_list}"
-            message_buffer.append(message)
+            send_to_discord(message)
+            logger.info(f"{sender} release sent.")
     release_buffer = {}
 
 
