@@ -132,8 +132,10 @@ def fetch_log(url):
 
 
 def watch_log(url, interval):
+    global release_buffer
     previous_lines = fetch_log(url)
     process_new_log_lines(previous_lines, True) # Read for hints etc
+    release_buffer = {}
     logger.info(f"Initial log lines: {len(previous_lines)}")
     logger.info(f"Currently active hints: {len(item_hints_store)}")
 
@@ -142,8 +144,8 @@ def watch_log(url, interval):
         current_lines = fetch_log(url)
         if len(current_lines) > len(previous_lines):
             new_lines = current_lines[len(previous_lines):]
+            send_release_messages() # Send releases first, if any are cued up
             process_new_log_lines(new_lines)
-            send_release_messages()
             if message_buffer:
                 send_to_discord('\n'.join(message_buffer))
                 logger.info(f"sent {len(message_buffer)} messages to webhook")
