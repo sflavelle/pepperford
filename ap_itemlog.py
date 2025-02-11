@@ -67,8 +67,8 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
                 if not skip_msg: message_buffer.append(message)
         elif match := regex_patterns['item_hints'].match(line):
             timestamp, receiver, item, item_location, sender = match.groups()
-            if sender not in players: players[sender] = {}
-            if receiver not in players: players[receiver] = {}
+            if sender not in players: players[sender] = {"goaled": False}
+            if receiver not in players: players[receiver] = {"goaled": False}
             if receiver not in item_hints_store:
                 item_hints_store[f"{sender} - {item_location}"] = set()
             item_hints_store[f"{sender} - {item_location}"].add(item)
@@ -76,7 +76,7 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
             if not skip_msg: message_buffer.append(message)
         elif match := regex_patterns['goals'].match(line):
             timestamp, sender = match.groups()
-            if sender not in players: players[sender] = {}
+            if sender not in players: players[sender] = {"goaled": True}
             message = f"**{sender} has finished!**"
             players[sender]["goaled"] = True
             if not skip_msg: message_buffer.append(message)
