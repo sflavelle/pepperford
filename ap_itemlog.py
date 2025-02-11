@@ -147,6 +147,7 @@ def watch_log(url, interval):
     global players
     logger.info("Fetching room info.")
     for player in requests.get(api_url).json()["players"]:
+        players[player[0]] = {}
         players[player[0]]["game"] = player[1]
     previous_lines = fetch_log(url)
     process_new_log_lines(previous_lines, True) # Read for hints etc
