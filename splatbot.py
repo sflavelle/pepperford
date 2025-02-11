@@ -104,7 +104,7 @@ async def ap_itemlog_start(interaction: discord.Interaction, webhook: str, log_u
     env['WEBHOOK_URL'] = webhook
     env['SESSION_COOKIE'] = session_cookie
 
-    ping = requests.get(log_url, timeout=1)
+    ping = requests.get(webhook, timeout=1)
 
     if ping.status_code == 200 and 'application/json' in ping.headers['content-type']:
         process = subprocess.Popen(['python', script_path], env=env)
