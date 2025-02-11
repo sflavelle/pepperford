@@ -40,7 +40,7 @@ item_hints_store = {}
 players = {}
 
 # small functions
-goaled = lambda player : players[player]["goaled"] == True
+goaled = lambda player : "goaled" in players[player] and players[player]["goaled"] == True
 dim_if_goaled = lambda p : "-# " if goaled(p) else ""
 
 def process_new_log_lines(new_lines, skip_msg: bool = False):
