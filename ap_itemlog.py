@@ -37,29 +37,38 @@ message_buffer = []
 
 # Store for item_hints
 item_hints_store = {}
+players = {}
 
+# small functions
+goaled = lambda player : players[player]["goaled"] == True
+dim_if_goaled = lambda p : "-# " if goaled(p) else ""
 
 def process_new_log_lines(new_lines, skip_msg: bool = False):
     global release_buffer
+    global players
     for line in new_lines:
         if match := regex_patterns['sent_items'].match(line):
             timestamp, sender, item, receiver, item_location = match.groups()
+            if sender not in players: players[sender] = {}
+            if receiver not in players: players[receiver] = {}
             if sender in release_buffer and (time.time() - release_buffer[sender]['timestamp'] <= 2):
                     release_buffer[sender]['items'][receiver].append(item)
-                    logger.info(f"Adding {item} for {receiver} to release buffer.")
+                    if not skip_msg: logger.info(f"Adding {item} for {receiver} to release buffer.")
             else:
                 if sender == receiver:
                     message = f"**{sender}** found their own {"hinted " if (f"{sender} - {item_location}" in item_hints_store and item in item_hints_store[f"{sender} - {item_location}"]) else ""}**{item}** ({item_location})"
                     if f"{sender} - {item_location}" in item_hints_store and item in item_hints_store[f"{sender} - {item_location}"]:
                         del item_hints_store[f"{sender} - {item_location}"]
                 elif f"{sender} - {item_location}" in item_hints_store and item in item_hints_store[f"{sender} - {item_location}"]:
-                    message = f"{sender} found **{receiver}'s hinted {item}** ({item_location})"
+                    message = f"{dim_if_goaled(receiver)}{sender} found **{receiver}'s hinted {item}** ({item_location})"
                     del item_hints_store[f"{sender} - {item_location}"]
                 else:
-                    message = f"{sender} sent **{item}** to **{receiver}** ({item_location})"
+                    message = f"{dim_if_goaled(receiver)}{sender} sent **{item}** to **{receiver}** ({item_location})"
                 if not skip_msg: message_buffer.append(message)
         elif match := regex_patterns['item_hints'].match(line):
             timestamp, receiver, item, item_location, sender = match.groups()
+            if sender not in players: players[sender] = {}
+            if receiver not in players: players[receiver] = {}
             if receiver not in item_hints_store:
                 item_hints_store[f"{sender} - {item_location}"] = set()
             item_hints_store[f"{sender} - {item_location}"].add(item)
@@ -67,15 +76,18 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
             if not skip_msg: message_buffer.append(message)
         elif match := regex_patterns['goals'].match(line):
             timestamp, sender = match.groups()
+            if sender not in players: players[sender] = {}
             message = f"**{sender} has finished!**"
+            players[sender]["goaled"] = True
             if not skip_msg: message_buffer.append(message)
         elif match := regex_patterns['releases'].match(line):
             timestamp, sender = match.groups()
-            release_buffer[sender] = {
-                'timestamp': time.time(),
-                'items': defaultdict(list)
-            }
-            logging.info("Release detected.")
+            if not skip_msg:
+                logging.info("Release detected.")
+                release_buffer[sender] = {
+                    'timestamp': time.time(),
+                    'items': defaultdict(list)
+                }
 
 
 def send_to_discord(message):
@@ -91,6 +103,8 @@ def send_to_discord(message):
 
 def send_release_messages():
     global release_buffer
+
+
     for sender, data in release_buffer.items():
         if time.time() - data['timestamp'] > 2:
             message = f"**{sender}** has released their remaining items."
@@ -100,7 +114,7 @@ def send_release_messages():
                     item_counts[item] += 1
                 item_list = ', '.join(
                     [f"{item} (x{count})" if count > 1 else item for item, count in item_counts.items()])
-                message += f"\n**{receiver}** receives: {item_list}"
+                message += f"\n{dim_if_goaled(receiver)}**{receiver}** receives: {item_list}"
             send_to_discord(message)
             logger.info(f"{sender} release sent.")
     release_buffer = {}
