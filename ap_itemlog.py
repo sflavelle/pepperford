@@ -19,6 +19,10 @@ log_url = os.getenv('LOG_URL')
 webhook_url = os.getenv('WEBHOOK_URL')
 session_cookie = os.getenv('SESSION_COOKIE')
 
+if not (bool(log_url) or bool(webhook_url) or bool(session_cookie)):
+    logger.error("Something required isn't configured properly!")
+    exit(1)
+
 # Time interval between checks (in seconds)
 interval = 20
 
