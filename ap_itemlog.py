@@ -41,8 +41,7 @@ INTERVAL = 30
 release_buffer = {}
 message_buffer = []
 
-# Store for item_hints
-item_hints_store = {}
+# Store for players, items, settings
 players = {}
 game = {
     'settings': {},
@@ -50,7 +49,7 @@ game = {
 }
 
 # small functions
-goaled = lambda player : "goaled" in players[player] and players[player]["goaled"] == True
+goaled = lambda player : players[player].goaled
 dim_if_goaled = lambda p : "-# " if goaled(p) else ""
 to_epoch = lambda timestamp : time.mktime(datetime.datetime.strptime(timestamp, "%Y-%m-%d %H:%M:%S,%f").timetuple())
 
@@ -58,14 +57,14 @@ class Item:
     def __init__(self, sender, receiver, item, location):
         self.sender = sender
         self.receiver = receiver
-        self.item = item
+        self.name = item
         self.location = location
         self.found = False
         self.hinted = False
         self.spoiled = False
     
     def __str__(self):
-        return f"{self.receiver}'s {self.item}"
+        return f"{self.receiver}'s {self.name}"
 
     def collect(self):
         self.found = True
@@ -77,13 +76,29 @@ class Item:
         self.spoiled = True
 
 class CollectedItem(Item):
-    def __init__(self, receiver, item):
-        super().__init__(None, receiver, item, None)
+    def __init__(self, sender, receiver, item, location):
+        super().__init__(sender, receiver, item, location)
         self.count: int = 0
 
     def collect(self):
         self.found = True
         self.count = self.count + 1
+
+class Player:
+    def __init__(self,name,game):
+        self.name = name
+        self.game = game
+        self.items = {}
+        self.settings = PlayerSettings()
+        self.goaled = False
+    
+    def collect(self, item: Item|CollectedItem):
+        self.items.update({item.name: item})
+
+
+class PlayerSettings(dict):
+    def __init__(self):
+        pass
 
 def process_spoiler_log(seed_url):
     global players
@@ -126,10 +141,6 @@ def process_spoiler_log(seed_url):
                 "items": {},
                 "locations": {}
             }
-            players[working_player] = {
-                'settings': {}
-            }
-            continue
         if line == "Locations:":
             parse_mode = "Locations"
             continue
@@ -148,11 +159,11 @@ def process_spoiler_log(seed_url):
                 current_key, value = line.strip().split(':', 1)
                 if value.lstrip().startswith("[") or value.lstrip().startswith("{"): 
                     try:
-                        players[working_player]["settings"][current_key.strip()] = json.loads(value.lstrip())
+                        players[working_player].settings[current_key.strip()] = json.loads(value.lstrip())
                     except ValueError:
                         pass
                 else:
-                    players[working_player]["settings"][current_key.strip()] = parse_to_type(value.lstrip())
+                    players[working_player].settings[current_key.strip()] = parse_to_type(value.lstrip())
             case "Locations":
                 if match := regex_patterns['location'].match(line):
                     item_location, sender, item, receiver = match.groups()
@@ -160,33 +171,33 @@ def process_spoiler_log(seed_url):
                         SentItemObject = Item(sender,receiver,item,item_location)
                         game["spoiler"][sender]["locations"].update({item_location: SentItemObject})
                     if item not in game["spoiler"][receiver]["items"]:
-                        ReceivedItemObject = CollectedItem(receiver, item)
-                        game["spoiler"][receiver]["items"].update({item: ReceivedItemObject})
+                        ReceivedItemObject = CollectedItem(sender,receiver,item,item_location)
+                        game["spoiler"][receiver]['items'].update({item: ReceivedItemObject})
             case _:
                 continue
     logger.info(f"Parsed seed {game['settings']['seed']}")
     logger.info(f"Generated on Archipelago version {game['settings']['version']}")
 
 def handle_item_cases(item: str, player: str, game: str):
-    if 'settings' in players[player]:
+    if bool(players[player].settings):
         match game:
             case "A Link to the Past":
-                if item == "Triforce Piece" and "Triforce Hunt" in players[player]['settings']['Goal']:
-                    required = players[player]['settings']['Triforce Pieces Required']
-                    count = players[player]["items"][item].count
+                if item == "Triforce Piece" and "Triforce Hunt" in players[player].settings['Goal']:
+                    required = players[player].settings['Triforce Pieces Required']
+                    count = players[player].items[item].count
                     return f"{item} ({count}/{required})"
             case "A Hat in Time":
-                if item == "Time Piece" and not players[player]['settings']['Death Wish Only']:
-                    required = players[player]['settings']['Final Chapter Maximum Time Piece Cost']
-                    count = players[player]["items"][item].count
+                if item == "Time Piece" and not players[player].settings['Death Wish Only']:
+                    required = players[player].settings['Final Chapter Maximum Time Piece Cost']
+                    count = players[player].items[item].count
                     return f"{item} ({count}/{required})"
             case "DOOM 1993":
                 if item.endswith(" - Complete"):
-                    count = len([i for i in players[player]["items"] if i.endswith(" - Complete")])
+                    count = len([i for i in players[player].items if i.endswith(" - Complete")])
                     required = 0
                     for episode in 1, 2, 3, 4:
-                        if players[player]['settings'][f"Episode {episode}"] == True:
-                            required = required + (1 if players[player]['settings']['Goal'] == "Complete Boss Levels" else 9)
+                        if players[player].settings[f"Episode {episode}"] is True:
+                            required = required + (1 if players[player].settings['Goal'] == "Complete Boss Levels" else 9)
                     return f"{item} ({count}/{required})"
             case _:
                 return item
@@ -212,17 +223,15 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
         if match := regex_patterns['sent_items'].match(line):
             timestamp, sender, item, receiver, item_location = match.groups()
 
-            # if "items" not in players: players[sender] = {}
-            if "items" not in players[receiver]: players[receiver].update({"items": {}})
             # Mark item as collected 
             if item_location not in game["spoiler"][sender]["locations"]:
                 SentItemObject = Item(sender,receiver,item,item_location)
                 game["spoiler"][sender]["locations"].update({item_location: SentItemObject})
-            if item not in players[receiver]["items"]:
-                ReceivedItemObject = CollectedItem(receiver, item)
-                players[receiver]["items"].update({item: ReceivedItemObject})
-                players[receiver]["items"][item].collect()
-            else: players[receiver]["items"][item].collect()
+            if item not in players[receiver].items:
+                ReceivedItemObject = CollectedItem(sender,receiver,item,item_location)
+                players[receiver].collect(ReceivedItemObject)
+                players[receiver].items[item].collect()
+            else: players[receiver].items[item].collect()
             game["spoiler"][sender]["locations"][item_location].collect()
 
             # If this is part of a release, send it there instead
@@ -231,8 +240,8 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
                 if not skip_msg: logger.info(f"Adding {item} for {receiver} to release buffer.")
             else:
                 # Update item name based on settings for special items
-                if 'settings' in players[receiver]:
-                    item = handle_item_cases(item, receiver, players[receiver]['settings']['Game'])
+                if bool(players[receiver].settings):
+                    item = handle_item_cases(item, receiver, players[receiver].game)
 
                 # Update the message appropriately
                 if sender == receiver:
@@ -246,22 +255,20 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
 
         elif match := regex_patterns['item_hints'].match(line):
             timestamp, receiver, item, item_location, sender = match.groups()
-            if sender not in players: players[sender] = {"goaled": False}
-            if receiver not in players: players[receiver] = {"goaled": False}
             SentItemObject = Item(sender,receiver,item,item_location)
             if item_location not in game["spoiler"][sender]["locations"]:
                 game["spoiler"][sender]["locations"][item_location] = SentItemObject
             SentItemObject.hint()
             message = f"**[Hint]** **{receiver}'s {item}** is at {item_location} in {sender}'s World."
 
-            if not skip_msg or (SentItemObject.hinted and SentItemObject.found): message_buffer.append(message)
+            if not skip_msg or players[receiver].goaled is False or (SentItemObject.hinted and SentItemObject.found): message_buffer.append(message)
 
 
         elif match := regex_patterns['goals'].match(line):
             timestamp, sender = match.groups()
             if sender not in players: players[sender] = {"goaled": True}
             message = f"**{sender} has finished!**"
-            players[sender]["goaled"] = True
+            players[sender].goaled = True
             if not skip_msg: message_buffer.append(message)
         elif match := regex_patterns['releases'].match(line):
             timestamp, sender = match.groups()
@@ -321,10 +328,14 @@ def watch_log(url, interval):
 
     logger.info("Fetching room info.")
     for player in requests.get(api_url).json()["players"]:
-        players[player[0]] = {"items": {}}
+        players[player[0]] = Player(
+            name=player[0],
+            game=player[1]
+        )
         game['spoiler'][player[0]] = {
                 "locations": {}
             }
+    del player
     if seed_url:
         logger.info("Processing spoiler log.")
         process_spoiler_log(seed_url)
@@ -332,8 +343,6 @@ def watch_log(url, interval):
     process_new_log_lines(previous_lines, True) # Read for hints etc
     release_buffer = {}
     logger.info(f"Initial log lines: {len(previous_lines)}")
-    logger.info(f"Currently active hints: {len(item_hints_store)}")
-
     while True:
         time.sleep(interval)
         send_release_messages() # Send releases first, if any are cued up
