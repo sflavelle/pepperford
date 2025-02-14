@@ -95,7 +95,7 @@ ap_itemlog = app_commands.Group(name="ap_itemlog",description="Manage an item lo
 itemlog_processes = {}
 
 @ap_itemlog.command(name="start")
-async def ap_itemlog_start(interaction: discord.Interaction, webhook: str, log_url: str, session_cookie: str):
+async def ap_itemlog_start(interaction: discord.Interaction, webhook: str, log_url: str, session_cookie: str, spoiler_url: str = None):
     """Start logging messages from an Archipelago room log to a specified webhook"""
     script_path = os.path.join(os.path.dirname(__file__), 'ap_itemlog.py')
 
@@ -103,6 +103,7 @@ async def ap_itemlog_start(interaction: discord.Interaction, webhook: str, log_u
     env['LOG_URL'] = log_url
     env['WEBHOOK_URL'] = webhook
     env['SESSION_COOKIE'] = session_cookie
+    env['SPOILER_URL'] = spoiler_url if spoiler_url else None
 
     ping = requests.get(webhook, timeout=1)
 
