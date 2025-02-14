@@ -178,7 +178,7 @@ def process_spoiler_log(seed_url):
     logger.info(f"Parsed seed {game['settings']['seed']}")
     logger.info(f"Generated on Archipelago version {game['settings']['version']}")
 
-def handle_item_cases(item: str, player: str, game: str):
+def handle_item_tracking(item: str, player: str, game: str):
     if bool(players[player].settings):
         match game:
             case "A Link to the Past":
@@ -203,6 +203,19 @@ def handle_item_cases(item: str, player: str, game: str):
                     for episode in 1, 2, 3, 4:
                         if players[player].settings[f"Episode {episode}"] is True:
                             required = required + (1 if players[player].settings['Goal'] == "Complete Boss Levels" else 9)
+                    return f"{item} ({count}/{required})"
+            case "DOOM II":
+                if item.endswith(" - Complete"):
+                    count = len([i for i in players[player].items if i.endswith(" - Complete")])
+                    required = 0
+                    if players[player].settings["Episode 1"] is True:
+                        required = required + 11 # MAP01-MAP11
+                    if players[player].settings["Episode 2"] is True:
+                        required = required + 9 # MAP12-MAP20
+                    if players[player].settings["Episode 3"] is True:
+                        required = required + 10 #  MAP21-MAP30
+                    if players[player].settings["Secret Levels"] is True:
+                        required = required + 2
                     return f"{item} ({count}/{required})"
             case _:
                 return item
@@ -246,7 +259,7 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
             else:
                 # Update item name based on settings for special items
                 if bool(players[receiver].settings):
-                    item = handle_item_cases(item, receiver, players[receiver].game)
+                    item = handle_item_tracking(item, receiver, players[receiver].game)
 
                 # Update the message appropriately
                 if sender == receiver:
