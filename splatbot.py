@@ -190,7 +190,7 @@ async def fact_get(interaction: discord.Interaction, public: bool = True):
     ), ephemeral = not public)
 
 @factgroup.command(name="add")
-async def fact_get(interaction: discord.Interaction, fact: str, keyword: str, source: str = "no source"):
+async def fact_add(interaction: discord.Interaction, fact: str, keyword: str, source: str = "no source"):
     """Add a fact to the database"""
     row = (fact, source, keyword)
     with closing(sqlite3.connect("facts.db")) as factdb:
