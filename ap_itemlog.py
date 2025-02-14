@@ -188,7 +188,12 @@ def handle_item_cases(item: str, player: str, game: str):
                     return f"{item} ({count}/{required})"
             case "A Hat in Time":
                 if item == "Time Piece" and not players[player].settings['Death Wish Only']:
-                    required = players[player].settings['Final Chapter Maximum Time Piece Cost']
+                    required = 0
+                    match players[player].settings['Goal']:
+                        case 'Finale':
+                            required = players[player].settings['Chapter 5 Cost']
+                        case 'Rush Hour':
+                            required = players[player].settings['Chapter 7 Cost']
                     count = players[player].items[item].count
                     return f"{item} ({count}/{required})"
             case "DOOM 1993":
@@ -235,9 +240,9 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
             game["spoiler"][sender]["locations"][item_location].collect()
 
             # If this is part of a release, send it there instead
-            if sender in release_buffer and (to_epoch(timestamp) - release_buffer[sender]['timestamp'] <= 2):
+            if sender in release_buffer and not skip_msg and (to_epoch(timestamp) - release_buffer[sender]['timestamp'] <= 2):
                 release_buffer[sender]['items'][receiver].append(item)
-                if not skip_msg: logger.info(f"Adding {item} for {receiver} to release buffer.")
+                logger.info(f"Adding {item} for {receiver} to release buffer.")
             else:
                 # Update item name based on settings for special items
                 if bool(players[receiver].settings):
