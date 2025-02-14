@@ -217,6 +217,13 @@ def handle_item_tracking(item: str, player: str, game: str):
                     if players[player].settings["Secret Levels"] is True:
                         required = required + 2 # Wolfenstein/Grosse
                     return f"{item} ({count}/{required})"
+            case "Super Mario World":
+                if item == "Yoshi Egg" and players[player].settings['Goal'] == "Yoshi Egg Hunt":
+                    count = players[player].items[item].count
+                    required = round(
+                        players[player].settings['Max Number of Yoshi Eggs']
+                        * (players[player].settings['Required Percentage of Yoshi Eggs'] / 100))
+                    return f"{item} ({count}/{required})"
             case _:
                 return item
     
