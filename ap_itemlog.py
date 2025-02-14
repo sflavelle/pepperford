@@ -30,7 +30,7 @@ if not (bool(log_url) or bool(webhook_url) or bool(session_cookie)):
 
 room_id = log_url.split('/')[-1]
 hostname = log_url.split('/')[2]
-seed_id = seed_url.split('/')[-1]
+seed_id = seed_url.split('/')[-1] if bool(seed_url) else None
 
 api_url = f"https://{hostname}/api/room_status/{room_id}"
 
@@ -168,29 +168,30 @@ def process_spoiler_log(seed_url):
     logger.info(f"Generated on Archipelago version {game['settings']['version']}")
 
 def handle_item_cases(item: str, player: str, game: str):
-    match game:
-        case "A Link to the Past":
-            if item == "Triforce Piece" and "Triforce Hunt" in players[player]['settings']['Goal']:
-                required = players[player]['settings']['Triforce Pieces Required']
-                count = players[player]["items"][item].count
-                return f"{item} ({count}/{required})"
-        case "A Hat in Time":
-            if item == "Time Piece" and not players[player]['settings']['Death Wish Only']:
-                required = players[player]['settings']['Final Chapter Maximum Time Piece Cost']
-                count = players[player]["items"][item].count
-                return f"{item} ({count}/{required})"
-        case "DOOM 1993":
-            if item.endswith(" - Complete"):
-                count = len([i for i in players[player]["items"] if i.endswith(" - Complete")])
-                required = 0
-                for episode in 1, 2, 3, 4:
-                    if players[player]['settings'][f"Episode {episode}"] == True:
-                        required = required + (1 if players[player]['settings']['Goal'] == "Complete Boss Levels" else 9)
-                return f"{item} ({count}/{required})"
-        case _:
-            return item
+    if 'settings' in players[player]:
+        match game:
+            case "A Link to the Past":
+                if item == "Triforce Piece" and "Triforce Hunt" in players[player]['settings']['Goal']:
+                    required = players[player]['settings']['Triforce Pieces Required']
+                    count = players[player]["items"][item].count
+                    return f"{item} ({count}/{required})"
+            case "A Hat in Time":
+                if item == "Time Piece" and not players[player]['settings']['Death Wish Only']:
+                    required = players[player]['settings']['Final Chapter Maximum Time Piece Cost']
+                    count = players[player]["items"][item].count
+                    return f"{item} ({count}/{required})"
+            case "DOOM 1993":
+                if item.endswith(" - Complete"):
+                    count = len([i for i in players[player]["items"] if i.endswith(" - Complete")])
+                    required = 0
+                    for episode in 1, 2, 3, 4:
+                        if players[player]['settings'][f"Episode {episode}"] == True:
+                            required = required + (1 if players[player]['settings']['Goal'] == "Complete Boss Levels" else 9)
+                    return f"{item} ({count}/{required})"
+            case _:
+                return item
     
-    # Return the same name if nothing matched
+    # Return the same name if nothing matched (or no settings available)
     return item
 
 def process_new_log_lines(new_lines, skip_msg: bool = False):
@@ -230,7 +231,8 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
                 if not skip_msg: logger.info(f"Adding {item} for {receiver} to release buffer.")
             else:
                 # Update item name based on settings for special items
-                item = handle_item_cases(item, receiver, players[receiver]['settings']['Game'])
+                if 'settings' in players[receiver]:
+                    item = handle_item_cases(item, receiver, players[receiver]['settings']['Game'])
 
                 # Update the message appropriately
                 if sender == receiver:
