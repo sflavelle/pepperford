@@ -215,7 +215,7 @@ def handle_item_tracking(item: str, player: str, game: str):
                     if players[player].settings["Episode 3"] is True:
                         required = required + 10 #  MAP21-MAP30
                     if players[player].settings["Secret Levels"] is True:
-                        required = required + 2
+                        required = required + 2 # Wolfenstein/Grosse
                     return f"{item} ({count}/{required})"
             case _:
                 return item

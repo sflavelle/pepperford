@@ -95,26 +95,26 @@ ap_itemlog = app_commands.Group(name="ap_itemlog",description="Manage an item lo
 itemlog_processes = {}
 
 @ap_itemlog.command(name="start")
-async def ap_itemlog_start(interaction: discord.Interaction, webhook: str, log_url: str, session_cookie: str, spoiler_url: str = None):
+async def ap_itemlog_start(interaction: discord.Interaction, webhook: str, log_url: str, spoiler_url: str = None):
     """Start logging messages from an Archipelago room log to a specified webhook"""
     script_path = os.path.join(os.path.dirname(__file__), 'ap_itemlog.py')
 
     env = os.environ.copy()
     env['LOG_URL'] = log_url
     env['WEBHOOK_URL'] = webhook
-    env['SESSION_COOKIE'] = session_cookie
+    env['SESSION_COOKIE'] = cfg['bot']['archipelago']['session_cookie']
     env['SPOILER_URL'] = spoiler_url if spoiler_url else None
 
     ping = requests.get(webhook, timeout=1)
 
     if ping.status_code == 200 and 'application/json' in ping.headers['content-type']:
-        ping_log = requests.get(log_url, cookies={'session': session_cookie})
+        ping_log = requests.get(log_url, cookies={'session': cfg['bot']['archipelago']['session_cookie']}, timeout=3)
         if ping_log.status_code == 200:
             process = subprocess.Popen(['python', script_path], env=env)
             itemlog_processes[interaction.guild.id] = process.pid
             await interaction.response.send_message(f"Started logging messages from {log_url} to a webhook. PID: {process.pid}", ephemeral=True)
         else:
-            await interaction.response.send_message(f"Could not validate {log_url}: Status code {ping.status_code}. {"You'll need your session cookie from the website." if ping.status_code == 403 else ""}")
+            await interaction.response.send_message(f"Could not validate {log_url}: Status code {ping.status_code}. {"You'll need your session cookie from the website." if ping.status_code == 403 else ""}", ephemeral=True)
     else:
         await interaction.response.send_message(f"Could not validate {webhook}: Status code {ping.status_code}.",
                                           ephemeral=True)
@@ -159,7 +159,8 @@ async def home(interaction: discord.Interaction, command: str):
     req = requests.post(
         f"{api_url}/api/conversation/process",
         headers=api_headers,
-        data=json.dumps(sentreq)
+        data=json.dumps(sentreq),
+        timeout=10
     )
     response = req.json()
     # if response.status_code == requests.codes.ok:
