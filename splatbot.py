@@ -21,6 +21,7 @@ logger.addHandler(handler)
 
 # init vars?
 cfg = None
+itemlog_processes = {}
 
 # load config
 with open('config.yaml', 'r') as file:
@@ -92,7 +93,6 @@ async def ap_roomdetails(interaction: discord.Interaction,
     await newpost.edit(content=msg)
 
 ap_itemlog = app_commands.Group(name="ap_itemlog",description="Manage an item logging webhook")
-itemlog_processes = {}
 
 @ap_itemlog.command(name="start")
 async def ap_itemlog_start(interaction: discord.Interaction, webhook: str, log_url: str, spoiler_url: str = None):
@@ -110,9 +110,26 @@ async def ap_itemlog_start(interaction: discord.Interaction, webhook: str, log_u
     if ping.status_code == 200 and 'application/json' in ping.headers['content-type']:
         ping_log = requests.get(log_url, cookies={'session': cfg['bot']['archipelago']['session_cookie']}, timeout=3)
         if ping_log.status_code == 200:
+            # All checks successful, start the script
             process = subprocess.Popen(['python', script_path], env=env)
-            itemlog_processes[interaction.guild.id] = process.pid
             await interaction.response.send_message(f"Started logging messages from {log_url} to a webhook. PID: {process.pid}", ephemeral=True)
+
+            # Save script to config
+            if 'itemlogs' not in cfg['bot']['archipelago']:
+                cfg['bot']['archipelago']['itemlogs'] = []
+
+            cfg['bot']['archipelago']['itemlogs'].append({
+                'guild': interaction.guild.id,
+                'webhook': webhook,
+                'log_url': log_url,
+                'spoiler_url': spoiler_url if spoiler_url else None,
+            })
+
+            itemlog_processes.update({interaction.guild.id: process.pid})
+
+            with open('config.yaml', 'w') as file:
+                yaml.dump(cfg, file)
+                logger.info(f"Saved AP log {log_url} to config.")
         else:
             await interaction.response.send_message(f"Could not validate {log_url}: Status code {ping.status_code}. {"You'll need your session cookie from the website." if ping.status_code == 403 else ""}", ephemeral=True)
     else:
@@ -120,7 +137,7 @@ async def ap_itemlog_start(interaction: discord.Interaction, webhook: str, log_u
                                           ephemeral=True)
 
 @ap_itemlog.command(name="stop")
-async def ap_itemlog_stop(interaction: discord.Interaction):
+async def ap_itemlog_stop(interaction: discord.Interaction, guild: str):
     """Stops the log monitoring script."""
     pid = itemlog_processes.get(interaction.guild.id)
     if pid:
@@ -129,6 +146,14 @@ async def ap_itemlog_stop(interaction: discord.Interaction):
         del itemlog_processes[interaction.guild.id]
     else:
         await interaction.response.send_message("No log monitoring script is currently running.", ephemeral=True)
+
+@ap_itemlog_stop.autocomplete('guild')
+async def itemlog_get_running(interaction: discord.Interaction, current: str) -> list[app_commands.Choice[str]]:
+    choices = [scr.guild for scr in cfg['bot']['archipelago']['itemlogs']]
+    return [
+        app_commands.Choice(name=splatbot.get_guild(choice).name, value=choice)
+        for choice in choices if current.lower() in choice.lower()
+    ]
 
 @splatbot.tree.command()
 @app_commands.describe(command="Command to send to Home Assistant")
@@ -209,6 +234,23 @@ splatbot.tree.add_command(ap_itemlog)
 async def on_ready():
     logger.info(f"Logged in. I am {splatbot.user} (ID: {splatbot.user.id})")
     await splatbot.tree.sync()
+    if len(cfg['bot']['archipelago']['itemlogs']) > 0:
+        logger.info("Starting saved itemlog processes.")
+        for log in cfg['bot']['archipelago']['itemlogs']:
+            logger(f"Starting itemlog for guild {splatbot.get_guild(log.guild).name} (GID {log.guild})")
+            env = os.environ.copy()
+        
+            env['LOG_URL'] = log.log_url
+            env['WEBHOOK_URL'] = log.webhook
+            env['SESSION_COOKIE'] = cfg['bot']['archipelago']['session_cookie']
+            env['SPOILER_URL'] = log.spoiler_url if log.spoiler_url else None
+        
+            try: 
+                script_path = os.path.join(os.path.dirname(__file__), 'ap_itemlog.py')
+                process = subprocess.Popen(['python', script_path], env=env)
+                itemlog_processes.update({log.guild: process.pid})
+            except:
+                logger.error("Error starting log:",exc_info=True)
 
 
 splatbot.run(cfg['bot']['discord_token'],

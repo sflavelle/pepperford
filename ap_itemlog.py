@@ -14,7 +14,8 @@ handler = logging.StreamHandler()
 logger.setLevel(logging.INFO)
 logger.addHandler(handler)
 
-# I got Copilot to help me write most of this file. I'm so sorry
+# Disclaimer: Copilot helped me with the initial setup of this file.
+# Everything since is my own code. Thank you :-)
 
 # URL of the log file and Discord webhook URL from environment variables
 log_url = os.getenv('LOG_URL')
