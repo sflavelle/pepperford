@@ -152,7 +152,7 @@ async def itemlog_get_running(interaction: discord.Interaction, current: str) ->
     choices = [scr['guild'] for scr in cfg['bot']['archipelago']['itemlogs']]
     return [
         app_commands.Choice(name=choice, value=choice)
-        for choice in choices if current.lower() in choice.lower()
+        for choice in choices if str(current).lower() in str(choice).lower()
     ]
 
 @splatbot.tree.command()
