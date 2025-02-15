@@ -237,8 +237,7 @@ async def on_ready():
     if len(cfg['bot']['archipelago']['itemlogs']) > 0:
         logger.info("Starting saved itemlog processes.")
         for log in cfg['bot']['archipelago']['itemlogs']:
-            guild = await splatbot.get_guild(log['guild'])
-            logger(f"Starting itemlog for guild {guild.name} (GID {log.guild})")
+            logger(f"Starting itemlog for guild ID {log.guild}")
             env = os.environ.copy()
         
             env['LOG_URL'] = log['log_url']
