@@ -191,7 +191,7 @@ def handle_item_tracking(item: str, player: str, game: str):
             case "A Hat in Time":
                 if item == "Time Piece" and not settings['Death Wish Only']:
                     required = 0
-                    match settings['Goal']:
+                    match settings['End Goal']:
                         case 'Finale':
                             required = settings['Chapter 5 Cost']
                         case 'Rush Hour':
