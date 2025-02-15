@@ -353,17 +353,18 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
                 logger.info(f"Adding {item} for {receiver} to release buffer.")
             else:
                 # Update item name based on settings for special items
+                location = item_location
                 if bool(players[receiver].settings):
                     item = handle_item_tracking(item, receiver, players[receiver].game)
-                    item_location = handle_location_tracking(item_location, receiver, players[receiver].game)
+                    location = handle_location_tracking(item_location, receiver, players[receiver].game)
 
                 # Update the message appropriately
                 if sender == receiver:
-                    message = f"**{sender}** found their own {"hinted " if bool(game["spoiler"][sender]["locations"][item_location].hinted) else ""}**{item}** ({item_location})"
+                    message = f"**{sender}** found **their own {"hinted " if bool(game["spoiler"][sender]["locations"][item_location].hinted) else ""}{item}** ({location})"
                 elif bool(game["spoiler"][sender]["locations"][item_location].hinted):
-                    message = f"{dim_if_goaled(receiver)}{sender} found **{receiver}'s hinted {item}** ({item_location})"
+                    message = f"{dim_if_goaled(receiver)}{sender} found **{receiver}'s hinted {item}** ({location})"
                 else:
-                    message = f"{dim_if_goaled(receiver)}{sender} sent **{item}** to **{receiver}** ({item_location})"
+                    message = f"{dim_if_goaled(receiver)}{sender} sent **{item}** to **{receiver}** ({location})"
                 if not skip_msg: message_buffer.append(message)
 
 
