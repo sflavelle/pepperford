@@ -85,7 +85,7 @@ async def ap_roomdetails(interaction: discord.Interaction,
     msg = ""
     if comment: msg = comment + "\n"
     msg += room_url + "\n"
-    if bool(include_files): msg += "\n" + f"Patches + Misc Files: {include_files}"
+    if bool(include_files): msg += f"Patches + Misc Files: {include_files}\n"
     if include_games:
         msg += f"Players:\n{"\n".join(sorted([f"**{p[0]}**: {p[1]}" for p in room_json['players']]))}"
     else:
