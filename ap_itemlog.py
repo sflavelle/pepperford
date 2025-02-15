@@ -221,7 +221,7 @@ def handle_item_tracking(item: str, player: str, game: str):
                     return f"{item} ({count}/{required})"
             case "Here Comes Niko!":
                 if item == "Cassette":
-                    required = [max([v for k, v in settings if "Cassette Cost" in k])]
+                    required = [max([k for k in settings if "Cassette Cost" in k])]
                     count = players[player].items[item].count
                     return f"{item} ({count}/{required})"
                 if item == "Coin":
