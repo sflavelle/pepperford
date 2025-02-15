@@ -148,7 +148,7 @@ async def ap_itemlog_stop(interaction: discord.Interaction, guild: str):
         await interaction.response.send_message("No log monitoring script is currently running.", ephemeral=True)
 
 @ap_itemlog_stop.autocomplete('guild')
-async def itemlog_get_running(interaction: discord.Interaction, current: str) -> list[app_commands.Choice[str]]:
+async def itemlog_get_running(interaction: discord.Interaction, current: int) -> list[app_commands.Choice[int]]:
     choices = [scr['guild'] for scr in cfg['bot']['archipelago']['itemlogs']]
     return [
         app_commands.Choice(name=choice, value=choice)
