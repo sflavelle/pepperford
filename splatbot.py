@@ -241,7 +241,7 @@ async def on_ready():
             env = os.environ.copy()
         
             env['LOG_URL'] = log['log_url']
-            env['WEBHOOK_URL'] = log['log.webhook']
+            env['WEBHOOK_URL'] = log['webhook']
             env['SESSION_COOKIE'] = cfg['bot']['archipelago']['session_cookie']
             env['SPOILER_URL'] = log['spoiler_url'] if log['spoiler_url'] else None
         
