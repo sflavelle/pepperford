@@ -237,13 +237,13 @@ async def on_ready():
     if len(cfg['bot']['archipelago']['itemlogs']) > 0:
         logger.info("Starting saved itemlog processes.")
         for log in cfg['bot']['archipelago']['itemlogs']:
-            logger(f"Starting itemlog for guild {splatbot.get_guild(log.guild).name} (GID {log.guild})")
+            logger(f"Starting itemlog for guild {splatbot.get_guild(log['guild']).name} (GID {log.guild})")
             env = os.environ.copy()
         
-            env['LOG_URL'] = log.log_url
-            env['WEBHOOK_URL'] = log.webhook
+            env['LOG_URL'] = log['log_url']
+            env['WEBHOOK_URL'] = log['log.webhook']
             env['SESSION_COOKIE'] = cfg['bot']['archipelago']['session_cookie']
-            env['SPOILER_URL'] = log.spoiler_url if log.spoiler_url else None
+            env['SPOILER_URL'] = log['spoiler_url'] if log['spoiler_url'] else None
         
             try: 
                 script_path = os.path.join(os.path.dirname(__file__), 'ap_itemlog.py')
