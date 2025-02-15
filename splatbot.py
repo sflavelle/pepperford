@@ -248,7 +248,7 @@ async def on_ready():
             try: 
                 script_path = os.path.join(os.path.dirname(__file__), 'ap_itemlog.py')
                 process = subprocess.Popen(['python', script_path], env=env)
-                itemlog_processes.update({log.guild: process.pid})
+                itemlog_processes.update({log['guild']: process.pid})
             except:
                 logger.error("Error starting log:",exc_info=True)
 
