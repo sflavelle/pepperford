@@ -308,10 +308,10 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
             SentItemObject = Item(sender,receiver,item,item_location)
             if item_location not in game["spoiler"][sender]["locations"]:
                 game["spoiler"][sender]["locations"][item_location] = SentItemObject
-            SentItemObject.hint()
             message = f"**[Hint]** **{receiver}'s {item}** is at {item_location} in {sender}'s World."
 
-            if not skip_msg or players[receiver].goaled is False or (SentItemObject.hinted and SentItemObject.found): message_buffer.append(message)
+            if not skip_msg and players[receiver].goaled is False and not SentItemObject.hinted and not SentItemObject.found: message_buffer.append(message)
+            SentItemObject.hint()
 
 
         elif match := regex_patterns['goals'].match(line):
