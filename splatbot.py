@@ -237,7 +237,7 @@ async def on_ready():
     if len(cfg['bot']['archipelago']['itemlogs']) > 0:
         logger.info("Starting saved itemlog processes.")
         for log in cfg['bot']['archipelago']['itemlogs']:
-            logger(f"Starting itemlog for guild ID {log.guild}")
+            logger(f"Starting itemlog for guild ID {log['guild']}")
             env = os.environ.copy()
         
             env['LOG_URL'] = log['log_url']
