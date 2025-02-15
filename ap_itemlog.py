@@ -50,7 +50,7 @@ game = {
 }
 
 # small functions
-goaled = lambda player : players[player].goaled
+goaled = lambda player : players[player].is_finished()
 dim_if_goaled = lambda p : "-# " if goaled(p) else ""
 to_epoch = lambda timestamp : time.mktime(datetime.datetime.strptime(timestamp, "%Y-%m-%d %H:%M:%S,%f").timetuple())
 
@@ -92,9 +92,13 @@ class Player:
         self.items = {}
         self.settings = PlayerSettings()
         self.goaled = False
+        self.released = False
     
     def collect(self, item: Item|CollectedItem):
         self.items.update({item.name: item})
+
+    def is_finished(self):
+        return self.goaled or self.released
 
 
 class PlayerSettings(dict):
@@ -314,7 +318,7 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
                 game["spoiler"][sender]["locations"][item_location] = SentItemObject
             message = f"**[Hint]** **{receiver}'s {item}** is at {item_location} in {sender}'s World."
 
-            if not skip_msg and players[receiver].goaled is False and not SentItemObject.hinted and not SentItemObject.found: message_buffer.append(message)
+            if not skip_msg and players[receiver].is_finished() is False and not SentItemObject.hinted and not SentItemObject.found: message_buffer.append(message)
             SentItemObject.hint()
 
 
@@ -326,6 +330,7 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
             if not skip_msg: message_buffer.append(message)
         elif match := regex_patterns['releases'].match(line):
             timestamp, sender = match.groups()
+            players[sender].released = True
             if not skip_msg:
                 logging.info("Release detected.")
                 release_buffer[sender] = {
