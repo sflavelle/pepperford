@@ -221,11 +221,15 @@ def handle_item_tracking(item: str, player: str, game: str):
                     return f"{item} ({count}/{required})"
             case "Here Comes Niko!":
                 if item == "Cassette":
-                    required = [max([k for k in settings if "Cassette Cost" in k])]
+                    required = [max({k: v for k, v in settings if "Cassette Cost" in k}.values()})]
                     count = players[player].items[item].count
                     return f"{item} ({count}/{required})"
                 if item == "Coin":
                     required = 76 if settings['Completion Goal'] == "Employee" else settings['Elevator Cost']
+                    count = players[player].items[item].count
+                    return f"{item} ({count}/{required})"
+                if item in ["Hairball City Fish", "Turbine Town Fish", "Salmon Creek Forest Fish", "Public Pool Fish", "Bathhouse Fish", "Tadpole HQ Fish"] and settings['Fishsanity'] == "Insanity":
+                    required = 5
                     count = players[player].items[item].count
                     return f"{item} ({count}/{required})"
             case "Ocarina of Time":
