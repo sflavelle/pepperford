@@ -149,7 +149,7 @@ async def ap_itemlog_stop(interaction: discord.Interaction, guild: str):
 
 @ap_itemlog_stop.autocomplete('guild')
 async def itemlog_get_running(interaction: discord.Interaction, current: str) -> list[app_commands.Choice[str]]:
-    choices = [scr.guild for scr in cfg['bot']['archipelago']['itemlogs']]
+    choices = [scr['guild'] for scr in cfg['bot']['archipelago']['itemlogs']]
     return [
         app_commands.Choice(name=splatbot.get_guild(choice).name, value=choice)
         for choice in choices if current.lower() in choice.lower()
