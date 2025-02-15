@@ -184,6 +184,7 @@ def process_spoiler_log(seed_url):
     logger.info(f"Generated on Archipelago version {game['settings']['version']}")
 
 def handle_item_tracking(item: str, player: str, game: str):
+    """If an item is an important collectable of some kind, we should put some extra info in the item name for the logs."""
     if bool(players[player].settings):
         settings = players[player].settings
         match game:
@@ -202,6 +203,49 @@ def handle_item_tracking(item: str, player: str, game: str):
                             required = settings['Chapter 7 Cost']
                     count = players[player].items[item].count
                     return f"{item} ({count}/{required})"
+                if item == "Progressive Painting Unlock":
+                    required = 3
+                    count = players[player].items[item].count
+                    return f"{item} ({count}/{required})"
+                if item.startswith("Relic"):
+                    relics = {
+                        "Burger": [
+                            "Relic (Burger Cushion)",
+                            "Relic (Burger Patty)"
+                        ],
+                        "Cake": [
+                            "Relic (Cake Stand)",
+                            "Relic (Chocolate Cake Slice)",
+                            "Relic (Chocolate Cake)",
+                            "Relic (Shortcake)"
+                        ],
+                        "Crayon": [
+                            "Relic (Blue Crayon)",
+                            "Relic (Crayon Box)",
+                            "Relic (Green Crayon)",
+                            "Relic (Red Crayon)"
+                        ],
+                        "Necklace": [
+                            "Relic (Necklace Bust)",
+                            "Relic (Necklace)"
+                        ],
+                        "Train": [
+                            "Relic (Mountain Set)",
+                            "Relic (Train)"
+                        ],
+                        "UFO": [
+                            "Relic (Cool Cow)",
+                            "Relic (Cow)",
+                            "Relic (Tin-foil Hat Cow)",
+                            "Relic (UFO)"
+                        ]
+                    }
+                    for relic, parts in relics.items():
+                        if any(part == item for part in parts):
+                            required = len(parts)
+                            count = len([i for i in players[player].items if i in parts])
+                            return f"{item} ({relic} {count}/{required})"
+
             case "DOOM 1993":
                 if item.endswith(" - Complete"):
                     count = len([i for i in players[player].items if i.endswith(" - Complete")])
@@ -263,6 +307,17 @@ def handle_item_tracking(item: str, player: str, game: str):
     # Return the same name if nothing matched (or no settings available)
     return item
 
+def handle_location_tracking(location: str, player: str, game: str):
+    """If checking a location is an indicator of progress, we should track that in the location name."""
+    if bool(players[player].settings):
+        settings = players[player].settings
+        match game:
+            case "Simon Tatham's Portable Puzzle Collection":
+                if location.endswith("Reward"):
+                    required = settings['puzzle_count'] * (settings['Target Completion Percentage'] / 100)
+                    count = len([loc for loc in game["spoiler"][player]["locations"] if loc.found is True])
+                    return f"{location} ({count}/{required})"
+
 def process_new_log_lines(new_lines, skip_msg: bool = False):
     global release_buffer
     global players
@@ -299,7 +354,7 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
             else:
                 # Update item name based on settings for special items
                 if bool(players[receiver].settings):
-                    item = handle_item_tracking(item, receiver, players[receiver].game)
+                    item = handle_item_tracking(item, receiver, players[receiver].game)[0]
 
                 # Update the message appropriately
                 if sender == receiver:
