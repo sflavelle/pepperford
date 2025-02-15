@@ -181,20 +181,21 @@ def process_spoiler_log(seed_url):
 
 def handle_item_tracking(item: str, player: str, game: str):
     if bool(players[player].settings):
+        settings = players[player].settings
         match game:
             case "A Link to the Past":
-                if item == "Triforce Piece" and "Triforce Hunt" in players[player].settings['Goal']:
-                    required = players[player].settings['Triforce Pieces Required']
+                if item == "Triforce Piece" and "Triforce Hunt" in settings['Goal']:
+                    required = settings['Triforce Pieces Required']
                     count = players[player].items[item].count
                     return f"{item} ({count}/{required})"
             case "A Hat in Time":
-                if item == "Time Piece" and not players[player].settings['Death Wish Only']:
+                if item == "Time Piece" and not settings['Death Wish Only']:
                     required = 0
-                    match players[player].settings['Goal']:
+                    match settings['Goal']:
                         case 'Finale':
-                            required = players[player].settings['Chapter 5 Cost']
+                            required = settings['Chapter 5 Cost']
                         case 'Rush Hour':
-                            required = players[player].settings['Chapter 7 Cost']
+                            required = settings['Chapter 7 Cost']
                     count = players[player].items[item].count
                     return f"{item} ({count}/{required})"
             case "DOOM 1993":
@@ -202,28 +203,51 @@ def handle_item_tracking(item: str, player: str, game: str):
                     count = len([i for i in players[player].items if i.endswith(" - Complete")])
                     required = 0
                     for episode in 1, 2, 3, 4:
-                        if players[player].settings[f"Episode {episode}"] is True:
-                            required = required + (1 if players[player].settings['Goal'] == "Complete Boss Levels" else 9)
+                        if settings[f"Episode {episode}"] is True:
+                            required = required + (1 if settings['Goal'] == "Complete Boss Levels" else 9)
                     return f"{item} ({count}/{required})"
             case "DOOM II":
                 if item.endswith(" - Complete"):
                     count = len([i for i in players[player].items if i.endswith(" - Complete")])
                     required = 0
-                    if players[player].settings["Episode 1"] is True:
+                    if settings["Episode 1"] is True:
                         required = required + 11 # MAP01-MAP11
-                    if players[player].settings["Episode 2"] is True:
+                    if settings["Episode 2"] is True:
                         required = required + 9 # MAP12-MAP20
-                    if players[player].settings["Episode 3"] is True:
+                    if settings["Episode 3"] is True:
                         required = required + 10 #  MAP21-MAP30
-                    if players[player].settings["Secret Levels"] is True:
+                    if settings["Secret Levels"] is True:
                         required = required + 2 # Wolfenstein/Grosse
                     return f"{item} ({count}/{required})"
+            case "Here Comes Niko!":
+                if item == "Cassette":
+                    required = [max([v for k, v in settings if "Cassette Cost" in k])]
+                    count = players[player].items[item].count
+                    return f"{item} ({count}/{required})"
+                if item == "Coin":
+                    required = 76 if settings['Completion Goal'] == "Employee" else settings['Elevator Cost']
+                    count = players[player].items[item].count
+                    return f"{item} ({count}/{required})"
+            case "Ocarina of Time":
+                if item == "Triforce Piece" and settings['Triforce Hunt'] is True:
+                    required = settings['Required Triforce Pieces']
+                    count = players[player].items[item].count
+                    return f"{item} ({count}/{required})"
+                if item == "Gold Skulltula Token":
+                    required = 50
+                    count = players[player].items[item].count
+                    return f"{item} ({count}/{required})"
+            case "Sonic Adventure 2 Battle":
+                if item == "Emblem":
+                    required = round(settings['Max Emblem Cap'] * (settings["Emblem Percentage for Cannon's Core"] / 100))
+                    count = players[player].items[item].count
+                    return f"{item} ({count}/{required})"
             case "Super Mario World":
-                if item == "Yoshi Egg" and players[player].settings['Goal'] == "Yoshi Egg Hunt":
+                if item == "Yoshi Egg" and settings['Goal'] == "Yoshi Egg Hunt":
                     count = players[player].items[item].count
                     required = round(
-                        players[player].settings['Max Number of Yoshi Eggs']
-                        * (players[player].settings['Required Percentage of Yoshi Eggs'] / 100))
+                        settings['Max Number of Yoshi Eggs']
+                        * (settings['Required Percentage of Yoshi Eggs'] / 100))
                     return f"{item} ({count}/{required})"
             case _:
                 return item
