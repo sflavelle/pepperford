@@ -326,7 +326,7 @@ def handle_location_tracking(location: str, player: str, player_game: str):
         match player_game:
             case "Simon Tatham's Portable Puzzle Collection":
                 required = settings['puzzle_count'] * (settings['Target Completion Percentage'] / 100)
-                count = len([loc for loc in game["spoiler"][player]["locations"] if loc.found is True])
+                count = len([loc for loc in game["spoiler"][player]["locations"].values() if loc.found is True])
                 return f"{location} ({count}/{required})"
             case _:
                 return location
