@@ -183,11 +183,14 @@ def process_spoiler_log(seed_url):
     logger.info(f"Parsed seed {game['settings']['seed']}")
     logger.info(f"Generated on Archipelago version {game['settings']['version']}")
 
-def handle_item_tracking(item: str, player: str, game: str):
+def handle_item_tracking(item: str, player: str, player_game: str):
     """If an item is an important collectable of some kind, we should put some extra info in the item name for the logs."""
+    global players
+    global game
+
     if bool(players[player].settings):
         settings = players[player].settings
-        match game:
+        match player_game:
             case "A Link to the Past":
                 if item == "Triforce Piece" and "Triforce Hunt" in settings['Goal']:
                     required = settings['Triforce Pieces Required']
@@ -312,11 +315,15 @@ def handle_item_tracking(item: str, player: str, game: str):
     # Return the same name if nothing matched (or no settings available)
     return item
 
-def handle_location_tracking(location: str, player: str, game: str):
+def handle_location_tracking(location: str, player: str, player_game: str):
     """If checking a location is an indicator of progress, we should track that in the location name."""
+    global players
+    global game
+
+
     if bool(players[player].settings):
         settings = players[player].settings
-        match game:
+        match player_game:
             case "Simon Tatham's Portable Puzzle Collection":
                 required = settings['puzzle_count'] * (settings['Target Completion Percentage'] / 100)
                 count = len([loc for loc in game["spoiler"][player]["locations"].items() if loc.found is True])
