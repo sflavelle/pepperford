@@ -289,6 +289,11 @@ def handle_item_tracking(item: str, player: str, game: str):
                     required = 50
                     count = players[player].items[item].count
                     return f"{item} ({count}/{required})"
+            case "Simon Tatham's Portable Puzzle Collection":
+                # Tracking total access to puzzles instead of completion percentage, that's for the locations
+                total = settings['puzzle_count']
+                count = len(players[player].items)
+                return f"{item} ({count}/{total})"
             case "Sonic Adventure 2 Battle":
                 if item == "Emblem":
                     required = round(settings['Max Emblem Cap'] * (settings["Emblem Percentage for Cannon's Core"] / 100))
