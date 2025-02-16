@@ -370,7 +370,7 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
                 location = item_location
                 if bool(players[receiver].settings):
                     item = handle_item_tracking(item, receiver, players[receiver].game)
-                    location = handle_location_tracking(item_location, receiver, players[receiver].game)
+                    location = handle_location_tracking(item_location, sender, players[sender].game)
 
                 # Update the message appropriately
                 if sender == receiver:
