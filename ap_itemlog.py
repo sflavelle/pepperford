@@ -118,7 +118,8 @@ def process_spoiler_log(seed_url):
     working_player = None
 
     regex_patterns = {
-        'location': re.compile(r'(.+) \((.+?)\): (.+) \((.+?)\)$')
+        'location': re.compile(r'(.+) \((.+?)\): (.+) \((.+?)\)$'),
+        'starting_item': re.compile(r'^(.+) \((.+?)\)$')
     }
 
     def parse_to_type(value):
@@ -149,6 +150,8 @@ def process_spoiler_log(seed_url):
         if line == "Locations:":
             parse_mode = "Locations"
             continue
+        if line == "Starting Items:":
+            parse_mode = "Starting Items"
         if line in ["Entrances:","Medallions:","Fairy Fountain Bottle Fill:", "Shops:", "Starting Items:"]:
             parse_mode = None
 
@@ -178,6 +181,12 @@ def process_spoiler_log(seed_url):
                     if item not in game["spoiler"][receiver]["items"]:
                         ReceivedItemObject = CollectedItem(sender,receiver,item,item_location)
                         game["spoiler"][receiver]['items'].update({item: ReceivedItemObject})
+            case "Starting Items":
+                if match := regex_patterns['starting_item'].match(line):
+                    item, receiver = match.groups()
+                    ItemObject = CollectedItem(None,receiver,item,"Starting Items")
+                    players[receiver].collect(ItemObject)
+                    players[receiver].items[item].collect()
             case _:
                 continue
     logger.info(f"Parsed seed {game['settings']['seed']}")
