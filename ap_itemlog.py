@@ -309,6 +309,21 @@ def handle_item_tracking(item: str, player: str, player_game: str):
                         settings['Max Number of Yoshi Eggs']
                         * (settings['Required Percentage of Yoshi Eggs'] / 100))
                     return f"{item} ({count}/{required})"
+            case "Wario Land 4":
+                if item.endswith("Jewel Piece"):
+                    # Gather up all the jewels
+                    jewels = ["Emerald", "Entry", "Golden", "Ruby", "Sapphire", "Topaz"]
+                    parts = ["Bottom Left", "Bottom Right", "Top Left", "Top Right"]
+                    jewel = next(j for j in jewels if j in item)
+                    # 
+                    jewel_count = len([i for i in players[player].items if f"{jewel} Jewel Piece" in i])
+                    jewel_required = 4
+                    jewels_complete = len(
+                        [j for j in jewels 
+                         if len([f"{part} {j} Jewel Piece" for part in parts
+                             if f"{part} {j} Jewel Piece" in players[player].items]) == 4 ])
+                    jewels_required = settings['Required Jewels']
+                    return f"{item} ({jewel_count}/{jewel_required}P|{jewels_complete}/{jewels_required}C)"
             case _:
                 return item
     
