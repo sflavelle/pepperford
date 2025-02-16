@@ -318,10 +318,11 @@ def handle_location_tracking(location: str, player: str, game: str):
         settings = players[player].settings
         match game:
             case "Simon Tatham's Portable Puzzle Collection":
-                if location.endswith("Reward"):
-                    required = settings['puzzle_count'] * (settings['Target Completion Percentage'] / 100)
-                    count = len([loc for loc in game["spoiler"][player]["locations"] if loc.found is True])
-                    return f"{location} ({count}/{required})"
+                required = settings['puzzle_count'] * (settings['Target Completion Percentage'] / 100)
+                count = len([loc for loc in game["spoiler"][player]["locations"] if loc.found is True])
+                return f"{location} ({count}/{required})"
+            case _:
+                return location
     return location
 
 def process_new_log_lines(new_lines, skip_msg: bool = False):
