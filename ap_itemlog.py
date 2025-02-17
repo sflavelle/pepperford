@@ -97,7 +97,7 @@ class Player:
     def collect(self, item: Item|CollectedItem):
         self.items.update({item.name: item})
 
-    def is_finished(self):
+    def is_finished(self) -> bool:
         return self.goaled or self.released
 
 
@@ -223,7 +223,7 @@ def handle_item_tracking(item: str, player: str, player_game: str):
                     required = 4
                     tickets = ["Yellow", "Green", "Blue", "Pink"]
                     collected = [ticket for ticket in tickets if f"Metro Ticket - {ticket}" in players[player].items]
-                    return f"{item} ({f''.join([key[0] for key in collected]) if len(collected) > 0 else "0"}/{required})"
+                    return f"{item} ({''.join([key[0] for key in collected]) if len(collected) > 0 else "0"}/{required})"
                 if item.startswith("Relic"):
                     relics = {
                         "Burger": [
@@ -417,6 +417,7 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
             SentItemObject = Item(sender,receiver,item,item_location)
             if item_location not in game["spoiler"][sender]["locations"]:
                 game["spoiler"][sender]["locations"][item_location] = SentItemObject
+            else: SentItemObject = game["spoiler"][sender]["locations"].get(item_location)
             message = f"**[Hint]** **{receiver}'s {item}** is at {item_location} in {sender}'s World."
 
             if not skip_msg and players[receiver].is_finished() is False and not SentItemObject.hinted and not SentItemObject.found: message_buffer.append(message)
