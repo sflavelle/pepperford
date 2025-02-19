@@ -323,6 +323,15 @@ def handle_item_tracking(item: str, player: str, player_game: str):
                         settings['Max Number of Yoshi Eggs']
                         * (settings['Required Percentage of Yoshi Eggs'] / 100))
                     return f"{item} ({count}/{required})"
+            case "TUNIC":
+                if item == "Gold Questagon":
+                    count = players[player].items[item].count
+                    required = settings['Gold Hexagons Required']
+                    return f"{item} ({count}/{required})"
+                if item in ["Blue Questagon", "Red Questagon", "Green Questagon"]:
+                    count = len(i for i in ["Blue Questagon", "Red Questagon", "Green Questagon"] if i in players[player].items)
+                    required = 3
+                    return f"{item} ({count}/{required})"
             case "Wario Land 4":
                 if item.endswith("Jewel Piece"):
                     # Gather up all the jewels
@@ -470,7 +479,7 @@ def send_release_messages():
                 item_list = ', '.join(
                     [f"{item} (x{count})" if count > 1 else item for item, count in item_counts.items()])
                 message += f"\n{dim_if_goaled(receiver)}**{receiver}** receives: {item_list}"
-            message_buffer.append(message)
+            send_to_discord(message)
             logger.info(f"{sender} release sent.")
             del release_buffer[sender]
 
