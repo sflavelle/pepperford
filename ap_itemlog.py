@@ -396,6 +396,10 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
                 release_buffer[sender]['items'][receiver].append(item)
                 logger.info(f"Adding {item} for {receiver} to release buffer.")
             else:
+                # Skip sending a message on exceptional circumstances
+                # Case 1: TUNIC Grass in grass locations (grass rando)
+                if item == "Grass" and players[sender].game == "TUNIC" and "Grass" in item_location:
+                    continue
                 # Update item name based on settings for special items
                 location = item_location
                 if bool(players[receiver].settings):
