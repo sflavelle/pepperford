@@ -420,7 +420,7 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
             else: SentItemObject = game["spoiler"][sender]["locations"].get(item_location)
             message = f"**[Hint]** **{receiver}'s {item}** is at {item_location} in {sender}'s World."
 
-            if not skip_msg and players[receiver].is_finished() is False and not SentItemObject.hinted and not SentItemObject.found: message_buffer.append(message)
+            if not skip_msg and players[receiver].is_finished() is False and not SentItemObject.found: message_buffer.append(message)
             SentItemObject.hint()
 
 
