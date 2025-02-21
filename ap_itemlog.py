@@ -7,8 +7,8 @@ import sys
 import logging
 from collections import defaultdict
 import requests
-from .ap_classes import Item, CollectedItem, Player, APEvent
-from .ap_utils import handle_item_tracking, handle_location_tracking
+from .helpers_ap.ap_classes import Item, CollectedItem, Player, APEvent
+from .helpers_ap.ap_utils import handle_item_tracking, handle_location_tracking
 
 # setup logging
 logger = logging.getLogger('ap_itemlog')
@@ -184,8 +184,8 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
                 # Update item name based on settings for special items
                 location = item_location
                 if bool(players[receiver].settings):
-                    item = handle_item_tracking(item, receiver, players[receiver].game)
-                    location = handle_location_tracking(item_location, sender, players[sender].game)
+                    item = handle_item_tracking(players, item, receiver, players[receiver].game)
+                    location = handle_location_tracking(players, item_location, sender, players[sender].game)
 
                 # Update the message appropriately
                 if sender == receiver:
@@ -239,6 +239,16 @@ def send_to_discord(message):
 
 def send_release_messages():
     global release_buffer
+
+    def handle_currency(itemlist):
+        currency = 0
+
+        currency_matches = {
+            'A Hat in Time': re.compile(r'^([0-9]+) Pons'),
+            'Final Fantasy': re.compile(r'^Gold([0-9]+)$'),
+            'Ocarina of Time': re.compile(r'^Rupees? \(([0-9]+)\)$'),
+            'Super Mario World': re.compile(r'^([0-9]+) coins?$'),
+        }
 
 
     for sender, data in release_buffer.copy().items():

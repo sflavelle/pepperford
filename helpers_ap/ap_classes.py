@@ -68,4 +68,12 @@ class APEvent:
         self.item = item if item else None
         self.extra = extra if extra else None
 
-        self.timestamp = time.mktime(datetime.datetime(tzinfo=ZoneInfo(time.tzname)).strptime(timestamp, "%Y-%m-%d %H:%M:%S,%f"))
+        try:
+            self.timestamp = time.mktime(datetime.datetime(tzinfo=ZoneInfo()).strptime(timestamp, "%Y-%m-%d %H:%M:%S,%f"))
+        except ValueError as e:
+            raise
+
+        match self.type:
+            case "item_send"|"hint":
+                if not all([bool(criteria) for criteria in [self.sender, self.receiver, self.location, self.item]]):
+                    raise ValueError(f"Invalid {self.type} event! Requires a sender, receiver, location, and item.")
