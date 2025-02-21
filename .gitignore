@@ -3,3 +3,4 @@
 .vscode
 config.yaml
 *.db
+**__pycache__

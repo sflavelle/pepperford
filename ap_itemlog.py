@@ -7,8 +7,8 @@ import sys
 import logging
 from collections import defaultdict
 import requests
-from .helpers_ap.ap_classes import Item, CollectedItem, Player, APEvent
-from .helpers_ap.ap_utils import handle_item_tracking, handle_location_tracking
+from helpers_ap.ap_classes import Item, CollectedItem, Player, APEvent
+from helpers_ap.ap_utils import handle_item_tracking, handle_location_tracking
 
 # setup logging
 logger = logging.getLogger('ap_itemlog')
@@ -137,7 +137,6 @@ def process_spoiler_log(seed_url):
                     item, receiver = match.groups()
                     ItemObject = CollectedItem("Archipelago",receiver,item,"Starting Items")
                     players[receiver].collect(ItemObject)
-                    players[receiver].items[item].collect()
             case _:
                 continue
     logger.info(f"Parsed seed {game['settings']['seed']}")
@@ -165,11 +164,8 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
             if item_location not in game["spoiler"][sender]["locations"]:
                 SentItemObject = Item(sender,receiver,item,item_location)
                 game["spoiler"][sender]["locations"].update({item_location: SentItemObject})
-            if item not in players[receiver].items:
-                ReceivedItemObject = CollectedItem(sender,receiver,item,item_location)
-                players[receiver].collect(ReceivedItemObject)
-                players[receiver].items[item].collect()
-            else: players[receiver].items[item].collect()
+            ReceivedItemObject = CollectedItem(sender,receiver,item,item_location)
+            players[receiver].collect(ReceivedItemObject)
             game["spoiler"][sender]["locations"][item_location].collect()
 
             # If this is part of a release, send it there instead
