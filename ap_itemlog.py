@@ -180,8 +180,8 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
                 # Update item name based on settings for special items
                 location = item_location
                 if bool(players[receiver].settings):
-                    item = handle_item_tracking(players, item, receiver, players[receiver].game)
-                    location = handle_location_tracking(players, item_location, sender, players[sender].game)
+                    item = handle_item_tracking(players[receiver], item)
+                    location = handle_location_tracking(players[sender], item_location)
 
                 # Update the message appropriately
                 if sender == receiver:
@@ -248,7 +248,7 @@ def send_release_messages():
             'Super Mario World': (re.compile(r'^([0-9]+) coins?$'), "Coins"),
         }
 
-        for item, count in itemlist:
+        for item, count in itemlist.items():
             if match := currency_matches[players[receiver].game[0]].match(item):
                 amount = int(match.groups()[0])
                 currency = currency + (amount * count)

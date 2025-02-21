@@ -1,13 +1,17 @@
-def handle_item_tracking(players: dict, item: str, player: str, player_game: str):
+from .ap_classes import Player, Item, CollectedItem
+
+def handle_item_tracking(player: Player, item: str):
     """If an item is an important collectable of some kind, we should put some extra info in the item name for the logs."""
 
-    if bool(players[player].settings):
-        settings = players[player].settings
-        match player_game:
+    if bool(player.settings):
+        settings = player.settings
+        game = player.game
+
+        match game:
             case "A Link to the Past":
                 if item == "Triforce Piece" and "Triforce Hunt" in settings['Goal']:
                     required = settings['Triforce Pieces Required']
-                    count = players[player].items[item].count
+                    count = player.items[item].count
                     return f"{item} ({count}/{required})"
             case "A Hat in Time":
                 if item == "Time Piece" and not settings['Death Wish Only']:
@@ -17,16 +21,16 @@ def handle_item_tracking(players: dict, item: str, player: str, player_game: str
                             required = settings['Chapter 5 Cost']
                         case 'Rush Hour':
                             required = settings['Chapter 7 Cost']
-                    count = players[player].items[item].count
+                    count = player.items[item].count
                     return f"{item} ({count}/{required})"
                 if item == "Progressive Painting Unlock":
                     required = 3
-                    count = players[player].items[item].count
+                    count = player.items[item].count
                     return f"{item} ({count}/{required})"
                 if item.startswith("Metro Ticket"):
                     required = 4
                     tickets = ["Yellow", "Green", "Blue", "Pink"]
-                    collected = [ticket for ticket in tickets if f"Metro Ticket - {ticket}" in players[player].items]
+                    collected = [ticket for ticket in tickets if f"Metro Ticket - {ticket}" in player.items]
                     return f"{item} ({''.join([key[0] for key in collected]) if len(collected) > 0 else "0"}/{required})"
                 if item.startswith("Relic"):
                     relics = {
@@ -64,12 +68,12 @@ def handle_item_tracking(players: dict, item: str, player: str, player_game: str
                     for relic, parts in relics.items():
                         if any(part == item for part in parts):
                             required = len(parts)
-                            count = len([i for i in players[player].items if i in parts])
+                            count = len([i for i in player.items if i in parts])
                             return f"{item} ({relic} {count}/{required})"
 
             case "DOOM 1993":
                 if item.endswith(" - Complete"):
-                    count = len([i for i in players[player].items if i.endswith(" - Complete")])
+                    count = len([i for i in player.items if i.endswith(" - Complete")])
                     required = 0
                     for episode in 1, 2, 3, 4:
                         if settings[f"Episode {episode}"] is True:
@@ -77,7 +81,7 @@ def handle_item_tracking(players: dict, item: str, player: str, player_game: str
                     return f"{item} ({count}/{required})"
             case "DOOM II":
                 if item.endswith(" - Complete"):
-                    count = len([i for i in players[player].items if i.endswith(" - Complete")])
+                    count = len([i for i in player.items if i.endswith(" - Complete")])
                     required = 0
                     if settings["Episode 1"] is True:
                         required = required + 11 # MAP01-MAP11
@@ -91,49 +95,49 @@ def handle_item_tracking(players: dict, item: str, player: str, player_game: str
             case "Here Comes Niko!":
                 if item == "Cassette":
                     required = max({k: v for k, v in settings.items() if "Cassette Cost" in k}.values())
-                    count = players[player].items[item].count
+                    count = player.items[item].count
                     return f"{item} ({count}/{required})"
                 if item == "Coin":
                     required = 76 if settings['Completion Goal'] == "Employee" else settings['Elevator Cost']
-                    count = players[player].items[item].count
+                    count = player.items[item].count
                     return f"{item} ({count}/{required})"
                 if item in ["Hairball City Fish", "Turbine Town Fish", "Salmon Creek Forest Fish", "Public Pool Fish", "Bathhouse Fish", "Tadpole HQ Fish"] and settings['Fishsanity'] == "Insanity":
                     required = 5
-                    count = players[player].items[item].count
+                    count = player.items[item].count
                     return f"{item} ({count}/{required})"
             case "Ocarina of Time":
                 if item == "Triforce Piece" and settings['Triforce Hunt'] is True:
                     required = settings['Required Triforce Pieces']
-                    count = players[player].items[item].count
+                    count = player.items[item].count
                     return f"{item} ({count}/{required})"
                 if item == "Gold Skulltula Token":
                     required = 50
-                    count = players[player].items[item].count
+                    count = player.items[item].count
                     return f"{item} ({count}/{required})"
             case "Simon Tatham's Portable Puzzle Collection":
                 # Tracking total access to puzzles instead of completion percentage, that's for the locations
                 total = settings['puzzle_count']
-                count = len(players[player].items)
+                count = len(player.items)
                 return f"{item} ({count}/{total})"
             case "Sonic Adventure 2 Battle":
                 if item == "Emblem":
                     required = round(settings['Max Emblem Cap'] * (settings["Emblem Percentage for Cannon's Core"] / 100))
-                    count = players[player].items[item].count
+                    count = player.items[item].count
                     return f"{item} ({count}/{required})"
             case "Super Mario World":
                 if item == "Yoshi Egg" and settings['Goal'] == "Yoshi Egg Hunt":
-                    count = players[player].items[item].count
+                    count = player.items[item].count
                     required = round(
                         settings['Max Number of Yoshi Eggs']
                         * (settings['Required Percentage of Yoshi Eggs'] / 100))
                     return f"{item} ({count}/{required})"
             case "TUNIC":
                 if item == "Gold Questagon":
-                    count = players[player].items[item].count
+                    count = player.items[item].count
                     required = settings['Gold Hexagons Required']
                     return f"{item} ({count}/{required})"
                 if item in ["Blue Questagon", "Red Questagon", "Green Questagon"]:
-                    count = len(i for i in ["Blue Questagon", "Red Questagon", "Green Questagon"] if i in players[player].items)
+                    count = len(i for i in ["Blue Questagon", "Red Questagon", "Green Questagon"] if i in player.items)
                     required = 3
                     return f"{item} ({count}/{required})"
             case "Wario Land 4":
@@ -143,12 +147,12 @@ def handle_item_tracking(players: dict, item: str, player: str, player_game: str
                     parts = ["Bottom Left", "Bottom Right", "Top Left", "Top Right"]
                     jewel = next(j for j in jewels if j in item)
                     # 
-                    jewel_count = len([i for i in players[player].items if f"{jewel} Jewel Piece" in i])
+                    jewel_count = len([i for i in player.items if f"{jewel} Jewel Piece" in i])
                     jewel_required = 4
                     jewels_complete = len(
                         [j for j in jewels 
                          if len([f"{part} {j} Jewel Piece" for part in parts
-                             if f"{part} {j} Jewel Piece" in players[player].items]) == 4 ])
+                             if f"{part} {j} Jewel Piece" in player.items]) == 4 ])
                     jewels_required = settings['Required Jewels']
                     return f"{item} ({jewel_count}/{jewel_required}P|{jewels_complete}/{jewels_required}C)"
             case _:
@@ -157,16 +161,18 @@ def handle_item_tracking(players: dict, item: str, player: str, player_game: str
     # Return the same name if nothing matched (or no settings available)
     return item
 
-def handle_location_tracking(players: dict, location: str, player: str, player_game: str):
+def handle_location_tracking(player: Player, location: str):
     """If checking a location is an indicator of progress, we should track that in the location name."""
 
-    if bool(players[player].settings):
-        settings = players[player].settings
-        match player_game:
+    if bool(player.settings):
+        settings = player.settings
+        game = player.game
+
+        match game:
             case "Simon Tatham's Portable Puzzle Collection":
                 required = round(settings['puzzle_count'] 
                                  * (settings['Target Completion Percentage'] / 100))
-                count = len([loc for loc in players[player].locations if loc.found is True])
+                count = len([loc for loc in player.locations if loc.found is True])
                 return f"{location} ({count}/{required})"
             case _:
                 return location
