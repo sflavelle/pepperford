@@ -189,7 +189,9 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
 
                 # Update the message appropriately
                 if sender == receiver:
-                    message = f"**{sender}** found **their own {"hinted " if bool(game["spoiler"][sender]["locations"][item_location].hinted) else ""}{item}** ({location})"
+                    message = f"**{sender}** found **their own {
+                        "hinted " if bool(game["spoiler"][sender]["locations"][item_location].hinted) else ""
+                        }{item}** ({location})"
                 elif bool(game["spoiler"][sender]["locations"][item_location].hinted):
                     message = f"{dim_if_goaled(receiver)}{sender} found **{receiver}'s hinted {item}** ({location})"
                 else:
@@ -240,16 +242,24 @@ def send_to_discord(message):
 def send_release_messages():
     global release_buffer
 
-    def handle_currency(itemlist):
+    def handle_currency(receiver, itemlist: dict):
         currency = 0
 
         currency_matches = {
-            'A Hat in Time': re.compile(r'^([0-9]+) Pons'),
-            'Final Fantasy': re.compile(r'^Gold([0-9]+)$'),
-            'Ocarina of Time': re.compile(r'^Rupees? \(([0-9]+)\)$'),
-            'Super Mario World': re.compile(r'^([0-9]+) coins?$'),
+            'A Hat in Time': (re.compile(r'^([0-9]+) Pons'), "Pons"),
+            'Final Fantasy': (re.compile(r'^Gold([0-9]+)$'), "Gold"),
+            'Ocarina of Time': (re.compile(r'^Rupees? \(([0-9]+)\)$'), "Rupees"),
+            'Super Mario World': (re.compile(r'^([0-9]+) coins?$'), "Coins"),
         }
 
+        for item, count in itemlist:
+            if match := currency_matches[players[receiver].game[0]].match(item):
+                amount = int(match.groups()[0])
+                currency = currency + (amount * count)
+                del itemlist[item]
+
+        itemlist.update({f"{currency} {players[receiver].game[1]}": 1})
+        return itemlist
 
     for sender, data in release_buffer.copy().items():
         if time.time() - data['timestamp'] > INTERVAL:
@@ -258,6 +268,7 @@ def send_release_messages():
                 item_counts = defaultdict(int)
                 for item in items:
                     item_counts[item] += 1
+                handle_currency(receiver,item_counts)
                 item_list = ', '.join(
                     [f"{item} (x{count})" if count > 1 else item for item, count in item_counts.items()])
                 message += f"\n{dim_if_goaled(receiver)}**{receiver}** receives: {item_list}"
