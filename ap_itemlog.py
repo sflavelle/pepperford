@@ -7,6 +7,7 @@ import sys
 import logging
 from collections import defaultdict
 import requests
+from .ap_classes import *
 
 # setup logging
 logger = logging.getLogger('ap_itemlog')
@@ -53,57 +54,6 @@ game = {
 goaled = lambda player : players[player].is_finished()
 dim_if_goaled = lambda p : "-# " if goaled(p) else ""
 to_epoch = lambda timestamp : time.mktime(datetime.datetime.strptime(timestamp, "%Y-%m-%d %H:%M:%S,%f").timetuple())
-
-class Item:
-    def __init__(self, sender, receiver, item, location):
-        self.sender = sender
-        self.receiver = receiver
-        self.name = item
-        self.location = location
-        self.found = False
-        self.hinted = False
-        self.spoiled = False
-    
-    def __str__(self):
-        return f"{self.receiver}'s {self.name}"
-
-    def collect(self):
-        self.found = True
-
-    def hint(self):
-        self.hinted = True
-
-    def spoil(self):
-        self.spoiled = True
-
-class CollectedItem(Item):
-    def __init__(self, sender, receiver, item, location):
-        super().__init__(sender, receiver, item, location)
-        self.count: int = 0
-
-    def collect(self):
-        self.found = True
-        self.count = self.count + 1
-
-class Player:
-    def __init__(self,name,game):
-        self.name = name
-        self.game = game
-        self.items = {}
-        self.settings = PlayerSettings()
-        self.goaled = False
-        self.released = False
-    
-    def collect(self, item: Item|CollectedItem):
-        self.items.update({item.name: item})
-
-    def is_finished(self) -> bool:
-        return self.goaled or self.released
-
-
-class PlayerSettings(dict):
-    def __init__(self):
-        pass
 
 def process_spoiler_log(seed_url):
     global players
@@ -152,7 +102,7 @@ def process_spoiler_log(seed_url):
             continue
         if line == "Starting Items:":
             parse_mode = "Starting Items"
-        if line in ["Entrances:","Medallions:","Fairy Fountain Bottle Fill:", "Shops:", "Starting Items:"]:
+        if line in ["Entrances:","Medallions:","Fairy Fountain Bottle Fill:", "Shops:"]:
             parse_mode = None
 
         match parse_mode:
@@ -184,7 +134,7 @@ def process_spoiler_log(seed_url):
             case "Starting Items":
                 if match := regex_patterns['starting_item'].match(line):
                     item, receiver = match.groups()
-                    ItemObject = CollectedItem(None,receiver,item,"Starting Items")
+                    ItemObject = CollectedItem("Archipelago",receiver,item,"Starting Items")
                     players[receiver].collect(ItemObject)
                     players[receiver].items[item].collect()
             case _:
