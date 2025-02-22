@@ -249,17 +249,19 @@ def send_release_messages():
             'Ocarina of Time': (re.compile(r'^Rupees? \(([0-9]+)\)$'), "Rupees"),
             'Super Mario World': (re.compile(r'^([0-9]+) coins?$'), "Coins"),
         }
-        try:
-            for item, count in itemlist.items():
-                if match := currency_matches[players[receiver].game][0].match(item):
-                    amount = int(match.groups()[0])
-                    currency = currency + (amount * count)
-                    del itemlist[item]
-            logger.info(f"Replacing (attempting) currency in {players[receiver].game} with '{currency} {currency_matches[players[receiver].game][1]}'")
-            itemlist.update({f"{currency} {currency_matches[players[receiver].game][1]}": 1})
-        except KeyError:
-            logger.info(f"No currency handler for {players[receiver].game}")
-            raise
+
+        if players[receiver].game in currency_matches:
+            try:
+                for item, count in itemlist.items():
+                    if match := currency_matches[players[receiver].game][0].match(item):
+                        amount = int(match.groups()[0])
+                        currency = currency + (amount * count)
+                        del itemlist[item]
+                logger.info(f"Replacing (attempting) currency in {players[receiver].game} with '{currency} {currency_matches[players[receiver].game][1]}'")
+                itemlist.update({f"{currency} {currency_matches[players[receiver].game][1]}": 1})
+            except KeyError:
+                logger.info(f"No currency handler for {players[receiver].game}, but handle_currency matched it anyway somehow!")
+                raise
 
         return itemlist
 
