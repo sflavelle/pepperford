@@ -260,8 +260,8 @@ def send_release_messages():
         except KeyError:
             logger.info(f"No currency handler for {players[receiver].game}")
             raise
-        finally:
-            return itemlist
+
+        return itemlist
 
     for sender, data in release_buffer.copy().items():
         if time.time() - data['timestamp'] > 1:
