@@ -252,7 +252,7 @@ def send_release_messages():
 
         if players[receiver].game in currency_matches:
             try:
-                for item, count in itemlist.items():
+                for item, count in itemlist.copy().items():
                     if match := currency_matches[players[receiver].game][0].match(item):
                         amount = int(match.groups()[0])
                         currency = currency + (amount * count)
