@@ -130,6 +130,7 @@ def process_spoiler_log(seed_url):
                     if item_location not in game["spoiler"][sender]["locations"]:
                         SentItemObject = Item(sender,receiver,item,item_location)
                         game["spoiler"][sender]["locations"].update({item_location: SentItemObject})
+                        players[sender].locations.update({item_location: SentItemObject})
                     if item not in game["spoiler"][receiver]["items"]:
                         ReceivedItemObject = CollectedItem(sender,receiver,item,item_location)
                         game["spoiler"][receiver]['items'].update({item: ReceivedItemObject})
@@ -167,6 +168,7 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
                 game["spoiler"][sender]["locations"].update({item_location: SentItemObject})
             ReceivedItemObject = CollectedItem(sender,receiver,item,item_location)
             players[receiver].collect(ReceivedItemObject)
+            players[sender].send(SentItemObject)
             game["spoiler"][sender]["locations"][item_location].collect()
 
             # If this is part of a release, send it there instead
@@ -328,8 +330,10 @@ def process_releases():
     logger.info("Watching for releases.")
 
     while True:
-        time.sleep(2)
-        send_release_messages()
+        time.sleep(10)
+        while len(release_buffer) > 0:
+            time.sleep(2)
+            send_release_messages()
 
 if __name__ == "__main__":
     logger.info(f"logging messages from AP Room ID {room_id} to webhook {webhook_url}")

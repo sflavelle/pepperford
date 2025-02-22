@@ -33,8 +33,8 @@ class CollectedItem(Item):
 
     def collect(self, sender, location):
         self.found = True
-        self.count = self.count + 1
         self.locations.append(f"{sender} - {location}")
+        self.count = len(self.locations)
 
 class Player:
     def __init__(self,name,game):
@@ -53,8 +53,14 @@ class Player:
             self.items.update({item.name: item})
             self.items[item.name].collect(item.sender, item.location)
 
+    def send(self, item: Item|CollectedItem):
+        if item.location not in self.locations:
+            self.locations.update({item.location: item})
+        self.locations[item.location].found = True
+
     def is_finished(self) -> bool:
         return self.goaled or self.released
+    
 
 class PlayerSettings(dict):
     def __init__(self):
