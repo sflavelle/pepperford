@@ -268,5 +268,5 @@ async def on_ready():
 
 
 splatbot.run(cfg['bot']['discord_token'],
-             log_handler=handler
+             log_handler=None
              )
