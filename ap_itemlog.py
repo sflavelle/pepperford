@@ -14,7 +14,7 @@ from helpers_ap.ap_utils import handle_item_tracking, handle_location_tracking
 # setup logging
 logger = logging.getLogger('ap_itemlog')
 handler = logging.StreamHandler()
-handler.setFormatter(logging.Formatter('[%(levelname)s] %(message)s'))
+handler.setFormatter(logging.Formatter('[%(name)s %(process)d][%(levelname)s] %(message)s'))
 logger.setLevel(logging.INFO)
 logger.addHandler(handler)
 
