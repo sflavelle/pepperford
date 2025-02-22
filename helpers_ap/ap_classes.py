@@ -51,6 +51,7 @@ class Player:
             self.items[item].collect(item.sender, item.location)
         else:
             self.items.update({item.name: item})
+            self.items[item].collect(item.sender, item.location)
 
     def is_finished(self) -> bool:
         return self.goaled or self.released
