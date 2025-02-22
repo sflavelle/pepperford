@@ -17,6 +17,7 @@ from discord.ext import commands
 # setup logging
 logger = logging.getLogger('discord')
 handler = logging.StreamHandler()
+handler.setFormatter(logging.Formatter('[%(levelname)s] %(message)s'))
 logger.setLevel(logging.INFO)
 logger.addHandler(handler)
 
