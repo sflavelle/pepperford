@@ -64,6 +64,9 @@ class Player:
     def is_finished(self) -> bool:
         return self.goaled or self.released
     
+    def is_goaled(self) -> bool:
+        return self.goaled
+    
 
 class PlayerSettings(dict):
     def __init__(self):
