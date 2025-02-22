@@ -163,9 +163,8 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
             timestamp, sender, item, receiver, item_location = match.groups()
 
             # Mark item as collected 
-            if item_location not in game["spoiler"][sender]["locations"]:
-                SentItemObject = Item(sender,receiver,item,item_location)
-                game["spoiler"][sender]["locations"].update({item_location: SentItemObject})
+            SentItemObject = Item(sender,receiver,item,item_location)
+            game["spoiler"][sender]["locations"].update({item_location: SentItemObject})
             ReceivedItemObject = CollectedItem(sender,receiver,item,item_location)
             players[receiver].collect(ReceivedItemObject)
             players[sender].send(SentItemObject)
