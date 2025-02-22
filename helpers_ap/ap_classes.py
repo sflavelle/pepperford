@@ -14,7 +14,7 @@ class Item:
         self.spoiled = False
     
     def __str__(self):
-        return f"{self.receiver}'s {self.name}"
+        return self.name
 
     def collect(self):
         self.found = True
@@ -47,11 +47,11 @@ class Player:
         self.released = False
     
     def collect(self, item: Item|CollectedItem):
-        if item in self.items:
-            self.items[item].collect(item.sender, item.location)
+        if item.name in self.items:
+            self.items[item.name].collect(item.sender, item.location)
         else:
             self.items.update({item.name: item})
-            self.items[item].collect(item.sender, item.location)
+            self.items[item.name].collect(item.sender, item.location)
 
     def is_finished(self) -> bool:
         return self.goaled or self.released
