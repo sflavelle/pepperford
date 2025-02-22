@@ -25,6 +25,9 @@ class Item:
     def spoil(self):
         self.spoiled = True
 
+    def is_found(self):
+        return self.found
+
 class CollectedItem(Item):
     def __init__(self, sender, receiver, item, location):
         super().__init__(sender, receiver, item, location)
