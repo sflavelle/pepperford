@@ -7,6 +7,7 @@ import sys
 import logging
 from collections import defaultdict
 import requests
+import threading
 from helpers_ap.ap_classes import Item, CollectedItem, Player, APEvent
 from helpers_ap.ap_utils import handle_item_tracking, handle_location_tracking
 
@@ -258,7 +259,7 @@ def send_release_messages():
         return itemlist
 
     for sender, data in release_buffer.copy().items():
-        if time.time() - data['timestamp'] > INTERVAL:
+        if time.time() - data['timestamp'] > 1:
             message = f"**{sender}** has released their remaining items."
             for receiver, items in data['items'].items():
                 item_counts = defaultdict(int)
@@ -308,7 +309,6 @@ def watch_log(url, interval):
     logger.info(f"Initial log lines: {len(previous_lines)}")
     while True:
         time.sleep(interval)
-        send_release_messages() # Send releases first, if any are cued up
         current_lines = fetch_log(url)
         if len(current_lines) > len(previous_lines):
             new_lines = current_lines[len(previous_lines):]
@@ -319,7 +319,14 @@ def watch_log(url, interval):
                 message_buffer.clear()
             previous_lines = current_lines
 
+def process_releases():
+    global release_buffer
+    while True:
+        time.sleep(2)
+        send_release_messages()
 
 if __name__ == "__main__":
     logger.info(f"logging messages from AP Room ID {room_id} to webhook {webhook_url}")
+    release_thread = threading.Thread(target=process_releases)
+    release_thread.start()
     watch_log(log_url, INTERVAL)
