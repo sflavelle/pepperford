@@ -255,11 +255,11 @@ def send_release_messages():
                     amount = int(match.groups()[0])
                     currency = currency + (amount * count)
                     del itemlist[item]
-
+            logger.info(f"Replacing (attempting) currency in {players[receiver].game} with '{currency} {currency_matches[players[receiver].game][1]}'")
             itemlist.update({f"{currency} {currency_matches[players[receiver].game][1]}": 1})
         except KeyError:
             logger.info(f"No currency handler for {players[receiver].game}")
-            return itemlist
+            raise
         finally:
             return itemlist
 
