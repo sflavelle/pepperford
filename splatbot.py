@@ -8,8 +8,9 @@ import signal
 import discord
 import requests
 import yaml
-import sqlite3
+from aioconsole import aexec
 from contextlib import closing
+import sqlite3
 from discord import app_commands
 from discord.ext import commands
 
@@ -97,6 +98,7 @@ ap_itemlog = app_commands.Group(name="ap_itemlog",description="Manage an item lo
 @ap_itemlog.command(name="start")
 async def ap_itemlog_start(interaction: discord.Interaction, webhook: str, log_url: str, spoiler_url: str = None):
     """Start logging messages from an Archipelago room log to a specified webhook"""
+    global itemlog_processes
     script_path = os.path.join(os.path.dirname(__file__), 'ap_itemlog.py')
 
     env = os.environ.copy()
@@ -139,11 +141,12 @@ async def ap_itemlog_start(interaction: discord.Interaction, webhook: str, log_u
 @ap_itemlog.command(name="stop")
 async def ap_itemlog_stop(interaction: discord.Interaction, guild: str):
     """Stops the log monitoring script."""
-    pid = itemlog_processes.get(interaction.guild.id)
+    global itemlog_processes
+    pid = itemlog_processes.get(guild)
     if pid:
         os.kill(pid, signal.SIGTERM)
         await interaction.response.send_message(f"Stopped log monitoring script with PID: {pid}", ephemeral=True)
-        del itemlog_processes[interaction.guild.id]
+        del itemlog_processes[guild]
     else:
         await interaction.response.send_message("No log monitoring script is currently running.", ephemeral=True)
 
@@ -154,6 +157,12 @@ async def ap_itemlog_stop(interaction: discord.Interaction, guild: str):
 #         app_commands.Choice(name=str(choice), value=choice)
 #         for choice in choices
 #     ]
+
+@splatbot.tree.command()
+async def eval(interaction: discord.Interaction):
+    """Run a command in Splatbot's context."""
+    class CmdDialog(discord.ui.Modal, title='Run a Command'):
+        cmd = discord.ui.TextInput(label='Command',style=discord.TextStyle.paragraph)
 
 @splatbot.tree.command()
 @app_commands.describe(command="Command to send to Home Assistant")
@@ -232,8 +241,12 @@ splatbot.tree.add_command(ap_itemlog)
 
 @splatbot.event
 async def on_ready():
+    global itemlog_processes
+
     logger.info(f"Logged in. I am {splatbot.user} (ID: {splatbot.user.id})")
     await splatbot.tree.sync()
+
+    # Run itemlogs if any are configured
     if len(cfg['bot']['archipelago']['itemlogs']) > 0:
         logger.info("Starting saved itemlog processes.")
         for log in cfg['bot']['archipelago']['itemlogs']:
