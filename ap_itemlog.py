@@ -250,12 +250,12 @@ def send_release_messages():
         }
 
         for item, count in itemlist.items():
-            if match := currency_matches[players[receiver].game[0]].match(item):
+            if match := currency_matches[players[receiver].game][0].match(item):
                 amount = int(match.groups()[0])
                 currency = currency + (amount * count)
                 del itemlist[item]
 
-        itemlist.update({f"{currency} {players[receiver].game[1]}": 1})
+        itemlist.update({f"{currency} {currency_matches[players[receiver].game][1]}": 1})
         return itemlist
 
     for sender, data in release_buffer.copy().items():
