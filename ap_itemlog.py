@@ -321,6 +321,8 @@ def watch_log(url, interval):
 
 def process_releases():
     global release_buffer
+    logger.info("Watching for releases.")
+
     while True:
         time.sleep(2)
         send_release_messages()
