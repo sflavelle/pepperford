@@ -153,7 +153,7 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
     regex_patterns = {
         'sent_items': re.compile(r'\[(.*?)\]: \(Team #\d\) (.*?) sent (.*?) to (.{,16}?) \((.+)\)$'),
         'item_hints': re.compile(
-            r'\[(.*?)\]: Notice \(Team #\d\): \[Hint\]: (.*?)\'s (.*) is at (.*) in (.*?)\'s World\.(?<! \(found\))$'),
+            r'\[(.*?)\]: Notice \(Team #\d\): \[Hint\]: (.*?)\'s (.*) is at (.*) in (.*?)\'s World(?: at (?P<entrance>(.+))?\.(?<! \(found\))$'),
         'goals': re.compile(r'\[(.*?)\]: Notice \(all\): (.*?) \(Team #\d\) has completed their goal\.$'),
         'releases': re.compile(
             r'\[(.*?)\]: Notice \(all\): (.*?) \(Team #\d\) has released all remaining items from their world\.$')
@@ -200,11 +200,15 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
 
         elif match := regex_patterns['item_hints'].match(line):
             timestamp, receiver, item, item_location, sender = match.groups()
-            SentItemObject = Item(sender,receiver,item,item_location)
+            if match.group('entrance'):
+                entrance = match.group('entrance')
+            else: entrance = None
+
+            SentItemObject = Item(sender,receiver,item,item_location,entrance)
             if item_location not in game["spoiler"][sender]["locations"]:
                 game["spoiler"][sender]["locations"][item_location] = SentItemObject
             else: SentItemObject = game["spoiler"][sender]["locations"].get(item_location)
-            message = f"**[Hint]** **{receiver}'s {item}** is at {item_location} in {sender}'s World."
+            message = f"**[Hint]** **{receiver}'s {item}** is at {item_location} in {sender}'s World{f" (found at {entrance})" if bool(entrance) else ''}."
 
             if not skip_msg and players[receiver].is_finished() is False and not SentItemObject.found: message_buffer.append(message)
             SentItemObject.hint()

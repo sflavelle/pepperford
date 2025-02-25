@@ -4,11 +4,12 @@ from zoneinfo import ZoneInfo
 
 class Item:
     """An Archipelago item in the multiworld"""
-    def __init__(self, sender, receiver, item, location):
+    def __init__(self, sender, receiver, item, location, entrance = None):
         self.sender = sender
         self.receiver = receiver
         self.name = item
         self.location = location
+        self.location_entrance = entrance
         self.found = False
         self.hinted = False
         self.spoiled = False
