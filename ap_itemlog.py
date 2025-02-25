@@ -153,7 +153,7 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
     regex_patterns = {
         'sent_items': re.compile(r'\[(.*?)\]: \(Team #\d\) (.*?) sent (.*?) to (.{,16}?) \((.+)\)$'),
         'item_hints': re.compile(
-            r'\[(.*?)\]: Notice \(Team #\d\): \[Hint\]: (.*?)\'s (.*) is at (.*) in (.*?)\'s World(?: at (?P<entrance>(.+))?\.(?<! \(found\))$'),
+            r'\[(.*?)\]: Notice \(Team #\d\): \[Hint\]: (.*?)\'s (.*) is at (.*) in (.*?)\'s World(?: at (?P<entrance>(.+)))?\.(?<! \(found\))$'),
         'goals': re.compile(r'\[(.*?)\]: Notice \(all\): (.*?) \(Team #\d\) has completed their goal\.$'),
         'releases': re.compile(
             r'\[(.*?)\]: Notice \(all\): (.*?) \(Team #\d\) has released all remaining items from their world\.$')
