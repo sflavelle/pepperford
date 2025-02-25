@@ -199,7 +199,11 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
 
 
         elif match := regex_patterns['item_hints'].match(line):
-            timestamp, receiver, item, item_location, sender = match.groups()
+            timestamp = match.groups()[0]
+            receiver = match.groups()[1]
+            item = match.groups()[2]
+            item_location = match.groups()[3]
+            sender = match.groups()[4]
             if match.group('entrance'):
                 entrance = match.group('entrance')
             else: entrance = None
