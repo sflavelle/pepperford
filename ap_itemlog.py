@@ -364,13 +364,13 @@ def save_classifications():
     global classifications
 
     logger.info("Updating classifications file.")
-    with open('ap_classifications.yaml', 'w', encoding='UTF-8') as file:
+    with open('ap_classifications.yaml', 'r', encoding='UTF-8') as file:
         yaml.dump(classifications, file)
 
     previous_classifications = classifications
     while True:
         time.sleep(60)
-        with open('ap_classifications.yaml', 'w', encoding='UTF-8') as file:
+        with open('ap_classifications.yaml', 'w+', encoding='UTF-8') as file:
             dumped_classifications = dict(yaml.safe_load(file))
             if (sys.getsizeof(classifications) > sys.getsizeof(previous_classifications)) or (sys.getsizeof(dumped_classifications) > sys.getsizeof(classifications)):
                 logger.info("Updating classifications file.")
