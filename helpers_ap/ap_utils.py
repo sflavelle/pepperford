@@ -288,7 +288,7 @@ def classify(game: str, item: Item|CollectedItem):
     item = item.name
 
     # Some (meta)games items will always be progression, and don't usually need tracking
-    if game in ['SlotLock']: return 'progression'
+    if game in ['SlotLock', "Simon Tatham's Portable Puzzle Collection"]: return 'progression'
     
     if game in classifications and item in classifications[game]:
         return classifications[game][item]
