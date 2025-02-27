@@ -358,8 +358,21 @@ def process_releases():
             time.sleep(2)
             send_release_messages()
 
+def save_classifications():
+    global classifications
+    previous_classifications = classifications
+    while True:
+        time.sleep(60)
+        if sys.getsizeof(classifications) > sys.getsizeof(previous_classifications):
+            logger.info("Updating classifications file.")
+            with open('ap_classifications.yaml', 'w', encoding='UTF-8') as file:
+                yaml.dump(classifications, file)
+            previous_classifications = classifications
+
 if __name__ == "__main__":
     logger.info(f"logging messages from AP Room ID {room_id} to webhook {webhook_url}")
     release_thread = threading.Thread(target=process_releases)
+    classification_thread = threading.Thread(target=save_classifications)
     release_thread.start()
+    classification_thread.start()
     watch_log(log_url, INTERVAL)

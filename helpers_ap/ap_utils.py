@@ -38,6 +38,9 @@ class Item:
 
     def is_found(self):
         return self.found
+    
+    def is_not_important(self):
+        return self.classification in ['progression', 'useful']
 
 class CollectedItem(Item):
     def __init__(self, sender, receiver, item, location, game: str = None):
@@ -293,6 +296,4 @@ def classify(game: str, item: Item|CollectedItem):
         if game not in classifications:
             classifications[game] = {}
         classifications[game][item] = None
-        with open('ap_classifications.yaml', 'w', encoding='UTF-8') as file:
-            yaml.dump(classifications, file)
         return None
