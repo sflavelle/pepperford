@@ -1,16 +1,6 @@
-import yaml
-import requests
 import datetime
 import time
 from zoneinfo import ZoneInfo
-
-try:
-    with open('ap_classifications.yaml', 'r', encoding='UTF-8') as file:
-        classifications = dict(yaml.safe_load(file))
-except FileNotFoundError:
-    classifications = {}
-except TypeError:
-    classifications = {}
 
 class Item:
     """An Archipelago item in the multiworld"""
@@ -21,7 +11,7 @@ class Item:
         self.game = game
         self.location = location
         self.location_entrance = entrance
-        self.classification = classify(self.game, self)
+        self.classification = None # Deal with this again later once I've figuerd out a schema
         self.found = False
         self.hinted = False
         self.spoiled = False
@@ -284,18 +274,3 @@ def handle_location_tracking(player: Player, location: str):
             case _:
                 return location
     return location
-
-def classify(game: str, item: Item|CollectedItem):
-    global classifications
-    item = item.name
-
-    # Some (meta)games items will always be progression, and don't usually need tracking
-    if game in ['SlotLock', "Simon Tatham's Portable Puzzle Collection"]: return 'progression'
-    
-    if game in classifications and item in classifications[game]:
-        return classifications[game][item]
-    else:
-        if game not in classifications:
-            classifications[game] = {}
-        classifications[game][item] = None
-        return None
