@@ -9,6 +9,8 @@ try:
         classifications = dict(yaml.safe_load(file))
 except FileNotFoundError:
     classifications = {}
+except TypeError:
+    classifications = {}
 
 class Item:
     """An Archipelago item in the multiworld"""
@@ -40,7 +42,7 @@ class Item:
         return self.found
     
     def is_not_important(self):
-        return self.classification in ['progression', 'useful']
+        return self.classification not in ['progression', 'useful', 'trap']
 
 class CollectedItem(Item):
     def __init__(self, sender, receiver, item, location, game: str = None):
