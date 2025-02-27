@@ -364,7 +364,7 @@ def save_classifications():
     global classifications
 
     logger.info("Updating classifications file.")
-    with open('ap_classifications.yaml', 'r', encoding='UTF-8') as file:
+    with open('ap_classifications.yaml', 'w', encoding='UTF-8') as file:
         yaml.dump(classifications, file)
 
     previous_classifications = classifications
