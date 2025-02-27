@@ -5,11 +5,11 @@ import re
 import os
 import sys
 import logging
+import yaml
 from collections import defaultdict
 import requests
 import threading
-from helpers_ap.ap_classes import Item, CollectedItem, Player, APEvent
-from helpers_ap.ap_utils import handle_item_tracking, handle_location_tracking
+from helpers_ap.ap_utils import Item, CollectedItem, Player, handle_item_tracking, handle_location_tracking, classifications
 
 # setup logging
 logger = logging.getLogger('ap_itemlog')
@@ -129,16 +129,16 @@ def process_spoiler_log(seed_url):
                 if match := regex_patterns['location'].match(line):
                     item_location, sender, item, receiver = match.groups()
                     if item_location not in game["spoiler"][sender]["locations"]:
-                        SentItemObject = Item(sender,receiver,item,item_location)
+                        SentItemObject = Item(sender,receiver,item,item_location,game=players[receiver].game)
                         game["spoiler"][sender]["locations"].update({item_location: SentItemObject})
                         players[sender].locations.update({item_location: SentItemObject})
                     if item not in game["spoiler"][receiver]["items"]:
-                        ReceivedItemObject = CollectedItem(sender,receiver,item,item_location)
+                        ReceivedItemObject = CollectedItem(sender,receiver,item,item_location,game=players[receiver].game)
                         game["spoiler"][receiver]['items'].update({item: ReceivedItemObject})
             case "Starting Items":
                 if match := regex_patterns['starting_item'].match(line):
                     item, receiver = match.groups()
-                    ItemObject = CollectedItem("Archipelago",receiver,item,"Starting Items")
+                    ItemObject = CollectedItem("Archipelago",receiver,item,"Starting Items",game=players[receiver].game)
                     players[receiver].collect(ItemObject)
             case _:
                 continue
@@ -164,9 +164,9 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
             timestamp, sender, item, receiver, item_location = match.groups()
 
             # Mark item as collected 
-            SentItemObject = Item(sender,receiver,item,item_location)
+            SentItemObject = Item(sender,receiver,item,item_location,game=players[receiver].game)
             game["spoiler"][sender]["locations"].update({item_location: SentItemObject})
-            ReceivedItemObject = CollectedItem(sender,receiver,item,item_location)
+            ReceivedItemObject = CollectedItem(sender,receiver,item,item_location,game=players[receiver].game)
             players[receiver].collect(ReceivedItemObject)
             players[sender].send(SentItemObject)
             game["spoiler"][sender]["locations"][item_location].collect()
@@ -208,7 +208,7 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
                 entrance = match.group('entrance')
             else: entrance = None
 
-            SentItemObject = Item(sender,receiver,item,item_location,entrance)
+            SentItemObject = Item(sender,receiver,item,item_location,game=players[receiver].game,entrance=entrance)
             if item_location not in game["spoiler"][sender]["locations"]:
                 game["spoiler"][sender]["locations"][item_location] = SentItemObject
             else: SentItemObject = game["spoiler"][sender]["locations"].get(item_location)
@@ -229,6 +229,8 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
             players[sender].released = True
             if not skip_msg:
                 logging.info("Release detected.")
+                message = f"**{sender}** has released their remaining items."
+                message_buffer.append(message)
                 release_buffer[sender] = {
                     'timestamp': to_epoch(timestamp),
                     'items': defaultdict(list)
@@ -288,7 +290,12 @@ def send_release_messages():
                 handle_currency(receiver,item_counts)
                 item_list = ', '.join(
                     [f"{item} (x{count})" if count > 1 else item for item, count in item_counts.items()])
-                message += f"\n{dim_if_goaled(receiver)}**{receiver}** receives: {item_list}"
+                current_line = f"\n{dim_if_goaled(receiver)}**{receiver}** receives: {item_list}"
+                if len(message + current_line) >= 2000: # Discord message character limit
+                    send_to_discord(message)
+                    message = "(cont'd)" + current_line
+                else:
+                    message = message + current_line
             send_to_discord(message)
             logger.info(f"{sender} release sent.")
             del release_buffer[sender]
@@ -337,6 +344,8 @@ def watch_log(url, interval):
                 send_to_discord('\n'.join(message_buffer))
                 logger.info(f"sent {len(message_buffer)} messages to webhook")
                 message_buffer.clear()
+            with open('ap_classifications.yaml', 'w', encoding='UTF-8') as file:
+                yaml.dump(classifications, file)
             previous_lines = current_lines
 
 def process_releases():
