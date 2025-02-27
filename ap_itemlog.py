@@ -334,6 +334,8 @@ def watch_log(url, interval):
     process_new_log_lines(previous_lines, True) # Read for hints etc
     release_buffer = {}
     logger.info(f"Initial log lines: {len(previous_lines)}")
+    classification_thread = threading.Thread(target=save_classifications)
+    classification_thread.start()
     while True:
         time.sleep(interval)
         current_lines = fetch_log(url)
@@ -360,6 +362,11 @@ def process_releases():
 
 def save_classifications():
     global classifications
+
+    logger.info("Updating classifications file.")
+    with open('ap_classifications.yaml', 'w', encoding='UTF-8') as file:
+        yaml.dump(classifications, file)
+
     previous_classifications = classifications
     while True:
         time.sleep(60)
@@ -372,7 +379,5 @@ def save_classifications():
 if __name__ == "__main__":
     logger.info(f"logging messages from AP Room ID {room_id} to webhook {webhook_url}")
     release_thread = threading.Thread(target=process_releases)
-    classification_thread = threading.Thread(target=save_classifications)
     release_thread.start()
-    classification_thread.start()
     watch_log(log_url, INTERVAL)
