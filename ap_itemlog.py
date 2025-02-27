@@ -282,6 +282,8 @@ def send_release_messages():
         if time.time() - data['timestamp'] > 1:
             message = f"**{sender}** has released their remaining items."
             for receiver, items in data['items'].items():
+                if players[receiver].is_finished():
+                    continue
                 item_counts = defaultdict(int)
                 for item in items:
                     item_counts[item] += 1
