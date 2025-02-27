@@ -373,10 +373,10 @@ def save_classifications():
         with open('ap_classifications.yaml', 'w', encoding='UTF-8') as file:
             dumped_classifications = dict(yaml.safe_load(file))
             if (sys.getsizeof(classifications) > sys.getsizeof(previous_classifications)) or (sys.getsizeof(dumped_classifications) > sys.getsizeof(classifications)):
-            logger.info("Updating classifications file.")
-            classifications = classifications | dumped_classifications
-            yaml.dump(classifications, file)
-            previous_classifications = classifications
+                logger.info("Updating classifications file.")
+                classifications = classifications | dumped_classifications
+                yaml.dump(classifications, file)
+                previous_classifications = classifications
 
 if __name__ == "__main__":
     logger.info(f"logging messages from AP Room ID {room_id} to webhook {webhook_url}")
