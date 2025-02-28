@@ -168,9 +168,9 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
             timestamp, sender, item, receiver, item_location = match.groups()
 
             # Mark item as collected 
-            SentItemObject = Item(sender,receiver,item,item_location)
+            SentItemObject = Item(sender,receiver,item,item_location,game=players[receiver].game)
             game["spoiler"][sender]["locations"].update({item_location: SentItemObject})
-            ReceivedItemObject = CollectedItem(sender,receiver,item,item_location)
+            ReceivedItemObject = CollectedItem(sender,receiver,item,item_location,game=players[receiver].game)
             players[receiver].collect(ReceivedItemObject)
             players[sender].send(SentItemObject)
             game["spoiler"][sender]["locations"][item_location].collect()
