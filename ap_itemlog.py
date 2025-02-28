@@ -301,7 +301,7 @@ def send_release_messages():
                 item_list = ', '.join(
                     [f"{item} (x{count})" if count > 1 else item for item, count in item_counts.items()])
                 running_message += f"\n{dim_if_goaled(receiver)}**{receiver}** receives: {item_list}"
-                if running_message > MAX_MSG_LENGTH:
+                if len(running_message) > MAX_MSG_LENGTH:
                     send_to_discord(message)
                     message = running_message.replace('\n','')
                 else:
