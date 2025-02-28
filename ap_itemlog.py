@@ -256,7 +256,7 @@ def send_release_messages():
             'A Hat in Time': (re.compile(r'^([0-9]+) Pons$'), "Pons"),
             'Final Fantasy': (re.compile(r'^Gold([0-9]+)$'), "Gold"),
             'Jak and Daxter The Precursor Legacy': (re.compile(r'^([0-9]+) Precursor Orbs?$'), "Precursor Orbs"),
-            "Link's Awakening DX": (re.compile(r'^([0-9]+) Rupees'), "Rupees"),
+            "Links Awakening DX": (re.compile(r'^([0-9]+) Rupees$'), "Rupees"),
             'Link to the Past': (re.compile(r'^Rupees? \(([0-9]+)\)$'), "Rupees"),
             'Ocarina of Time': (re.compile(r'^Rupees? \(([0-9]+)\)$'), "Rupees"),
             'Super Mario World': (re.compile(r'^([0-9]+) coins?$'), "Coins"),
