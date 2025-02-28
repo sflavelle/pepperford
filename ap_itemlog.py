@@ -175,7 +175,7 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
 
             # If this is part of a release, send it there instead
             if sender in release_buffer and not skip_msg and (to_epoch(timestamp) - release_buffer[sender]['timestamp'] <= 2):
-                release_buffer[sender]['items'][receiver].append(item)
+                release_buffer[sender]['items'][receiver].append(ReceivedItemObject)
                 logger.info(f"Adding {item} for {receiver} to release buffer.")
             else:
                 # Skip sending a message on exceptional circumstances
@@ -289,6 +289,7 @@ def send_release_messages():
                     continue
                 item_counts = defaultdict(int)
                 for item in items:
+                    if item.is_not_important(): continue
                     item_counts[item] += 1
                 handle_currency(receiver,item_counts)
                 item_list = ', '.join(
