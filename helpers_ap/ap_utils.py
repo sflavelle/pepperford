@@ -322,12 +322,8 @@ def item_classification(item: Item|CollectedItem, player: Player = None):
         case _:
             cursor = classify.cursor()
 
-            # Does the table even have any data?
-            try:
-                has_data = cursor.execute("SELECT EXISTS (SELECT 1 FROM item_classifications);")
-            except sqlite3.OperationalError:
-                cursor.execute("CREATE TABLE IF NOT EXISTS item_classification (game, item, classification, UNIQUE(game, item) ON CONFLICT REPLACE)")
-                classify.commit()
+            cursor.execute("CREATE TABLE IF NOT EXISTS item_classification (game, item, classification, UNIQUE(game, item) ON CONFLICT REPLACE)")
+            classify.commit()
 
             try:
                 classification = cursor.execute("SELECT classification FROM item_classification WHERE game = ? AND item = ?;", (item.game, item.name))
