@@ -41,6 +41,8 @@ api_url = f"https://{hostname}/api/room_status/{room_id}"
 
 # Time interval between checks (in seconds)
 INTERVAL = 30
+# Maximum Discord message length in characters
+MAX_MSG_LENGTH = 2000
 
 # Buffer to store release and related sent item messages
 release_buffer = {}
@@ -281,6 +283,7 @@ def send_release_messages():
     for sender, data in release_buffer.copy().items():
         if time.time() - data['timestamp'] > 1:
             message = f"**{sender}** has released their remaining items."
+            running_message = message
             for receiver, items in data['items'].items():
                 if players[receiver].is_finished():
                     continue
@@ -290,7 +293,12 @@ def send_release_messages():
                 handle_currency(receiver,item_counts)
                 item_list = ', '.join(
                     [f"{item} (x{count})" if count > 1 else item for item, count in item_counts.items()])
-                message += f"\n{dim_if_goaled(receiver)}**{receiver}** receives: {item_list}"
+                running_message += f"\n{dim_if_goaled(receiver)}**{receiver}** receives: {item_list}"
+                if running_message > MAX_MSG_LENGTH:
+                    send_to_discord(message)
+                    message = running_message.replace('\n','')
+                else:
+                    message = running_message
             send_to_discord(message)
             logger.info(f"{sender} release sent.")
             del release_buffer[sender]
