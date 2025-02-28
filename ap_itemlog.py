@@ -295,7 +295,7 @@ def send_release_messages():
                     continue
                 item_counts = defaultdict(int)
                 for item in items:
-                    if item.is_not_important(): continue
+                    if item.is_filler(): continue
                     item_counts[item.name] += 1
                 handle_currency(receiver,item_counts)
                 item_list = ', '.join(
