@@ -1,6 +1,13 @@
 import datetime
 import time
+import sqlite3
+import logging
 from zoneinfo import ZoneInfo
+
+# setup logging
+logger = logging.getLogger('ap_itemlog')
+
+classification_cache = {}
 
 class Item:
     """An Archipelago item in the multiworld"""
@@ -11,10 +18,13 @@ class Item:
         self.game = game
         self.location = location
         self.location_entrance = entrance
-        self.classification = None # Deal with this again later once I've figuerd out a schema
+        self.classification = item_classification(self)
         self.found = False
         self.hinted = False
         self.spoiled = False
+
+        if self.game == None:
+            logger.warning(f"Item object for {self.name} has no game associated with it?")
     
     def __str__(self):
         return self.name
@@ -31,8 +41,8 @@ class Item:
     def is_found(self):
         return self.found
     
-    def is_not_important(self):
-        return self.classification not in ['progression', 'useful', 'trap']
+    def is_filler(self):
+        return self.classification == "filler"
 
 class CollectedItem(Item):
     def __init__(self, sender, receiver, item, location, game: str = None):
@@ -274,3 +284,73 @@ def handle_location_tracking(player: Player, location: str):
             case _:
                 return location
     return location
+
+classify = sqlite3.connect("apitems.db",autocommit=False)
+
+def item_classification(item: Item|CollectedItem, player: Player = None):
+    """Refer to the itemdb and see whether the provided Item has a classification.
+    If it doesn't, creates a new entry for that item with no classification.
+    
+    We can pass this through an intermediate step to assume things about
+    some common items, but not everything.
+    """
+
+    global classification_cache
+    permitted_values = ["progression", "conditional progression", "useful", "currency", "filler", "trap"]
+    response = None # What we will ultimately return
+
+    if item.game is None:
+        return None
+
+    if item.game in classification_cache and item.name in classification_cache[item.game]:
+        return classification_cache[item.game][item.name]
+
+    def progression_condition(prog_setting: str, value_true: str, value_false: str):
+        """If an item is classified differently based on a world setting, see if that setting is true.
+        If so, return value_true. Otherwise, return value_false."""
+
+        if prog_setting in player.settings:
+            if player.settings[prog_setting] is True: return value_true
+        else: return value_false
+
+    # Some games are 'simple' enough that everything (or near everything) is progression
+    match item.game:
+        case "Simon Tatham's Portable Puzzle Collection":
+            if item.name == "Filler": response = "filler"
+            else: response = "progression"
+        case "SlotLock"|"APBingo": response = "progression" # metagames are generally always progression
+        case _:
+            cursor = classify.cursor()
+
+            # Does the table even have any data?
+            try:
+                has_data = cursor.execute("SELECT EXISTS (SELECT 1 FROM item_classifications);")
+            except sqlite3.OperationalError:
+                cursor.execute("CREATE TABLE IF NOT EXISTS item_classification (game, item, classification, UNIQUE(game, item) ON CONFLICT REPLACE)")
+                classify.commit()
+
+            try:
+                classification = cursor.execute("SELECT classification FROM item_classification WHERE game = ? AND item = ?;", (item.game, item.name))
+                response = classification.fetchone()[0]
+                logger.debug(response)
+                if response == "conditional progression":
+                    # Progression in certain settings, otherwise useful/filler
+                    pass #for now
+                elif response not in permitted_values:
+                    response = None
+            except TypeError:
+                logger.debug("Nothing found for this item, likely")
+                logger.info(f"itemsdb: adding {item.game}: {item.name} to the db")
+                cursor.execute("INSERT INTO item_classification VALUES (?, ?, ?)", (item.game, item.name, None))
+                classify.commit()
+            finally:
+                pass
+            # except sqlite3.OperationalError:
+            #     logger.info(f"itemsdb: adding {item.game}: {item.name} to the db")
+            #     cursor.execute("INSERT INTO item_classification VALUES (?, ?, ?)", (item.game, item.name, None))
+            #     classify.commit()
+    logger.debug(f"itemsdb: classified {item.game}: {item.name} as {response}")
+    if item.game not in classification_cache:
+        classification_cache[item.game] = {}
+    classification_cache[item.game][item.name] = response.lower() if bool(response) else None
+    return classification_cache[item.game][item.name]

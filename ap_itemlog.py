@@ -5,7 +5,6 @@ import re
 import os
 import sys
 import logging
-import yaml
 from collections import defaultdict
 import requests
 import threading
@@ -130,17 +129,17 @@ def process_spoiler_log(seed_url):
             case "Locations":
                 if match := regex_patterns['location'].match(line):
                     item_location, sender, item, receiver = match.groups()
+                    ItemObject = Item(sender,receiver,item,item_location,game=players[receiver].game)
                     if item_location not in game["spoiler"][sender]["locations"]:
-                        SentItemObject = Item(sender,receiver,item,item_location)
-                        game["spoiler"][sender]["locations"].update({item_location: SentItemObject})
-                        players[sender].locations.update({item_location: SentItemObject})
+                        game["spoiler"][sender]["locations"].update({item_location: ItemObject})
+                        players[sender].locations.update({item_location: ItemObject})
                     if item not in game["spoiler"][receiver]["items"]:
-                        ReceivedItemObject = CollectedItem(sender,receiver,item,item_location)
+                        ReceivedItemObject = CollectedItem(sender,receiver,item,item_location,game=players[receiver].game)
                         game["spoiler"][receiver]['items'].update({item: ReceivedItemObject})
             case "Starting Items":
                 if match := regex_patterns['starting_item'].match(line):
                     item, receiver = match.groups()
-                    ItemObject = CollectedItem("Archipelago",receiver,item,"Starting Items")
+                    ItemObject = CollectedItem("Archipelago",receiver,item,"Starting Items",game=players[receiver].game)
                     players[receiver].collect(ItemObject)
             case _:
                 continue
@@ -173,15 +172,14 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
             players[sender].send(SentItemObject)
             game["spoiler"][sender]["locations"][item_location].collect()
 
+            # By vote of spotzone: if it's filler, don't post it
+            if ReceivedItemObject.is_filler(): continue
+
             # If this is part of a release, send it there instead
             if sender in release_buffer and not skip_msg and (to_epoch(timestamp) - release_buffer[sender]['timestamp'] <= 2):
                 release_buffer[sender]['items'][receiver].append(ReceivedItemObject)
                 logger.info(f"Adding {item} for {receiver} to release buffer.")
             else:
-                # Skip sending a message on exceptional circumstances
-                # Case 1: TUNIC Grass in grass locations (grass rando)
-                if item == "Grass" and players[sender].game == "TUNIC" and "Grass" in item_location:
-                    continue
                 # Update item name based on settings for special items
                 location = item_location
                 if bool(players[receiver].settings):
@@ -210,7 +208,7 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
                 entrance = match.group('entrance')
             else: entrance = None
 
-            SentItemObject = Item(sender,receiver,item,item_location,entrance)
+            SentItemObject = Item(sender,receiver,item,item_location,game=players[receiver].game,entrance=entrance)
             if item_location not in game["spoiler"][sender]["locations"]:
                 game["spoiler"][sender]["locations"][item_location] = SentItemObject
             else: SentItemObject = game["spoiler"][sender]["locations"].get(item_location)
