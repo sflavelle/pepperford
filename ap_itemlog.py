@@ -129,6 +129,8 @@ def process_spoiler_log(seed_url):
             case "Locations":
                 if match := regex_patterns['location'].match(line):
                     item_location, sender, item, receiver = match.groups()
+                    if item_location == item and sender == receiver:
+                        continue # Most likely an event, can be skipped
                     ItemObject = Item(sender,receiver,item,item_location,game=players[receiver].game)
                     if item_location not in game["spoiler"][sender]["locations"]:
                         game["spoiler"][sender]["locations"].update({item_location: ItemObject})
@@ -173,7 +175,7 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
             game["spoiler"][sender]["locations"][item_location].collect()
 
             # By vote of spotzone: if it's filler, don't post it
-            if ReceivedItemObject.is_filler(): continue
+            if ReceivedItemObject.is_filler() or ReceivedItemObject.is_currency(): continue
 
             # If this is part of a release, send it there instead
             if sender in release_buffer and not skip_msg and (to_epoch(timestamp) - release_buffer[sender]['timestamp'] <= 2):
@@ -259,6 +261,7 @@ def send_release_messages():
             "Links Awakening DX": (re.compile(r'^([0-9]+) Rupees$'), "Rupees"),
             'Link to the Past': (re.compile(r'^Rupees? \(([0-9]+)\)$'), "Rupees"),
             'Ocarina of Time': (re.compile(r'^Rupees? \(([0-9]+)\)$'), "Rupees"),
+            'Pokemon FireRed and LeafGreen': (re.compile(r'^([0-9]+) Coins?$'), "Coins"),
             'Super Mario World': (re.compile(r'^([0-9]+) coins?$'), "Coins"),
         }
 

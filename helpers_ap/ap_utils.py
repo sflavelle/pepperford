@@ -43,6 +43,8 @@ class Item:
     
     def is_filler(self):
         return self.classification == "filler"
+    def is_currency(self):
+        return self.classification == "currency"
 
 class CollectedItem(Item):
     def __init__(self, sender, receiver, item, location, game: str = None):
@@ -248,13 +250,13 @@ def handle_item_tracking(player: Player, item: str):
                     required = 3
                     return f"{item} ({count}/{required})"
             case "Wario Land 4":
-                if item.endswith("Jewel Piece"):
+                if item.endswith("Piece"):
                     # Gather up all the jewels
-                    jewels = ["Emerald", "Entry", "Golden", "Ruby", "Sapphire", "Topaz"]
+                    jewels = ["Emerald", "Entry Jewel", "Golden Jewel", "Ruby", "Sapphire", "Topaz"]
                     parts = ["Bottom Left", "Bottom Right", "Top Left", "Top Right"]
                     jewel = next(j for j in jewels if j in item)
                     # 
-                    jewel_count = len([i for i in player.items if f"{jewel} Jewel Piece" in i])
+                    jewel_count = len([i for i in player.items if f"{jewel} Piece" in i])
                     jewel_required = 4
                     jewels_complete = len(
                         [j for j in jewels 
