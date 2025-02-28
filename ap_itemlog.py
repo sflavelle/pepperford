@@ -263,7 +263,7 @@ def send_release_messages():
             'Link to the Past': (re.compile(r'^Rupees? \(([0-9]+)\)$'), "Rupees"),
             'Ocarina of Time': (re.compile(r'^Rupees? \(([0-9]+)\)$'), "Rupees"),
             'Pokemon FireRed and LeafGreen': (re.compile(r'^([0-9]+) Coins?$'), "Coins"),
-            'Sonic Adventure 2 Battle': (re.compile(r'^([0-9]+) Coins?$'), "Coins"),
+            'Sonic Adventure 2 Battle': (re.compile(r'^(\w+) Coins?$'), "Coins"),
             'Super Mario World': (re.compile(r'^([0-9]+) coins?$'), "Coins"),
         }
 
