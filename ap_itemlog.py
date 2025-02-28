@@ -9,6 +9,7 @@ from collections import defaultdict
 import requests
 import threading
 from helpers_ap.ap_utils import Item, CollectedItem, Player, handle_item_tracking, handle_location_tracking
+from word2number import w2n
 
 # setup logging
 logger = logging.getLogger('ap_itemlog')
@@ -262,6 +263,7 @@ def send_release_messages():
             'Link to the Past': (re.compile(r'^Rupees? \(([0-9]+)\)$'), "Rupees"),
             'Ocarina of Time': (re.compile(r'^Rupees? \(([0-9]+)\)$'), "Rupees"),
             'Pokemon FireRed and LeafGreen': (re.compile(r'^([0-9]+) Coins?$'), "Coins"),
+            'Sonic Adventure 2 Battle': (re.compile(r'^([0-9]+) Coins?$'), "Coins"),
             'Super Mario World': (re.compile(r'^([0-9]+) coins?$'), "Coins"),
         }
 
@@ -269,7 +271,10 @@ def send_release_messages():
             try:
                 for item, count in itemlist.copy().items():
                     if match := currency_matches[players[receiver].game][0].match(item):
-                        amount = int(match.groups()[0])
+                        if players[receiver].game == "Sonic Adventure 2 Battle":
+                            amount = w2n.word_to_num(match.groups()[0]) # why you make me do this
+                        else:
+                            amount = int(match.groups()[0])
                         currency = currency + (amount * count)
                         del itemlist[item]
                 if currency > 0:
