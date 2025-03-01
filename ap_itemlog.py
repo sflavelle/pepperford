@@ -225,7 +225,7 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
             timestamp, sender = match.groups()
             if sender not in players: players[sender] = {"goaled": True}
             players[sender].goaled = True
-            message = f"**{sender} has finished!** That's {len([p for p in players.values() if p.is_goaled()])}/{len(players)} goaled! ({len([p for p in players.values() if p.is_finished()])}/{len(players)} + releases)"
+            message = f"**{sender} has finished!** That's {len([p for p in players.values() if p.is_goaled()])}/{len(players)} goaled! ({len([p for p in players.values() if p.is_finished()])}/{len(players)} including releases)"
             if not skip_msg: message_buffer.append(message)
         elif match := regex_patterns['releases'].match(line):
             timestamp, sender = match.groups()
