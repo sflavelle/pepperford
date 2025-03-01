@@ -301,10 +301,12 @@ def item_classification(item: Item|CollectedItem, player: Player = None):
     permitted_values = ["progression", "conditional progression", "useful", "currency", "filler", "trap"]
     response = None # What we will ultimately return
 
+    cache_timeout = 2*60*60 # 2 hours
+
     if item.game is None:
         return None
 
-    if item.game in classification_cache and item.name in classification_cache[item.game]:
+    if (item.game in classification_cache and item.name in classification_cache[item.game]) and (time.time() - classification_cache[item.game][item.name][1] < cache_timeout):
         return classification_cache[item.game][item.name]
 
     def progression_condition(prog_setting: str, value_true: str, value_false: str):
@@ -350,5 +352,5 @@ def item_classification(item: Item|CollectedItem, player: Player = None):
     logger.debug(f"itemsdb: classified {item.game}: {item.name} as {response}")
     if item.game not in classification_cache:
         classification_cache[item.game] = {}
-    classification_cache[item.game][item.name] = response.lower() if bool(response) else None
-    return classification_cache[item.game][item.name]
+    classification_cache[item.game][item.name] = (response.lower(), time.time()) if bool(response) else (None, time.time())
+    return classification_cache[item.game][item.name][0]
