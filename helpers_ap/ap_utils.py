@@ -306,14 +306,14 @@ def item_classification(item: Item|CollectedItem, player: Player = None):
     permitted_values = ["progression", "conditional progression", "useful", "currency", "filler", "trap"]
     response = None # What we will ultimately return
 
-    cache_timeout = 2*60*60 # 2 hours
+    cache_timeout = 1*60*60 # 1 hour(s)
 
     if item.game is None:
         return None
 
     if (item.game in classification_cache and item.name in classification_cache[item.game]):
-        if bool(classification_cache[item.game][item.name][1]) and (time.time() - classification_cache[item.game][item.name][1] < cache_timeout):
-            logger.info(f"Invalidating cache for {item.game}: {item.name}")
+        if bool(classification_cache[item.game][item.name][1]) and (time.time() - classification_cache[item.game][item.name][1] > cache_timeout):
+            logger.debug(f"Invalidating cache for {item.game}: {item.name}")
         else:
             return classification_cache[item.game][item.name][0]
 
