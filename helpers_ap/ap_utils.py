@@ -18,7 +18,7 @@ class Item:
         self.game = game
         self.location = location
         self.location_entrance = entrance
-        self.classification = item_classification(self)[0]
+        self.classification = item_classification(self)
         self.found = False
         self.hinted = False
         self.spoiled = False
@@ -312,7 +312,7 @@ def item_classification(item: Item|CollectedItem, player: Player = None):
         return None
 
     if (item.game in classification_cache and item.name in classification_cache[item.game]) and (time.time() - classification_cache[item.game][item.name][1] < cache_timeout):
-        return classification_cache[item.game][item.name]
+        return classification_cache[item.game][item.name][0]
 
     def progression_condition(prog_setting: str, value_true: str, value_false: str):
         """If an item is classified differently based on a world setting, see if that setting is true.
