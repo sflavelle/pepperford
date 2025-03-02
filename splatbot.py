@@ -11,7 +11,7 @@ import yaml
 from aioconsole import aexec
 from contextlib import closing
 import sqlite3
-import psycopg2
+import psycopg2 as psql
 from discord import app_commands
 from discord.ext import commands
 
@@ -173,7 +173,7 @@ async def ap_itemlog_sql(interaction: discord.Interaction, cmd: str):
             if bool(resp):
                 await interaction.response.send_message(str(resp), ephemeral=True)
             else:
-                await interaction.response.send_message(f"SQL command sent.")
+                await interaction.response.send_message(f"SQL command sent.",ephemeral=True)
 
 
 @splatbot.tree.command()
