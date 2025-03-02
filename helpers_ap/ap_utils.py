@@ -334,8 +334,8 @@ def item_classification(item: Item|CollectedItem, player: Player = None):
             cursor.execute("CREATE TABLE IF NOT EXISTS item_classification (game bpchar, item bpchar, classification varchar(32))")
 
             try:
-                classification = cursor.execute("SELECT classification FROM item_classification WHERE game = %s AND item = %s;", (item.game, item.name))
-                response = classification.fetchone()[0]
+                cursor.execute("SELECT classification FROM item_classification WHERE game = %s AND item = %s;", (item.game, item.name))
+                response = cursor.fetchone()[0]
                 logger.debug(response)
                 if response == "conditional progression":
                     # Progression in certain settings, otherwise useful/filler
