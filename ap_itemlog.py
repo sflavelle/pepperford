@@ -175,6 +175,8 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
             players[sender].send(SentItemObject)
             game["spoiler"][sender]["locations"][item_location].collect()
 
+            if not skip_msg: logger.info(f"{sender}: {item_location} -> {receiver}'s {item} ({ReceivedItemObject.classification})")
+
             # By vote of spotzone: if it's filler, don't post it
             if ReceivedItemObject.is_filler() or ReceivedItemObject.is_currency(): continue
 
