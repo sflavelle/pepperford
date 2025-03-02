@@ -18,7 +18,7 @@ class Item:
         self.game = game
         self.location = location
         self.location_entrance = entrance
-        self.classification = item_classification(self)
+        self.classification = item_classification(self)[0]
         self.found = False
         self.hinted = False
         self.spoiled = False
