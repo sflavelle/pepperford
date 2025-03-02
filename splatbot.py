@@ -168,12 +168,14 @@ async def ap_itemlog_sql(interaction: discord.Interaction, cmd: str):
         host="localhost"
     ) as conn:
         with conn.cursor() as curs:
-            curs.execute(cmd)
-            resp = curs.fetchone()
-            if bool(resp):
-                await interaction.response.send_message(str(resp), ephemeral=True)
-            else:
-                await interaction.response.send_message(f"SQL command sent.",ephemeral=True)
+            try:
+                curs.execute(cmd)
+                resp = curs.fetchone()
+                if bool(resp):
+                    await interaction.response.send_message(str(resp), ephemeral=True)
+                else:
+                    await interaction.response.send_message(f"SQL command sent.",ephemeral=True)
+            except (psql.errors.UndefinedColumn) as e:
 
 
 @splatbot.tree.command()

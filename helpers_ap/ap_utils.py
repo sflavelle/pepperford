@@ -311,7 +311,9 @@ def item_classification(item: Item|CollectedItem, player: Player = None):
     if item.game is None:
         return None
 
-    if (item.game in classification_cache and item.name in classification_cache[item.game]) and (time.time() - classification_cache[item.game][item.name][1] < cache_timeout):
+    if (item.game in classification_cache and item.name in classification_cache[item.game]):
+        if time.time() - classification_cache[item.game][item.name][1] < cache_timeout:
+            logger.info(f"Invalidating cache for {item.game}: {item.name}")
         return classification_cache[item.game][item.name][0]
 
     def progression_condition(prog_setting: str, value_true: str, value_false: str):

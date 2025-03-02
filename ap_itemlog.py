@@ -168,12 +168,19 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
             timestamp, sender, item, receiver, item_location = match.groups()
 
             # Mark item as collected 
-            SentItemObject = Item(sender,receiver,item,item_location,game=players[receiver].game)
-            game["spoiler"][sender]["locations"].update({item_location: SentItemObject})
-            ReceivedItemObject = CollectedItem(sender,receiver,item,item_location,game=players[receiver].game)
-            players[receiver].collect(ReceivedItemObject)
-            players[sender].send(SentItemObject)
-            game["spoiler"][sender]["locations"][item_location].collect()
+            try: 
+                SentItemObject = Item(sender,receiver,item,item_location,game=players[receiver].game)
+                game["spoiler"][sender]["locations"].update({item_location: SentItemObject})
+                ReceivedItemObject = CollectedItem(sender,receiver,item,item_location,game=players[receiver].game)
+                players[receiver].collect(ReceivedItemObject)
+                players[sender].send(SentItemObject)
+                game["spoiler"][sender]["locations"][item_location].collect()
+            except KeyError as e:
+                logger.error(f"""Sent Item Object Creation error:\n
+                             Parsed item name: {item}\n
+                             Receiver: {receiver}\n
+                             Location: {item_location}\n
+                             Error: {str(e)}""", e, exc_info=True)
 
             if not skip_msg: logger.info(f"{sender}: {item_location} -> {receiver}'s {item} ({ReceivedItemObject.classification})")
 
