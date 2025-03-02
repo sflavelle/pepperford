@@ -347,7 +347,7 @@ def item_classification(item: Item|CollectedItem, player: Player = None):
                 logger.info(f"itemsdb: adding {item.game}: {item.name} to the db")
                 cursor.execute("INSERT INTO item_classification VALUES (%s, %s, %s)", (item.game, item.name, None))
             finally:
-                pass
+                sqlcon.commit()
     logger.debug(f"itemsdb: classified {item.game}: {item.name} as {response}")
     if item.game not in classification_cache:
         classification_cache[item.game] = {}
