@@ -312,7 +312,7 @@ def item_classification(item: Item|CollectedItem, player: Player = None):
         return None
 
     if (item.game in classification_cache and item.name in classification_cache[item.game]):
-        if time.time() - classification_cache[item.game][item.name][1] < cache_timeout:
+        if bool(classification_cache[item.game][item.name][1]) and (time.time() - classification_cache[item.game][item.name][1] < cache_timeout):
             logger.info(f"Invalidating cache for {item.game}: {item.name}")
         else:
             return classification_cache[item.game][item.name][0]
