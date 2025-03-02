@@ -10,6 +10,7 @@ import requests
 import yaml
 from aioconsole import aexec
 from contextlib import closing
+import sqlite3
 import psycopg2
 from discord import app_commands
 from discord.ext import commands
