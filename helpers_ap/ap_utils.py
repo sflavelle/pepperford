@@ -1,6 +1,6 @@
 import datetime
 import time
-import sqlite3
+import psycopg2 as psql
 import logging
 from zoneinfo import ZoneInfo
 
@@ -287,7 +287,12 @@ def handle_location_tracking(player: Player, location: str):
                 return location
     return location
 
-classify = sqlite3.connect("apitems.db",autocommit=False)
+sqlcon = psql.connect(
+    dbname="archipelago",
+    user="postgres",
+    host="localhost"
+)
+
 
 def item_classification(item: Item|CollectedItem, player: Player = None):
     """Refer to the itemdb and see whether the provided Item has a classification.
@@ -324,13 +329,12 @@ def item_classification(item: Item|CollectedItem, player: Player = None):
             else: response = "progression"
         case "SlotLock"|"APBingo": response = "progression" # metagames are generally always progression
         case _:
-            cursor = classify.cursor()
+            cursor = sqlcon.cursor()
 
-            cursor.execute("CREATE TABLE IF NOT EXISTS item_classification (game, item, classification, UNIQUE(game, item) ON CONFLICT REPLACE)")
-            classify.commit()
+            cursor.execute("CREATE TABLE IF NOT EXISTS item_classification (game bpchar, item bpchar, classification varchar(32))")
 
             try:
-                classification = cursor.execute("SELECT classification FROM item_classification WHERE game = ? AND item = ?;", (item.game, item.name))
+                classification = cursor.execute("SELECT classification FROM item_classification WHERE game = %s AND item = %s;", (item.game, item.name))
                 response = classification.fetchone()[0]
                 logger.debug(response)
                 if response == "conditional progression":
@@ -341,14 +345,9 @@ def item_classification(item: Item|CollectedItem, player: Player = None):
             except TypeError:
                 logger.debug("Nothing found for this item, likely")
                 logger.info(f"itemsdb: adding {item.game}: {item.name} to the db")
-                cursor.execute("INSERT INTO item_classification VALUES (?, ?, ?)", (item.game, item.name, None))
-                classify.commit()
+                cursor.execute("INSERT INTO item_classification VALUES (%s, %s, %s)", (item.game, item.name, None))
             finally:
                 pass
-            # except sqlite3.OperationalError:
-            #     logger.info(f"itemsdb: adding {item.game}: {item.name} to the db")
-            #     cursor.execute("INSERT INTO item_classification VALUES (?, ?, ?)", (item.game, item.name, None))
-            #     classify.commit()
     logger.debug(f"itemsdb: classified {item.game}: {item.name} as {response}")
     if item.game not in classification_cache:
         classification_cache[item.game] = {}
