@@ -10,7 +10,7 @@ import requests
 import yaml
 from aioconsole import aexec
 from contextlib import closing
-import sqlite3
+import psycopg2
 from discord import app_commands
 from discord.ext import commands
 
@@ -158,6 +158,22 @@ async def ap_itemlog_stop(interaction: discord.Interaction, guild: str):
 #         app_commands.Choice(name=str(choice), value=choice)
 #         for choice in choices
 #     ]
+
+@ap_itemlog.command(name="sql")
+async def ap_itemlog_sql(interaction: discord.Interaction, cmd: str):
+    with psql.connect(
+        dbname="archipelago",
+        user="postgres",
+        host="localhost"
+    ) as conn:
+        with conn.cursor() as curs:
+            curs.execute(cmd)
+            resp = curs.fetchone()
+            if bool(resp):
+                await interaction.response.send_message(str(resp), ephemeral=True)
+            else:
+                await interaction.response.send_message(f"SQL command sent.")
+
 
 @splatbot.tree.command()
 async def eval(interaction: discord.Interaction):
