@@ -176,6 +176,7 @@ async def ap_itemlog_sql(interaction: discord.Interaction, cmd: str):
                 else:
                     await interaction.response.send_message(f"SQL command sent.",ephemeral=True)
             except (psql.errors.UndefinedColumn) as e:
+                raise
 
 
 @splatbot.tree.command()
