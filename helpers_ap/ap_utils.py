@@ -314,7 +314,8 @@ def item_classification(item: Item|CollectedItem, player: Player = None):
     if (item.game in classification_cache and item.name in classification_cache[item.game]):
         if time.time() - classification_cache[item.game][item.name][1] < cache_timeout:
             logger.info(f"Invalidating cache for {item.game}: {item.name}")
-        return classification_cache[item.game][item.name][0]
+        else:
+            return classification_cache[item.game][item.name][0]
 
     def progression_condition(prog_setting: str, value_true: str, value_false: str):
         """If an item is classified differently based on a world setting, see if that setting is true.
