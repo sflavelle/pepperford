@@ -182,7 +182,7 @@ def handle_item_tracking(player: Player, item: str):
             case "Archipela-Go!":
                 if settings['Goal'] == "Long Macguffin" and len(item) == 1:
                     items = list("Archipela-Go!")
-                    collected = [i for i in player.items if i.name in items and i.found is True]
+                    collected = [i for i in player.items if i in items and i.is_found()]
                     collected_string = ""
                     for i in items:
                         if i in collected: collected_string += i
