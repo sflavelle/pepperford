@@ -213,7 +213,7 @@ def handle_item_tracking(player: Player, item: str):
                 if item.startswith("Level Access"):
                     count = len([i for i in player.items if i.startswith("Level Access")])
                     total = len(settings['Included Levels'].split(', '))
-                    return f"{item ({count}/{total})}"
+                    return f"{item} ({count}/{total})"
                 if item.startswith("Level Clear"):
                     count = len([i for i in player.items if i.startswith("Level Clear")])
                     # Currently (2 Mar 25) must complete all levels to goal
