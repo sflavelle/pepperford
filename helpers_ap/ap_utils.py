@@ -179,7 +179,15 @@ def handle_item_tracking(player: Player, item: str):
                             required = len(parts)
                             count = len([i for i in player.items if i in parts])
                             return f"{item} ({relic} {count}/{required})"
-
+            case "Archipela-Go!":
+                if settings['Goal'] == "Long Macguffin" and len(item) == 1:
+                    items = list("Archipela-Go!")
+                    collected = [i for i in player.items if i.name in items and i.found is True]
+                    collected_string = ""
+                    for i in items:
+                        if i in collected: collected_string += i
+                        else: collected_string += "_"
+                    return f"{item} ({collected_string})"
             case "DOOM 1993":
                 if item.endswith(" - Complete"):
                     count = len([i for i in player.items if i.endswith(" - Complete")])
@@ -208,7 +216,7 @@ def handle_item_tracking(player: Player, item: str):
                     return f"{item ({count}/{total})}"
                 if item.startswith("Level Clear"):
                     count = len([i for i in player.items if i.startswith("Level Clear")])
-                    # Currently (2 Feb 25) must complete all levels to goal
+                    # Currently (2 Mar 25) must complete all levels to goal
                     required = len(settings['Included Levels'].split(', '))
                     return f"{item ({count}/{required})}"
             case "Here Comes Niko!":
