@@ -218,7 +218,7 @@ def handle_item_tracking(player: Player, item: str):
                     count = len([i for i in player.items if i.startswith("Level Clear")])
                     # Currently (2 Mar 25) must complete all levels to goal
                     required = len(settings['Included Levels'].split(', '))
-                    return f"{item ({count}/{required})}"
+                    return f"{item} ({count}/{required})"
             case "Here Comes Niko!":
                 if item == "Cassette":
                     required = max({k: v for k, v in settings.items() if "Cassette Cost" in k}.values())
