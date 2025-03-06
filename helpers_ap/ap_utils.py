@@ -232,6 +232,13 @@ def handle_item_tracking(player: Player, item: str):
                     required = 5
                     count = player.items[item].count
                     return f"{item} ({count}/{required})"
+            case "Muse Dash":
+                if item == "Music Sheet":
+                    count = player.items[item].count
+                    song_count = settings['Starting Song Count'] + settings['Additional Song Count']
+                    total = round(song_count * (settings['Music Sheet Percentage'] / 100))
+                    required = round(total / (settings['Music Sheets Needed to Win'] / 100))
+                    return f"{item} ({count}/{required})"
             case "Ocarina of Time":
                 if item == "Triforce Piece" and settings['Triforce Hunt'] is True:
                     required = settings['Required Triforce Pieces']
