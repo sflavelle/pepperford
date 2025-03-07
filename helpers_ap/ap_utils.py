@@ -244,6 +244,9 @@ def handle_item_tracking(player: Player, item: str):
                     required = 5
                     count = player.items[item].count
                     return f"{item} ({count}/{required})"
+            case "Hollow Knight":
+                # There'll probably be something here later
+                return item.replace("_", " ").replace("-"," - ")
             case "Muse Dash":
                 if item == "Music Sheet":
                     count = player.items[item].count
@@ -315,6 +318,9 @@ def handle_location_tracking(player: Player, location: str):
         game = player.game
 
         match game:
+            case "Hollow Knight":
+                # There'll probably be something here later
+                return location.replace("_", " ").replace("-"," - ")
             case "Simon Tatham's Portable Puzzle Collection":
                 required = round(settings['puzzle_count'] 
                                  * (settings['Target Completion Percentage'] / 100))
