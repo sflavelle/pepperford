@@ -226,7 +226,7 @@ def handle_item_tracking(player: Player, item: str):
                     subitem,map = item_match.groups()
                     collected_string = str()
                     keys = [f"{color}{key}" for color in ["Blue","Yellow","Red"] for key in ["Skull", "Card"]]
-                    map_keys = [i for i in classification_cache['gzDoom'].keys() if (map in i and any([key in i for key in keys]))]
+                    map_keys = sorted([i for i in classification_cache['gzDoom'].keys() if (map in i and any([key in i for key in keys]))])
                     for i in map_keys:
                         if i in player.items: collected_string += i[0]
                         else: collected_string += "_"
