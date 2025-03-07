@@ -207,7 +207,7 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
                     message = f"{dim_if_goaled(receiver)}{sender} found **{receiver}'s hinted {item}** ({location})"
                 else:
                     message = f"{dim_if_goaled(receiver)}{sender} sent **{item}** to **{receiver}** ({location})"
-                if not skip_msg: message_buffer.append(message)
+                if not skip_msg: message_buffer.append(message.replace("_","\_"))
 
 
         elif match := regex_patterns['item_hints'].match(line):
