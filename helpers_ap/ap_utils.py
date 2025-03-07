@@ -211,7 +211,7 @@ def handle_item_tracking(player: Player, item: str):
                         required = required + 2 # Wolfenstein/Grosse
                     return f"{item} ({count}/{required})"
             case "gzDoom":
-                item_regex = re.compile(r"^([a-zA-Z]+) \(([A-Z_]{,8})\)$")
+                item_regex = re.compile(r"^([a-zA-Z]+) \((\S+)\)$")
                 if item.startswith("Level Access"):
                     count = len([i for i in player.items if i.startswith("Level Access")])
                     total = len(settings['Included Levels'].split(', '))
