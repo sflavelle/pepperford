@@ -1,5 +1,6 @@
 import datetime
 import time
+import re
 import psycopg2 as psql
 import logging
 from zoneinfo import ZoneInfo
@@ -210,6 +211,7 @@ def handle_item_tracking(player: Player, item: str):
                         required = required + 2 # Wolfenstein/Grosse
                     return f"{item} ({count}/{required})"
             case "gzDoom":
+                item_regex = re.compile(r"^([a-zA-Z]+) \(([A-Z_]{,8})\)$")
                 if item.startswith("Level Access"):
                     count = len([i for i in player.items if i.startswith("Level Access")])
                     total = len(settings['Included Levels'].split(', '))
@@ -219,6 +221,15 @@ def handle_item_tracking(player: Player, item: str):
                     # Currently (2 Mar 25) must complete all levels to goal
                     required = len(settings['Included Levels'].split(', '))
                     return f"{item} ({count}/{required})"
+                if any([item.startswith(color) for color in ["Blue","Yellow","Red"]]):
+                    item_match = item_regex.match(item)
+                    subitem,map = item_match.groups()
+                    keys = [f"{color}{key}" for color in ["Blue","Yellow","Red"] for key in ["Skull", "Card"]]
+                    map_keys = [i for i in classification_cache['gzDoom'].keys() if (map in i and any([key in i for key in keys]))]
+                    for i in map_keys:
+                        if i in player.items: collected_string += i[0]
+                        else: collected_string += "_"
+                    return f"{item} ({collected_string})"
             case "Here Comes Niko!":
                 if item == "Cassette":
                     required = max({k: v for k, v in settings.items() if "Cassette Cost" in k}.values())
