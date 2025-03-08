@@ -108,6 +108,8 @@ async def ap_itemlog_start(interaction: discord.Interaction, webhook: str, log_u
     env['WEBHOOK_URL'] = webhook
     env['SESSION_COOKIE'] = cfg['bot']['archipelago']['session_cookie']
     env['SPOILER_URL'] = spoiler_url if spoiler_url else None
+    env['MSGHOOK_URL'] = log['msghook'] if log['msghook'] else None
+    
 
     ping = requests.get(webhook, timeout=1)
 
@@ -278,6 +280,7 @@ async def on_ready():
             env['WEBHOOK_URL'] = log['webhook']
             env['SESSION_COOKIE'] = cfg['bot']['archipelago']['session_cookie']
             env['SPOILER_URL'] = log['spoiler_url'] if log['spoiler_url'] else None
+            env['MSGHOOK_URL'] = log['msghook'] if log['msghook'] else None
         
             try: 
                 script_path = os.path.join(os.path.dirname(__file__), 'ap_itemlog.py')

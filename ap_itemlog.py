@@ -28,6 +28,7 @@ session_cookie = os.getenv('SESSION_COOKIE')
 
 # Extra info for additional features
 seed_url = os.getenv('SPOILER_URL')
+msg_webhook = os.getenv('MSGHOOK_URL')
 
 if not (bool(log_url) or bool(webhook_url) or bool(session_cookie)):
     logger.error("Something required isn't configured properly!")
@@ -160,7 +161,8 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
             r'\[(.*?)\]: Notice \(Team #\d\): \[Hint\]: (.*?)\'s (.*) is at (.*) in (.*?)\'s World(?: at (?P<entrance>(.+)))?\.(?<! \(found\))$'),
         'goals': re.compile(r'\[(.*?)\]: Notice \(all\): (.*?) \(Team #\d\) has completed their goal\.$'),
         'releases': re.compile(
-            r'\[(.*?)\]: Notice \(all\): (.*?) \(Team #\d\) has released all remaining items from their world\.$')
+            r'\[(.*?)\]: Notice \(all\): (.*?) \(Team #\d\) has released all remaining items from their world\.$'),
+        'messages': re.compile(r'\[(.*?)\]: Notice \(all\): (.*?): (.+)$')
     }
 
     for line in new_lines:
@@ -245,6 +247,23 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
                     'timestamp': to_epoch(timestamp),
                     'items': defaultdict(list)
                 }
+        elif match := regex_patterns['messages'].match(line):
+            timestamp, sender, message = match.groups()
+            if msg_webhook:
+                if message.startswith("!"): continue # don't send commands
+                else:
+                    send_chat(sender, message)
+
+def send_chat(sender, message):
+    payload = {
+        "username": sender,
+        "content": message
+    }
+    try:
+        response = requests.post(msg_webhook, json=payload, timeout=5)
+        response.raise_for_status()
+    except requests.RequestException as e:
+        logging.error(f"Error sending message to Discord: {e}")
 
 
 def send_to_discord(message):
