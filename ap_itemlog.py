@@ -312,7 +312,7 @@ def send_release_messages():
                 running_message += f"\n{dim_if_goaled(receiver)}**{receiver}** receives: {item_list}"
                 if len(running_message) > MAX_MSG_LENGTH:
                     send_to_discord(message)
-                    message = running_message.replace('\n','')
+                    message = running_message.replace(message, '').replace('\n','')
                 else:
                     message = running_message
             send_to_discord(message)
