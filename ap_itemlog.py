@@ -252,7 +252,7 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
             if msg_webhook:
                 if message.startswith("!"): continue # don't send commands
                 else:
-                    if not skip_msg: send_chat(sender, message)
+                    if not skip_msg and sender != "Cheat console": send_chat(sender, message)
 
 def send_chat(sender, message):
     payload = {
