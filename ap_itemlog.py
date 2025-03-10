@@ -129,6 +129,7 @@ def process_spoiler_log(seed_url):
             case "Locations":
                 if match := regex_patterns['location'].match(line):
                     item_location, sender, item, receiver = match.groups()
+                    item_location = item_location.lstrip()
                     if item_location == item and sender == receiver:
                         continue # Most likely an event, can be skipped
                     ItemObject = Item(game.players[sender],game.players[receiver],item,item_location)
@@ -183,12 +184,15 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
             # By vote of spotzone: if it's filler, don't post it
             if ReceivedItemObject.is_filler() or ReceivedItemObject.is_currency(): continue
 
+            # Update location totals
+            game.players[receiver].update_locations(game)
+            game.update_locations()
+
             # If this is part of a release, send it there instead
             if sender in release_buffer and not skip_msg and (to_epoch(timestamp) - release_buffer[sender]['timestamp'] <= 2):
                 release_buffer[sender]['items'][receiver].append(ReceivedItemObject)
                 logger.debug(f"Adding {item} for {receiver} to release buffer.")
             else:
-                game.players[receiver].update_locations(game)
                 # Update item name based on settings for special items
                 location = item_location
                 if bool(game.players[receiver].settings):
@@ -235,6 +239,8 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
             if sender not in game.players: game.players[sender] = {"goaled": True}
             game.players[sender].goaled = True
             message = f"**{sender} has finished!** That's {len([p for p in game.players.values() if p.is_goaled()])}/{len(game.players)} goaled! ({len([p for p in game.players.values() if p.is_finished()])}/{len(game.players)} including releases)"
+            if game.players[sender].collected_locations == game.players[sender].total_locations:
+                message += f"\n**Wow!** {sender} 100%ed their game before finishing, too!"
             if not skip_msg: message_buffer.append(message)
         elif match := regex_patterns['releases'].match(line):
             timestamp, sender = match.groups()
@@ -306,21 +312,21 @@ def send_release_messages():
             'Super Mario World': (re.compile(r'^([0-9]+) coins?$'), "Coins"),
         }
 
-        if players[receiver].game in currency_matches:
+        if game.players[receiver].game in currency_matches:
             try:
                 for item, count in itemlist.copy().items():
-                    if match := currency_matches[players[receiver].game][0].match(item):
-                        if players[receiver].game == "Sonic Adventure 2 Battle":
+                    if match := currency_matches[game.players[receiver].game][0].match(item):
+                        if game.players[receiver].game == "Sonic Adventure 2 Battle":
                             amount = w2n.word_to_num(match.groups()[0]) # why you make me do this
                         else:
                             amount = int(match.groups()[0])
                         currency = currency + (amount * count)
                         del itemlist[item]
                 if currency > 0:
-                    logger.info(f"Replacing (attempting) currency in {players[receiver].game} with '{currency} {currency_matches[players[receiver].game][1]}'")
-                    itemlist.update({f"{currency} {currency_matches[players[receiver].game][1]}": 1})
+                    logger.info(f"Replacing (attempting) currency in {game.players[receiver].game} with '{currency} {currency_matches[game.players[receiver].game][1]}'")
+                    itemlist.update({f"{currency} {currency_matches[game.players[receiver].game][1]}": 1})
             except KeyError:
-                logger.info(f"No currency handler for {players[receiver].game}, but handle_currency matched it anyway somehow!")
+                logger.info(f"No currency handler for {game.players[receiver].game}, but handle_currency matched it anyway somehow!")
                 raise
 
         return itemlist
@@ -330,7 +336,7 @@ def send_release_messages():
             message = f"**{sender}** has released their remaining items."
             running_message = message
             for receiver, items in data['items'].items():
-                if players[receiver].is_finished():
+                if game.players[receiver].is_finished():
                     continue
                 item_counts = defaultdict(int)
                 for item in items:
