@@ -48,7 +48,7 @@ class Item:
         self.spoiled = True
 
     def get_count(self) -> int:
-        return self.count
+        return 1
 
     def is_found(self):
         return self.found
@@ -74,6 +74,9 @@ class CollectedItem(Item):
         self.found = True
         self.locations.append(f"{sender} - {location}")
         self.count = len(self.locations)
+
+    def get_count(self) -> int:
+        return self.count
 
 class Player:
     def __init__(self,name,game):
