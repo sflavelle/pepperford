@@ -47,6 +47,9 @@ class Item:
     def spoil(self):
         self.spoiled = True
 
+    def get_count(self) -> int:
+        return self.count
+
     def is_found(self):
         return self.found
     
@@ -413,7 +416,7 @@ def item_classification(item: Item|CollectedItem, player: Player = None):
                     # Progression in certain settings, otherwise useful/filler
                     if item.game == "gzDoom":
                         # Weapons : extra copies can be filler
-                        if isinstance(item, CollectedItem) and item.count > 1:
+                        if isinstance(item, CollectedItem) and item.get_count() > 1:
                             response = "filler"
                     # After checking everything, if not re-classified, it's probably progression
                     if response == "conditional progression": response = "progression"
