@@ -10,42 +10,6 @@ logger = logging.getLogger('ap_itemlog')
 
 classification_cache = {}
 
-class Player:
-    def __init__(self,name,game):
-        self.name = name
-        self.game = game
-        self.items = {}
-        self.locations = {}
-        self.hints = {}
-        self.settings = PlayerSettings()
-        self.goaled = False
-        self.released = False
-
-    def __str__(self):
-        return self.name
-    
-    def collect(self, item: Item|CollectedItem):
-        if item.name in self.items:
-            self.items[item.name].collect(item.sender, item.location)
-        else:
-            self.items.update({item.name: item})
-            self.items[item.name].collect(item.sender, item.location)
-
-    def send(self, item: Item|CollectedItem):
-        if item.location not in self.locations:
-            self.locations.update({item.location: item})
-        self.locations[item.location].found = True
-
-    def is_finished(self) -> bool:
-        return self.goaled or self.released
-    
-    def is_goaled(self) -> bool:
-        return self.goaled
-    
-
-class PlayerSettings(dict):
-    def __init__(self):
-        pass
 class Item:
     """An Archipelago item in the multiworld"""
     def __init__(self, sender: str, receiver: str, item: str, location: str, game: str = None, entrance: str = None):
@@ -106,6 +70,43 @@ class CollectedItem(Item):
         self.locations.append(f"{sender} - {location}")
         self.count = len(self.locations)
 
+class Player:
+    def __init__(self,name,game):
+        self.name = name
+        self.game = game
+        self.items = {}
+        self.locations = {}
+        self.hints = {}
+        self.settings = PlayerSettings()
+        self.goaled = False
+        self.released = False
+
+    def __str__(self):
+        return self.name
+    
+    def collect(self, item: Item|CollectedItem):
+        if item.name in self.items:
+            self.items[item.name].collect(item.sender, item.location)
+        else:
+            self.items.update({item.name: item})
+            self.items[item.name].collect(item.sender, item.location)
+
+    def send(self, item: Item|CollectedItem):
+        if item.location not in self.locations:
+            self.locations.update({item.location: item})
+        self.locations[item.location].found = True
+
+    def is_finished(self) -> bool:
+        return self.goaled or self.released
+    
+    def is_goaled(self) -> bool:
+        return self.goaled
+    
+
+class PlayerSettings(dict):
+    def __init__(self):
+        pass
+    
 class APEvent:
     def __init__(self, event_type: str, timestamp: str, sender: str, receiver: str = None, location: str = None, item: str = None, extra: str = None):
         self.type = event_type
