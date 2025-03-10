@@ -212,13 +212,7 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
                         message = f"{dim_if_goaled(receiver)}{sender} sent **{item}** to **{receiver}** ({location})"
                     if not skip_msg: message_buffer.append(message.replace("_",r"\_"))
                 except KeyError as e:
-                    logger.error("Something went wrong parsing an item!",
-                                 {"Item": item,
-                                  "Item Location": item_location, 
-                                  "Sender": sender, 
-                                  "Receiver": receiver, 
-                                  "Log message": line, 
-                                  'error': e})
+                    logger.error("Something went wrong parsing an item!", e,exc_info=True)
 
 
         elif match := regex_patterns['item_hints'].match(line):
