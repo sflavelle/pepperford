@@ -8,14 +8,14 @@ import logging
 from collections import defaultdict
 import requests
 import threading
-from helpers_ap.ap_utils import Item, CollectedItem, Player, handle_item_tracking, handle_location_tracking
+from helpers_ap.ap_utils import Game, Item, CollectedItem, Player, handle_item_tracking, handle_location_tracking
 from word2number import w2n
 
 # setup logging
 logger = logging.getLogger('ap_itemlog')
 handler = logging.StreamHandler()
 handler.setFormatter(logging.Formatter('[%(name)s %(process)d][%(levelname)s] %(message)s'))
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 logger.addHandler(handler)
 
 # Disclaimer: Copilot helped me with the initial setup of this file.
@@ -50,19 +50,15 @@ release_buffer = {}
 message_buffer = []
 
 # Store for players, items, settings
-players = {}
-game = {
-    'settings': {},
-    'spoiler': {}
-}
+game = Game()
+
 
 # small functions
-goaled = lambda player : players[player].is_finished()
+goaled = lambda player : game.players[player].is_finished()
 dim_if_goaled = lambda p : "-# " if goaled(p) else ""
 to_epoch = lambda timestamp : time.mktime(datetime.datetime.strptime(timestamp, "%Y-%m-%d %H:%M:%S,%f").timetuple())
 
 def process_spoiler_log(seed_url):
-    global players
     global game
 
     spoiler_url = f"https://{hostname}/dl_spoiler/{seed_id}"
@@ -100,10 +96,6 @@ def process_spoiler_log(seed_url):
             parse_mode = "Players"
             working_player = line.strip().split(':', 1)[1].strip()
             logger.info(f"Parsing settings for player {working_player}")
-            game['spoiler'][working_player] = {
-                "items": {},
-                "locations": {}
-            }
         if line == "Locations:":
             parse_mode = "Locations"
             logger.info("Parsing multiworld locations")
@@ -117,40 +109,36 @@ def process_spoiler_log(seed_url):
         match parse_mode:
             case "Seed Info":
                 if line.startswith("Archipelago"):
-                    game["settings"]["version"] = line.split(' ')[2]
-                    game["settings"]["seed"] = parse_to_type(line.split(' ')[-1])
-                    logger.info(f"Parsing seed {game['settings']['seed']}")
-                    logger.info(f"Generated on Archipelago version {game['settings']['version']}")
+                    game.version_generator = line.split(' ')[2]
+                    game.seed = parse_to_type(line.split(' ')[-1])
+                    logger.info(f"Parsing seed {game.seed}")
+                    logger.info(f"Generated on Archipelago version {game.version_generator}")
                 else:
                     current_key, value = line.strip().split(':', 1)
-                    game["settings"][current_key.strip()] = parse_to_type(value.lstrip())
+                    game.world_settings[current_key.strip()] = parse_to_type(value.lstrip())
                 
             case "Players":
                 current_key, value = line.strip().split(':', 1)
                 if value.lstrip().startswith("[") or value.lstrip().startswith("{"): 
                     try:
-                        players[working_player].settings[current_key.strip()] = json.loads(value.lstrip())
+                        game.players[working_player].settings[current_key.strip()] = json.loads(value.lstrip())
                     except ValueError:
                         pass
                 else:
-                    players[working_player].settings[current_key.strip()] = parse_to_type(value.lstrip())
+                    game.players[working_player].settings[current_key.strip()] = parse_to_type(value.lstrip())
             case "Locations":
                 if match := regex_patterns['location'].match(line):
                     item_location, sender, item, receiver = match.groups()
                     if item_location == item and sender == receiver:
                         continue # Most likely an event, can be skipped
-                    ItemObject = Item(sender,receiver,item,item_location,game=players[receiver].game)
-                    if item_location not in game["spoiler"][sender]["locations"]:
-                        game["spoiler"][sender]["locations"].update({item_location: ItemObject})
-                        players[sender].locations.update({item_location: ItemObject})
-                    if item not in game["spoiler"][receiver]["items"]:
-                        ReceivedItemObject = CollectedItem(sender,receiver,item,item_location,game=players[receiver].game)
-                        game["spoiler"][receiver]['items'].update({item: ReceivedItemObject})
+                    ItemObject = Item(game.players[sender],game.players[receiver],item,item_location)
+                    if sender not in game.spoiler_log: game.spoiler_log.update({sender: {}})
+                    game.spoiler_log[sender].update({item_location: ItemObject})
             case "Starting Items":
                 if match := regex_patterns['starting_item'].match(line):
                     item, receiver = match.groups()
-                    ItemObject = CollectedItem("Archipelago",receiver,item,"Starting Items",game=players[receiver].game)
-                    players[receiver].collect(ItemObject)
+                    ItemObject = CollectedItem("Archipelago",game.players[receiver],item,"Starting Items")
+                    game.players[receiver].items[item] = ItemObject
             case _:
                 continue
     logger.info("Done parsing the spoiler log")
@@ -167,7 +155,9 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
         'goals': re.compile(r'\[(.*?)\]: Notice \(all\): (.*?) \(Team #\d\) has completed their goal\.$'),
         'releases': re.compile(
             r'\[(.*?)\]: Notice \(all\): (.*?) \(Team #\d\) has released all remaining items from their world\.$'),
-        'messages': re.compile(r'\[(.*?)\]: Notice \(all\): (.*?): (.+)$')
+        'messages': re.compile(r'\[(.*?)\]: Notice \(all\): (.*?): (.+)$'),
+        'joins': re.compile(r'\[(.*?)\]: Notice \(all\): (.*?) \(Team #\d\) playing (.+?) has joined. Client\(([0-9\.]+)\), (?P<tags>.+)\.$'),
+        'parts': re.compile(r'\[(.*?)\]: Notice \(all\): (.*?) \(Team #\d\) has left the game\. Client\(([0-9\.]+)\), (?P<tags>.+)\.$'),
     }
 
     for line in new_lines:
@@ -176,12 +166,14 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
 
             # Mark item as collected 
             try: 
-                SentItemObject = Item(sender,receiver,item,item_location,game=players[receiver].game)
-                game["spoiler"][sender]["locations"].update({item_location: SentItemObject})
-                ReceivedItemObject = CollectedItem(sender,receiver,item,item_location,game=players[receiver].game)
-                players[receiver].collect(ReceivedItemObject)
-                players[sender].send(SentItemObject)
-                game["spoiler"][sender]["locations"][item_location].collect()
+                SentItemObject = Item(game.players[sender],game.players[receiver],item,item_location)
+                SentItemObject.found = True
+                game.spoiler_log[sender].update({item_location: SentItemObject})
+                ReceivedItemObject = CollectedItem(game.players[sender],game.players[receiver],item,item_location)
+                if item in game.players[receiver].items: game.players[receiver].items[item].collect(sender, item_location)
+                else: game.players[receiver].items[item] = ReceivedItemObject
+                # players[sender].send(SentItemObject)
+                # game["spoiler"][sender]["locations"][item_location].collect()
             except KeyError as e:
                 logger.error(f"""Sent Item Object Creation error. Parsed item name: '{item}', Receiver: '{receiver}', Location: '{item_location}', Error: '{str(e)}'""", e, exc_info=True)
                 logger.error(f"Line being parsed: {line}")
@@ -196,21 +188,22 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
                 release_buffer[sender]['items'][receiver].append(ReceivedItemObject)
                 logger.debug(f"Adding {item} for {receiver} to release buffer.")
             else:
+                game.players[receiver].update_locations(game)
                 # Update item name based on settings for special items
                 location = item_location
-                if bool(players[receiver].settings):
+                if bool(game.players[receiver].settings):
                     try: 
-                        item = handle_item_tracking(players[receiver], item)
-                        location = handle_location_tracking(players[sender], item_location)
+                        item = handle_item_tracking(game, game.players[receiver], item)
+                        location = handle_location_tracking(game, game.players[sender], item_location)
                     except KeyError as e:
                         logger.error(f"Couldn't do tracking for item {item} or location {location}:", e, exc_info=True)
 
                 # Update the message appropriately
                 if sender == receiver:
                     message = f"**{sender}** found **their own {
-                        "hinted " if bool(game["spoiler"][sender]["locations"][item_location].hinted) else ""
+                        "hinted " if bool(game.spoiler_log[sender][item_location].hinted) else ""
                         }{item}** ({location})"
-                elif bool(game["spoiler"][sender]["locations"][item_location].hinted):
+                elif bool(game.spoiler_log[sender][item_location].hinted):
                     message = f"{dim_if_goaled(receiver)}{sender} found **{receiver}'s hinted {item}** ({location})"
                 else:
                     message = f"{dim_if_goaled(receiver)}{sender} sent **{item}** to **{receiver}** ({location})"
@@ -227,25 +220,25 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
                 entrance = match.group('entrance')
             else: entrance = None
 
-            SentItemObject = Item(sender,receiver,item,item_location,game=players[receiver].game,entrance=entrance)
-            if item_location not in game["spoiler"][sender]["locations"]:
-                game["spoiler"][sender]["locations"][item_location] = SentItemObject
-            else: SentItemObject = game["spoiler"][sender]["locations"].get(item_location)
+            SentItemObject = Item(game.players[sender],game.players[receiver],item,item_location,entrance=entrance)
+            if item_location not in game.spoiler_log[sender]:
+                game.spoiler_log[sender][item_location] = SentItemObject
+            else: SentItemObject = game.spoiler_log[sender].get(item_location)
             message = f"**[Hint]** **{receiver}'s {item}** is at {item_location} in {sender}'s World{f" (found at {entrance})" if bool(entrance) else ''}."
 
-            if not skip_msg and players[receiver].is_finished() is False and not SentItemObject.found: message_buffer.append(message)
-            SentItemObject.hint()
+            if not skip_msg and game.players[receiver].is_finished() is False and not SentItemObject.found: message_buffer.append(message)
+            game.spoiler_log[sender][item_location].hint()
 
 
         elif match := regex_patterns['goals'].match(line):
             timestamp, sender = match.groups()
-            if sender not in players: players[sender] = {"goaled": True}
-            players[sender].goaled = True
-            message = f"**{sender} has finished!** That's {len([p for p in players.values() if p.is_goaled()])}/{len(players)} goaled! ({len([p for p in players.values() if p.is_finished()])}/{len(players)} including releases)"
+            if sender not in game.players: game.players[sender] = {"goaled": True}
+            game.players[sender].goaled = True
+            message = f"**{sender} has finished!** That's {len([p for p in game.players.values() if p.is_goaled()])}/{len(game.players)} goaled! ({len([p for p in game.players.values() if p.is_finished()])}/{len(game.players)} including releases)"
             if not skip_msg: message_buffer.append(message)
         elif match := regex_patterns['releases'].match(line):
             timestamp, sender = match.groups()
-            players[sender].released = True
+            game.players[sender].released = True
             if not skip_msg:
                 logging.info("Release detected.")
                 release_buffer[sender] = {
@@ -257,9 +250,17 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
             if msg_webhook:
                 if message.startswith("!"): continue # don't send commands
                 else:
-                    if not skip_msg and sender != "Cheat console": 
+                    if not skip_msg and sender in game.players: 
                         logger.info(f"{sender}: {message}")
                         send_chat(sender, message)
+        elif match := regex_patterns['joins'].match(line):
+            timestamp, player, playergame, version, tags = match.groups()
+            if not skip_msg: logger.info(f"{player} ({playergame}) is online.")
+            game.players[player].set_online(True, timestamp)
+        elif match := regex_patterns['parts'].match(line):
+            timestamp, player, version, tags = match.groups()
+            if not skip_msg: logger.info(f"{player} is offline.")
+            game.players[player].set_online(False, timestamp)
         else:
             # Unmatched lines
             logger.debug(f"Unparsed line: {line}")
@@ -367,13 +368,11 @@ def watch_log(url, interval):
 
     logger.info("Fetching room info.")
     for player in requests.get(api_url).json()["players"]:
-        players[player[0]] = Player(
+        game.players[player[0]] = Player(
             name=player[0],
             game=player[1]
         )
-        game['spoiler'][player[0]] = {
-                "locations": {}
-            }
+        game.spoiler_log[player[0]] = {}
     del player
     if seed_url:
         logger.info("Processing spoiler log.")
@@ -383,6 +382,9 @@ def watch_log(url, interval):
     process_new_log_lines(previous_lines, True) # Read for hints etc
     release_buffer = {}
     logger.info(f"Initial log lines: {len(previous_lines)}")
+    for p in game.players.values():
+        p.update_locations(game)
+    game.update_locations()
     # classification_thread = threading.Thread(target=save_classifications)
     # classification_thread.start()
     logger.info("Ready!")

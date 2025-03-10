@@ -17,6 +17,75 @@ cache_timeout = 1*60*60 # 1 hour(s)
 
 item_table = {}
 
+class Game:
+    seed = None
+    version_generator = None
+    version_server = None
+    world_settings = {}
+    spoiler_log = {}
+    players = {}
+    collected_locations: int = 0
+    total_locations: int = 0
+
+    def update_locations(self):
+        self.collected_locations = sum([p.collected_locations for p in self.players.values()])
+        self.total_locations = sum([p.total_locations for p in self.players.values()])
+
+class Player:
+    name = None
+    game = None
+    items = {}
+    locations = {}
+    hints = {}
+    online = False
+    last_online = None
+    settings = None
+    goaled = False
+    released = False
+    collected_locations: int = 0
+    total_locations: int = 0
+
+    def __init__(self,name,game):
+        self.name = name
+        self.game = game
+        self.items = {}
+        self.locations = {}
+        self.hints = {
+            "sending": {},
+            "receiving": {}
+        }
+        self.settings = PlayerSettings()
+        self.goaled = False
+        self.released = False
+
+    def __str__(self):
+        return self.name
+
+    def is_finished(self) -> bool:
+        return self.goaled or self.released
+    
+    def is_goaled(self) -> bool:
+        return self.goaled
+    
+    def set_online(self, online: bool, timestamp: str):
+        self.online = online
+        self.last_online = time.mktime(datetime.datetime.strptime(timestamp, "%Y-%m-%d %H:%M:%S,%f").timetuple())
+
+    def last_seen(self):
+        if self.online is True:
+            return time.time()
+        else:
+            return self.last_online
+        
+    def update_locations(self, game: Game):
+        self.collected_locations = len([l for l in game.spoiler_log[self.name].values() if l.found is True])
+        self.locations = {l.location: l for l in game.spoiler_log[self.name].values() if l.found is True}
+        self.total_locations = len(game.spoiler_log[self.name])
+        
+    def update_hints(self, game: Game):
+        logger.info(f"Updating hint table for {self.name}.")
+        self.hints["sending"] = [i for i in game]
+
 class Item:
     """An Archipelago item in the multiworld"""
 
@@ -28,15 +97,18 @@ class Item:
     location_entrance = None
     classification = None
     count = 1
+    found = False
+    hinted = False
+    spoiled = False
 
-    def __init__(self, sender: str, receiver: str, item: str, location: str, game: str = None, entrance: str = None):
+    def __init__(self, sender: Player|str, receiver: Player, item: str, location: str, entrance: str = None):
         self.sender = sender
         self.receiver = receiver
         self.name = item
-        self.game = game
+        self.game = receiver.game
         self.location = location
         self.location_entrance = entrance
-        self.classification = item_classification(self)
+        self.classification = None
         self.count: int = 1
         self.found = False
         self.hinted = False
@@ -49,12 +121,6 @@ class Item:
             item_table[self.game] = {}
         if self.name not in item_table[self.game]:
             item_table[self.game][self.name] = self
-
-        # if (self.game in classification_cache and self.name in classification_cache[self.game]):
-        #     if bool(classification_cache[self.game][self.name][1]) and (time.time() - classification_cache[self.game][self.name][1] > cache_timeout):
-        #         self.invalidate_classification()
-        # else:
-        #     self.classification = item_classification(self)
     
     def __str__(self):
         return self.name
@@ -73,11 +139,6 @@ class Item:
 
     def is_found(self):
         return self.found
-    
-    def invalidate_classification(self):
-        logger.warning(f"Invalidating cache for {self.game}: {self.name}")
-        # del classification_cache[self.game][self.name]
-        self.classification = item_classification(self)
 
     
     def is_filler(self):
@@ -90,6 +151,10 @@ class CollectedItem(Item):
         super().__init__(sender, receiver, item, location, game)
         self.locations = [f"{sender} - {location}"]
         self.count: int = 0
+        self.classification = item_classification(self)
+
+        if self.classification is None:
+            logger.warning(f"Item {self.name} is not classified in the DB yet.")
 
     def collect(self, sender, location):
         self.found = True
@@ -98,39 +163,6 @@ class CollectedItem(Item):
 
     def get_count(self) -> int:
         return self.count
-
-class Player:
-    def __init__(self,name,game):
-        self.name = name
-        self.game = game
-        self.items = {}
-        self.locations = {}
-        self.hints = {}
-        self.settings = PlayerSettings()
-        self.goaled = False
-        self.released = False
-
-    def __str__(self):
-        return self.name
-    
-    def collect(self, item: Item|CollectedItem):
-        if item.name in self.items:
-            self.items[item.name].collect(item.sender, item.location)
-        else:
-            self.items.update({item.name: item})
-            self.items[item.name].collect(item.sender, item.location)
-
-    def send(self, item: Item|CollectedItem):
-        if item.location not in self.locations:
-            self.locations.update({item.location: item})
-        self.locations[item.location].found = True
-
-    def is_finished(self) -> bool:
-        return self.goaled or self.released
-    
-    def is_goaled(self) -> bool:
-        return self.goaled
-    
 
 class PlayerSettings(dict):
     def __init__(self):
@@ -155,7 +187,7 @@ class APEvent:
                 if not all([bool(criteria) for criteria in [self.sender, self.receiver, self.location, self.item]]):
                     raise ValueError(f"Invalid {self.type} event! Requires a sender, receiver, location, and item.")
 
-def handle_item_tracking(player: Player, item: str):
+def handle_item_tracking(game: Game, player: Player, item: str):
     """If an item is an important collectable of some kind, we should put some extra info in the item name for the logs."""
     global item_table
 
@@ -365,7 +397,7 @@ def handle_item_tracking(player: Player, item: str):
     # Return the same name if nothing matched (or no settings available)
     return item
 
-def handle_location_tracking(player: Player, location: str):
+def handle_location_tracking(game: Game, player: Player, location: str):
     """If checking a location is an indicator of progress, we should track that in the location name."""
 
     if bool(player.settings):
@@ -416,6 +448,14 @@ def item_classification(item: Item|CollectedItem, player: Player = None):
     if item.game is None:
         return None
 
+    if (item.game in classification_cache and item.name in classification_cache[item.game]):
+        if bool(classification_cache[item.game][item.name][1]) and (time.time() - classification_cache[item.game][item.name][1] > cache_timeout):
+            logger.warning(f"Invalidating cache for {item.game}: {item.name}")
+            del classification_cache[item.game][item.name]
+        else:
+            classification = classification_cache[item.game][item.name][0]
+            if classification != "conditional progression": return classification
+
     def progression_condition(prog_setting: str, value_true: str, value_false: str):
         """If an item is classified differently based on a world setting, see if that setting is true.
         If so, return value_true. Otherwise, return value_false."""
@@ -438,7 +478,6 @@ def item_classification(item: Item|CollectedItem, player: Player = None):
             try:
                 cursor.execute("SELECT classification FROM item_classification WHERE game = %s AND item = %s;", (item.game, item.name))
                 response = cursor.fetchone()[0]
-                logger.debug(response)
                 if response == "conditional progression":
                     # Progression in certain settings, otherwise useful/filler
                     if item.game == "gzDoom":
@@ -456,8 +495,8 @@ def item_classification(item: Item|CollectedItem, player: Player = None):
             finally:
                 sqlcon.commit()
     logger.debug(f"itemsdb: classified {item.game}: {item.name} as {response}")
-    # if item.game not in classification_cache:
-    #     classification_cache[item.game] = {}
-    # classification_cache[item.game][item.name] = (response.lower(), time.time()) if bool(response) else (None, time.time())
-    # return classification_cache[item.game][item.name][0]
-    return response
+    if item.game not in classification_cache:
+        classification_cache[item.game] = {}
+    classification_cache[item.game][item.name] = (response.lower(), time.time()) if bool(response) else (None, time.time())
+    return classification_cache[item.game][item.name][0]
+    # return response
