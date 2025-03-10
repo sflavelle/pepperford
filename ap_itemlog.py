@@ -385,6 +385,8 @@ def watch_log(url, interval):
     for p in game.players.values():
         p.update_locations(game)
     game.update_locations()
+    logger.info(f"Total Checks: {game.total_locations}")
+    logger.info(f"Checks Collected: {game.collected_locations}")
     # classification_thread = threading.Thread(target=save_classifications)
     # classification_thread.start()
     logger.info("Ready!")
