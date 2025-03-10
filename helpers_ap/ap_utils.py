@@ -11,6 +11,8 @@ logger = logging.getLogger('ap_itemlog')
 classification_cache = {}
 cache_timeout = 1*60*60 # 1 hour(s)
 
+item_table = {}
+
 class Item:
     """An Archipelago item in the multiworld"""
 
@@ -38,6 +40,11 @@ class Item:
 
         if self.game is None:
             logger.warning(f"Item object for {self.name} has no game associated with it?")
+        
+        if self.game not in item_table:
+            item_table[self.game] = {}
+        if self.name not in item_table[self.game]:
+            item_table[self.game][self.name] = self
 
         # if (self.game in classification_cache and self.name in classification_cache[self.game]):
         #     if bool(classification_cache[self.game][self.name][1]) and (time.time() - classification_cache[self.game][self.name][1] > cache_timeout):
@@ -146,6 +153,7 @@ class APEvent:
 
 def handle_item_tracking(player: Player, item: str):
     """If an item is an important collectable of some kind, we should put some extra info in the item name for the logs."""
+    global item_table
 
     if bool(player.settings):
         settings = player.settings
@@ -261,7 +269,7 @@ def handle_item_tracking(player: Player, item: str):
                         subitem,map = item_match.groups()
                         collected_string = str()
                         keys = [f"{color}{key}" for color in ["Blue","Yellow","Red"] for key in ["Skull", "Card"]]
-                        map_keys = sorted([i for i in classification_cache['gzDoom'].keys() if (i.endswith(f"({map})") and any([key in i for key in keys]))])
+                        map_keys = sorted([i for i in item_table['gzDoom'].keys() if (i.endswith(f"({map})") and any([key in i for key in keys]))])
                         for i in map_keys:
                             if i in player.items: collected_string += i[0]
                             else: collected_string += "_"
