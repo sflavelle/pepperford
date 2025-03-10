@@ -239,8 +239,10 @@ def handle_item_tracking(player: Player, item: str):
                     required = len(settings['Included Levels'].split(', '))
                     return f"{item} ({count}/{required})"
                 if any([item.startswith(color) for color in ["Blue","Yellow","Red"]]):
-                    item_match = item_regex.match(item)
-                    subitem,map = item_match.groups()
+                    try: 
+                        item_match = item_regex.match(item)
+                        subitem,map = item_match.groups()
+                    except AttributeError as e: logger.error(f"Error while parsing tracking info for item {item} in game {game}:",e,exc_info=True)
                     collected_string = str()
                     keys = [f"{color}{key}" for color in ["Blue","Yellow","Red"] for key in ["Skull", "Card"]]
                     map_keys = sorted([i for i in classification_cache['gzDoom'].keys() if (i.endswith(f"({map})") and any([key in i for key in keys]))])
