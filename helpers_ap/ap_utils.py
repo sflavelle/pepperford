@@ -21,6 +21,7 @@ class Item:
         self.location = location
         self.location_entrance = entrance
         self.classification = item_classification(self)
+        self.count = 1
         self.found = False
         self.hinted = False
         self.spoiled = False
