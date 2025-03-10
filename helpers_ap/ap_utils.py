@@ -10,63 +10,19 @@ logger = logging.getLogger('ap_itemlog')
 
 classification_cache = {}
 
-class Item:
-    """An Archipelago item in the multiworld"""
-    def __init__(self, sender: str, receiver: str, item: str, location: str, game: str = None, entrance: str = None):
-        self.sender = sender
-        self.receiver = receiver
-        self.name = item
-        self.game = game
-        self.location = location
-        self.location_entrance = entrance
-        self.classification = item_classification(self)
-        self.found = False
-        self.hinted = False
-        self.spoiled = False
-
-        if self.game == None:
-            logger.warning(f"Item object for {self.name} has no game associated with it?")
-    
-    def __str__(self):
-        return self.name
-
-    def collect(self):
-        self.found = True
-
-    def hint(self):
-        self.hinted = True
-
-    def spoil(self):
-        self.spoiled = True
-
-    def is_found(self):
-        return self.found
-    
-    def is_filler(self):
-        return self.classification == "filler"
-    def is_currency(self):
-        return self.classification == "currency"
-
-class CollectedItem(Item):
-    def __init__(self, sender, receiver, item, location, game: str = None):
-        super().__init__(sender, receiver, item, location, game)
-        self.locations = [f"{sender} - {location}"]
-        self.count: int = 0
-
-    def collect(self, sender, location):
-        self.found = True
-        self.locations.append(f"{sender} - {location}")
-        self.count = len(self.locations)
-
 class Player:
     def __init__(self,name,game):
         self.name = name
         self.game = game
         self.items = {}
         self.locations = {}
+        self.hints = {}
         self.settings = PlayerSettings()
         self.goaled = False
         self.released = False
+
+    def __str__(self):
+        return self.name
     
     def collect(self, item: Item|CollectedItem):
         if item.name in self.items:
@@ -90,6 +46,65 @@ class Player:
 class PlayerSettings(dict):
     def __init__(self):
         pass
+class Item:
+    """An Archipelago item in the multiworld"""
+    def __init__(self, sender: str, receiver: str, item: str, location: str, game: str = None, entrance: str = None):
+        self.sender = sender
+        self.receiver = receiver
+        self.name = item
+        self.game = game
+        self.location = location
+        self.location_entrance = entrance
+        self.classification = None
+        self.found = False
+        self.hinted = False
+        self.spoiled = False
+
+        if self.game == None:
+            logger.warning(f"Item object for {self.name} has no game associated with it?")
+
+        if (item.game in classification_cache and item.name in classification_cache[item.game]):
+            if bool(classification_cache[item.game][item.name][1]) and (time.time() - classification_cache[item.game][item.name][1] > cache_timeout):
+                self.invalidate_classification()
+        else:
+            self.classification = item_classification(self,self.receiver)
+    
+    def __str__(self):
+        return self.name
+
+    def collect(self):
+        self.found = True
+
+    def hint(self):
+        self.hinted = True
+
+    def spoil(self):
+        self.spoiled = True
+
+    def is_found(self):
+        return self.found
+    
+    def invalidate_classification(self):
+        logger.debug(f"Invalidating cache for {self.game}: {self.name}")
+        del classification_cache[self.game][self.name]
+        self.classification = item_classification(self)
+
+    
+    def is_filler(self):
+        return self.classification == "filler"
+    def is_currency(self):
+        return self.classification == "currency"
+
+class CollectedItem(Item):
+    def __init__(self, sender, receiver, item, location, game: str = None):
+        super().__init__(sender, receiver, item, location, game)
+        self.locations = [f"{sender} - {location}"]
+        self.count: int = 0
+
+    def collect(self, sender, location):
+        self.found = True
+        self.locations.append(f"{sender} - {location}")
+        self.count = len(self.locations)
 
 class APEvent:
     def __init__(self, event_type: str, timestamp: str, sender: str, receiver: str = None, location: str = None, item: str = None, extra: str = None):
@@ -230,6 +245,8 @@ def handle_item_tracking(player: Player, item: str):
                     for i in map_keys:
                         if i in player.items: collected_string += i[0]
                         else: collected_string += "_"
+                    if f"Level Access ({map})" not in player.items:
+                        collected_string = f"~~{collected_string}~~" # Strikethrough keys if not found
                     return f"{item} ({collected_string})"
             case "Here Comes Niko!":
                 if item == "Cassette":
@@ -263,6 +280,9 @@ def handle_item_tracking(player: Player, item: str):
                     required = 50
                     count = player.items[item].count
                     return f"{item} ({count}/{required})"
+                if item == "Progressive Wallet":
+                    capacities = ["99", "200", "500", "999"]
+                    return f"{item} ({capacities[player.items[item].count]} Capacity)"
             case "Simon Tatham's Portable Puzzle Collection":
                 # Tracking total access to puzzles instead of completion percentage, that's for the locations
                 total = settings['puzzle_count']
@@ -300,8 +320,8 @@ def handle_item_tracking(player: Player, item: str):
                     jewel_required = 4
                     jewels_complete = len(
                         [j for j in jewels 
-                         if len([f"{part} {j} Jewel Piece" for part in parts
-                             if f"{part} {j} Jewel Piece" in player.items]) == 4 ])
+                         if len([f"{part} {j} Piece" for part in parts
+                             if f"{part} {j} Piece" in player.items]) == 4 ])
                     jewels_required = settings['Required Jewels']
                     return f"{item} ({jewel_count}/{jewel_required}P|{jewels_complete}/{jewels_required}C)"
             case _:
@@ -346,7 +366,14 @@ def item_classification(item: Item|CollectedItem, player: Player = None):
     """
 
     global classification_cache
-    permitted_values = ["progression", "conditional progression", "useful", "currency", "filler", "trap"]
+    permitted_values = [
+        "progression", # Unlocks new checks
+        "conditional progression", # Progression overall, but maybe only in certain settings or certain qualities
+        "useful", # Good to have but doesn't unlock anything new
+        "currency", # Filler, but specifically currency
+        "filler", # Filler - not really necessary
+        "trap" # Negative effect upon the player
+        ]
     response = None # What we will ultimately return
 
     cache_timeout = 1*60*60 # 1 hour(s)
@@ -385,7 +412,12 @@ def item_classification(item: Item|CollectedItem, player: Player = None):
                 logger.debug(response)
                 if response == "conditional progression":
                     # Progression in certain settings, otherwise useful/filler
-                    pass #for now
+                    if player.game == "gzDoom":
+                        # Weapons : extra copies can be filler
+                        if player.items[item.name].count > 1:
+                            response = "filler"
+                    # After checking everything, if not re-classified, it's probably progression
+                    if response == "conditional progression": response = "progression"
                 elif response not in permitted_values:
                     response = None
             except TypeError:
