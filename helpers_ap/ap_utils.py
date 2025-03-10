@@ -242,16 +242,18 @@ def handle_item_tracking(player: Player, item: str):
                     try: 
                         item_match = item_regex.match(item)
                         subitem,map = item_match.groups()
-                    except AttributeError as e: logger.error(f"Error while parsing tracking info for item {item} in game {game}:",e,exc_info=True)
-                    collected_string = str()
-                    keys = [f"{color}{key}" for color in ["Blue","Yellow","Red"] for key in ["Skull", "Card"]]
-                    map_keys = sorted([i for i in classification_cache['gzDoom'].keys() if (i.endswith(f"({map})") and any([key in i for key in keys]))])
-                    for i in map_keys:
-                        if i in player.items: collected_string += i[0]
-                        else: collected_string += "_"
-                    if f"Level Access ({map})" not in player.items:
-                        collected_string = f"~~{collected_string}~~" # Strikethrough keys if not found
-                    return f"{item} ({collected_string})"
+                        collected_string = str()
+                        keys = [f"{color}{key}" for color in ["Blue","Yellow","Red"] for key in ["Skull", "Card"]]
+                        map_keys = sorted([i for i in classification_cache['gzDoom'].keys() if (i.endswith(f"({map})") and any([key in i for key in keys]))])
+                        for i in map_keys:
+                            if i in player.items: collected_string += i[0]
+                            else: collected_string += "_"
+                        if f"Level Access ({map})" not in player.items:
+                            collected_string = f"~~{collected_string}~~" # Strikethrough keys if not found
+                        return f"{item} ({collected_string})"
+                    except AttributeError as e:
+                        logger.error(f"Error while parsing tracking info for item {item} in game {game}:",e,exc_info=True)
+                        return item
             case "Here Comes Niko!":
                 if item == "Cassette":
                     required = max({k: v for k, v in settings.items() if "Cassette Cost" in k}.values())
