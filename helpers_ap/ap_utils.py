@@ -9,6 +9,7 @@ from zoneinfo import ZoneInfo
 logger = logging.getLogger('ap_itemlog')
 
 classification_cache = {}
+cache_timeout = 1*60*60 # 1 hour(s)
 
 class Item:
     """An Archipelago item in the multiworld"""
@@ -27,8 +28,8 @@ class Item:
         if self.game == None:
             logger.warning(f"Item object for {self.name} has no game associated with it?")
 
-        if (item.game in classification_cache and item.name in classification_cache[item.game]):
-            if bool(classification_cache[item.game][item.name][1]) and (time.time() - classification_cache[item.game][item.name][1] > cache_timeout):
+        if (self.game in classification_cache and self.name in classification_cache[self.game]):
+            if bool(classification_cache[self.game][self.name][1]) and (time.time() - classification_cache[self.game][self.name][1] > cache_timeout):
                 self.invalidate_classification()
         else:
             self.classification = item_classification(self,self.receiver)
@@ -106,7 +107,7 @@ class Player:
 class PlayerSettings(dict):
     def __init__(self):
         pass
-    
+
 class APEvent:
     def __init__(self, event_type: str, timestamp: str, sender: str, receiver: str = None, location: str = None, item: str = None, extra: str = None):
         self.type = event_type
@@ -377,16 +378,8 @@ def item_classification(item: Item|CollectedItem, player: Player = None):
         ]
     response = None # What we will ultimately return
 
-    cache_timeout = 1*60*60 # 1 hour(s)
-
     if item.game is None:
         return None
-
-    if (item.game in classification_cache and item.name in classification_cache[item.game]):
-        if bool(classification_cache[item.game][item.name][1]) and (time.time() - classification_cache[item.game][item.name][1] > cache_timeout):
-            logger.debug(f"Invalidating cache for {item.game}: {item.name}")
-        else:
-            return classification_cache[item.game][item.name][0]
 
     def progression_condition(prog_setting: str, value_true: str, value_false: str):
         """If an item is classified differently based on a world setting, see if that setting is true.
