@@ -15,7 +15,7 @@ from word2number import w2n
 logger = logging.getLogger('ap_itemlog')
 handler = logging.StreamHandler()
 handler.setFormatter(logging.Formatter('[%(name)s %(process)d][%(levelname)s] %(message)s'))
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.DEBUG)
 logger.addHandler(handler)
 
 # Disclaimer: Copilot helped me with the initial setup of this file.
@@ -99,15 +99,18 @@ def process_spoiler_log(seed_url):
         if line.startswith("Player "):
             parse_mode = "Players"
             working_player = line.strip().split(':', 1)[1].strip()
+            logger.info(f"Parsing settings for player {working_player}")
             game['spoiler'][working_player] = {
                 "items": {},
                 "locations": {}
             }
         if line == "Locations:":
             parse_mode = "Locations"
+            logger.info("Parsing multiworld locations")
             continue
         if line == "Starting Items:":
             parse_mode = "Starting Items"
+            logger.info("Parsing starting items")
         if line in ["Entrances:","Medallions:","Fairy Fountain Bottle Fill:", "Shops:"]:
             parse_mode = None
 
@@ -116,9 +119,12 @@ def process_spoiler_log(seed_url):
                 if line.startswith("Archipelago"):
                     game["settings"]["version"] = line.split(' ')[2]
                     game["settings"]["seed"] = parse_to_type(line.split(' ')[-1])
+                    logger.info(f"Parsing seed {game['settings']['seed']}")
+                    logger.info(f"Generated on Archipelago version {game['settings']['version']}")
                 else:
                     current_key, value = line.strip().split(':', 1)
                     game["settings"][current_key.strip()] = parse_to_type(value.lstrip())
+                
             case "Players":
                 current_key, value = line.strip().split(':', 1)
                 if value.lstrip().startswith("[") or value.lstrip().startswith("{"): 
@@ -147,8 +153,7 @@ def process_spoiler_log(seed_url):
                     players[receiver].collect(ItemObject)
             case _:
                 continue
-    logger.info(f"Parsed seed {game['settings']['seed']}")
-    logger.info(f"Generated on Archipelago version {game['settings']['version']}")
+    logger.info("Done parsing the spoiler log")
 
 def process_new_log_lines(new_lines, skip_msg: bool = False):
     global release_buffer
@@ -178,11 +183,8 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
                 players[sender].send(SentItemObject)
                 game["spoiler"][sender]["locations"][item_location].collect()
             except KeyError as e:
-                logger.error(f"""Sent Item Object Creation error:\n
-                             Parsed item name: {item}\n
-                             Receiver: {receiver}\n
-                             Location: {item_location}\n
-                             Error: {str(e)}""", e, exc_info=True)
+                logger.error(f"""Sent Item Object Creation error. Parsed item name: '{item}', Receiver: '{receiver}', Location: '{item_location}', Error: '{str(e)}'""", e, exc_info=True)
+                logger.error(f"Line being parsed: {line}")
 
             if not skip_msg: logger.info(f"{sender}: {item_location} -> {receiver}'s {item} ({ReceivedItemObject.classification})")
 
@@ -192,7 +194,7 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
             # If this is part of a release, send it there instead
             if sender in release_buffer and not skip_msg and (to_epoch(timestamp) - release_buffer[sender]['timestamp'] <= 2):
                 release_buffer[sender]['items'][receiver].append(ReceivedItemObject)
-                logger.info(f"Adding {item} for {receiver} to release buffer.")
+                logger.debug(f"Adding {item} for {receiver} to release buffer.")
             else:
                 # Update item name based on settings for special items
                 location = item_location
@@ -258,6 +260,9 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
                     if not skip_msg and sender != "Cheat console": 
                         logger.info(f"{sender}: {message}")
                         send_chat(sender, message)
+        else:
+            # Unmatched lines
+            logger.debug(f"Unparsed line: {line}")
 
 def send_chat(sender, message):
     payload = {
@@ -374,11 +379,13 @@ def watch_log(url, interval):
         logger.info("Processing spoiler log.")
         process_spoiler_log(seed_url)
     previous_lines = fetch_log(url)
+    logger.info("Parsing existing log lines before we start watching it...")
     process_new_log_lines(previous_lines, True) # Read for hints etc
     release_buffer = {}
     logger.info(f"Initial log lines: {len(previous_lines)}")
     # classification_thread = threading.Thread(target=save_classifications)
     # classification_thread.start()
+    logger.info("Ready!")
     while True:
         time.sleep(interval)
         current_lines = fetch_log(url)

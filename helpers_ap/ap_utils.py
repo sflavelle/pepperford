@@ -3,10 +3,14 @@ import time
 import re
 import psycopg2 as psql
 import logging
+import yaml
 from zoneinfo import ZoneInfo
 
 # setup logging
 logger = logging.getLogger('ap_itemlog')
+
+with open('config.yaml', 'r', encoding='UTF-8') as file:
+    cfg = yaml.safe_load(file)
 
 classification_cache = {}
 cache_timeout = 1*60*60 # 1 hour(s)
@@ -71,8 +75,8 @@ class Item:
         return self.found
     
     def invalidate_classification(self):
-        logger.debug(f"Invalidating cache for {self.game}: {self.name}")
-        del classification_cache[self.game][self.name]
+        logger.warning(f"Invalidating cache for {self.game}: {self.name}")
+        # del classification_cache[self.game][self.name]
         self.classification = item_classification(self)
 
     
@@ -381,10 +385,12 @@ def handle_location_tracking(player: Player, location: str):
                 return location
     return location
 
+sqlcfg = cfg['bot']['archipelago']['psql']
+
 sqlcon = psql.connect(
-    dbname="archipelago",
-    user="postgres",
-    host="localhost"
+    dbname=sqlcfg['database'],
+    user=sqlcfg['user'],
+    host=sqlcfg['host']
 )
 
 
@@ -396,7 +402,6 @@ def item_classification(item: Item|CollectedItem, player: Player = None):
     some common items, but not everything.
     """
 
-    global classification_cache
     permitted_values = [
         "progression", # Unlocks new checks
         "conditional progression", # Progression overall, but maybe only in certain settings or certain qualities
