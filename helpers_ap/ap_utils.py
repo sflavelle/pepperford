@@ -422,7 +422,7 @@ sqlcfg = cfg['bot']['archipelago']['psql']
 sqlcon = psql.connect(
     dbname=sqlcfg['database'],
     user=sqlcfg['user'],
-    password=sqlcfg['password'] if sqlcfg['password'] else None,
+    password=sqlcfg['password'] if 'password' in sqlcfg else None,
     host=sqlcfg['host']
 )
 
