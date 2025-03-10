@@ -13,6 +13,16 @@ cache_timeout = 1*60*60 # 1 hour(s)
 
 class Item:
     """An Archipelago item in the multiworld"""
+
+    sender = None
+    receiver = None
+    name = None
+    game = None
+    location = None
+    location_entrance = None
+    classification = None
+    count = 1
+
     def __init__(self, sender: str, receiver: str, item: str, location: str, game: str = None, entrance: str = None):
         self.sender = sender
         self.receiver = receiver
@@ -21,12 +31,12 @@ class Item:
         self.location = location
         self.location_entrance = entrance
         self.classification = item_classification(self)
-        self.count = 1
+        self.count: int = 1
         self.found = False
         self.hinted = False
         self.spoiled = False
 
-        if self.game == None:
+        if self.game is None:
             logger.warning(f"Item object for {self.name} has no game associated with it?")
 
         # if (self.game in classification_cache and self.name in classification_cache[self.game]):
