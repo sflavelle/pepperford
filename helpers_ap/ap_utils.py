@@ -410,9 +410,9 @@ def item_classification(item: Item|CollectedItem, player: Player = None):
                 logger.debug(response)
                 if response == "conditional progression":
                     # Progression in certain settings, otherwise useful/filler
-                    if player.game == "gzDoom":
+                    if item.game == "gzDoom":
                         # Weapons : extra copies can be filler
-                        if player.items[item.name].count > 1:
+                        if item.count > 1:
                             response = "filler"
                     # After checking everything, if not re-classified, it's probably progression
                     if response == "conditional progression": response = "progression"
