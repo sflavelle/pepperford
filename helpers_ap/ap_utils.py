@@ -238,7 +238,7 @@ def handle_item_tracking(player: Player, item: str):
                     # Currently (2 Mar 25) must complete all levels to goal
                     required = len(settings['Included Levels'].split(', '))
                     return f"{item} ({count}/{required})"
-                if any([item.startswith(color) for color in ["Blue","Yellow","Red"]]):
+                if any([item.startswith(color) for color in ["Blue","Yellow","Red"]]) and not item == "BlueArmor":
                     try: 
                         item_match = item_regex.match(item)
                         subitem,map = item_match.groups()
@@ -252,7 +252,7 @@ def handle_item_tracking(player: Player, item: str):
                             collected_string = f"~~{collected_string}~~" # Strikethrough keys if not found
                         return f"{item} ({collected_string})"
                     except AttributeError as e:
-                        logger.error(f"Error while parsing tracking info for item {item} in game {game}:",e,exc_info=True)
+                        logger.error(f"Error while parsing tracking info for item {item} in game {game}:",e,exc_info=False)
                         return item
             case "Here Comes Niko!":
                 if item == "Cassette":
