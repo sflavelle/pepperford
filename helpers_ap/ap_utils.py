@@ -20,7 +20,7 @@ class Item:
         self.game = game
         self.location = location
         self.location_entrance = entrance
-        self.classification = None
+        self.classification = item_classification(self)
         self.found = False
         self.hinted = False
         self.spoiled = False
@@ -28,11 +28,11 @@ class Item:
         if self.game == None:
             logger.warning(f"Item object for {self.name} has no game associated with it?")
 
-        if (self.game in classification_cache and self.name in classification_cache[self.game]):
-            if bool(classification_cache[self.game][self.name][1]) and (time.time() - classification_cache[self.game][self.name][1] > cache_timeout):
-                self.invalidate_classification()
-        else:
-            self.classification = item_classification(self,self.receiver)
+        # if (self.game in classification_cache and self.name in classification_cache[self.game]):
+        #     if bool(classification_cache[self.game][self.name][1]) and (time.time() - classification_cache[self.game][self.name][1] > cache_timeout):
+        #         self.invalidate_classification()
+        # else:
+        #     self.classification = item_classification(self)
     
     def __str__(self):
         return self.name
@@ -425,7 +425,8 @@ def item_classification(item: Item|CollectedItem, player: Player = None):
             finally:
                 sqlcon.commit()
     logger.debug(f"itemsdb: classified {item.game}: {item.name} as {response}")
-    if item.game not in classification_cache:
-        classification_cache[item.game] = {}
-    classification_cache[item.game][item.name] = (response.lower(), time.time()) if bool(response) else (None, time.time())
-    return classification_cache[item.game][item.name][0]
+    # if item.game not in classification_cache:
+    #     classification_cache[item.game] = {}
+    # classification_cache[item.game][item.name] = (response.lower(), time.time()) if bool(response) else (None, time.time())
+    # return classification_cache[item.game][item.name][0]
+    return response
