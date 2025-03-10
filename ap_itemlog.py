@@ -194,22 +194,31 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
                 release_buffer[sender]['items'][receiver].append(ReceivedItemObject)
                 logger.info(f"Adding {item} for {receiver} to release buffer.")
             else:
-                # Update item name based on settings for special items
-                location = item_location
-                if bool(players[receiver].settings):
-                    item = handle_item_tracking(players[receiver], item)
-                    location = handle_location_tracking(players[sender], item_location)
+                try:
+                    # Update item name based on settings for special items
+                    location = item_location
+                    if bool(players[receiver].settings):
+                        item = handle_item_tracking(players[receiver], item)
+                        location = handle_location_tracking(players[sender], item_location)
 
-                # Update the message appropriately
-                if sender == receiver:
-                    message = f"**{sender}** found **their own {
-                        "hinted " if bool(game["spoiler"][sender]["locations"][item_location].hinted) else ""
-                        }{item}** ({location})"
-                elif bool(game["spoiler"][sender]["locations"][item_location].hinted):
-                    message = f"{dim_if_goaled(receiver)}{sender} found **{receiver}'s hinted {item}** ({location})"
-                else:
-                    message = f"{dim_if_goaled(receiver)}{sender} sent **{item}** to **{receiver}** ({location})"
-                if not skip_msg: message_buffer.append(message.replace("_",r"\_"))
+                    # Update the message appropriately
+                    if sender == receiver:
+                        message = f"**{sender}** found **their own {
+                            "hinted " if bool(game["spoiler"][sender]["locations"][item_location].hinted) else ""
+                            }{item}** ({location})"
+                    elif bool(game["spoiler"][sender]["locations"][item_location].hinted):
+                        message = f"{dim_if_goaled(receiver)}{sender} found **{receiver}'s hinted {item}** ({location})"
+                    else:
+                        message = f"{dim_if_goaled(receiver)}{sender} sent **{item}** to **{receiver}** ({location})"
+                    if not skip_msg: message_buffer.append(message.replace("_",r"\_"))
+                except KeyError as e:
+                    logger.error("Something went wrong parsing an item!",
+                                 {"Item": item,
+                                  "Item Location": item_location, 
+                                  "Sender": sender, 
+                                  "Receiver": receiver, 
+                                  "Log message": line, 
+                                  'error': e})
 
 
         elif match := regex_patterns['item_hints'].match(line):
