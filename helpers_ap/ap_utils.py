@@ -29,7 +29,7 @@ class Game:
 
     def update_locations(self):
         self.collected_locations = sum([p.collected_locations for p in self.players.values()])
-        self.total_locations = sum([p.total_locations for p in self.players.values()])
+        self.total_locations = sum([len(p) for p in self.spoiler_log])
 
 class Player:
     name = None
