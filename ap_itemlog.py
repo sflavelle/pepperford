@@ -334,7 +334,7 @@ def send_release_messages():
     for sender, data in release_buffer.copy().items():
         if time.time() - data['timestamp'] > 1:
             message = f"**{sender}** has released their remaining items."
-            new_line = ""
+            running_message = message
             for receiver, items in data['items'].items():
                 if game.players[receiver].is_finished():
                     continue
@@ -345,12 +345,12 @@ def send_release_messages():
                 handle_currency(receiver,item_counts)
                 item_list = ', '.join(
                     [f"{item} (x{count})" if count > 1 else item for item, count in item_counts.items()])
-                new_line += f"\n{dim_if_goaled(receiver)}**{receiver}** receives: {item_list}"
-                if len(message + new_line) > MAX_MSG_LENGTH:
+                running_message += f"\n{dim_if_goaled(receiver)}**{receiver}** receives: {item_list}"
+                if len(running_message) > MAX_MSG_LENGTH:
                     send_to_discord(message)
-                    message = new_line.replace('\n','')
+                    message = running_message.replace(message, '').replace('\n','')
                 else:
-                    message += new_line
+                    message = running_message
             send_to_discord(message)
             logger.info(f"{sender} release sent.")
             del release_buffer[sender]
