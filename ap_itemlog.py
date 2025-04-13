@@ -1,15 +1,17 @@
 import datetime
 import json
 import time
-import re
+import regex as re
 import os
 import sys
 import logging
 from collections import defaultdict
 import requests
 import threading
-from helpers_ap.ap_utils import Game, Item, CollectedItem, Player, handle_item_tracking, handle_location_tracking
+import yaml
+from helpers_ap.ap_utils import Game, Item, CollectedItem, Player, PlayerSettings, handle_item_tracking, handle_location_tracking
 from word2number import w2n
+import paho.mqtt.client as mqtt
 
 # setup logging
 logger = logging.getLogger('ap_itemlog')
@@ -17,6 +19,9 @@ handler = logging.StreamHandler()
 handler.setFormatter(logging.Formatter('[%(name)s %(process)d][%(levelname)s] %(message)s'))
 logger.setLevel(logging.INFO)
 logger.addHandler(handler)
+
+with open('config.yaml', 'r', encoding='UTF-8') as file:
+    cfg = yaml.safe_load(file)
 
 # Disclaimer: Copilot helped me with the initial setup of this file.
 # Everything since is my own code. Thank you :-)
@@ -51,6 +56,40 @@ message_buffer = []
 
 # Store for players, items, settings
 game = Game()
+game.room_id = room_id
+
+# Init MQTT
+mqtt = mqtt.Client(mqtt.CallbackAPIVersion.VERSION1, client_id=f"archilog-{room_id}")
+mqtt.enable_logger()
+
+mqttparams = (
+    cfg['mqtt']['broker'],
+    cfg['mqtt']['port'],
+    cfg['mqtt']['user'],
+    cfg['mqtt']['password']
+)
+logger.info(f"initialising MQTT with params: {str(mqttparams)}")
+mqtt.username_pw_set(mqttparams[2], mqttparams[3])
+mqtt.connect(mqttparams[0], mqttparams[1])
+
+def mqtt_send(classtype: Game|Player|PlayerSettings, topic: str, payload, retain: bool = False):
+    topicbase = f"archilog/{room_id}"
+    topicident = ""
+
+    match type(classtype):
+        case "Game":
+            topicident = f"game"
+        case "Player":
+            topicident = f"players/{classtype.name}"
+        case _:
+            pass
+
+    fulltopic = "/".join([topicbase, topicident, topic])
+
+    logger.debug(f"Sending MQTT payload to topic: {fulltopic}")
+
+    return mqtt.publish(fulltopic, payload, qos=1, retain=retain)
+
 
 
 # small functions
@@ -150,9 +189,9 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
 
     # Regular expressions for different log message types
     regex_patterns = {
-        'sent_items': re.compile(r'\[(.*?)\]: \(Team #\d\) (.*?) sent (.*(?= to)) to ((?<=to ).{,16}?) \((.+)\)$'),
-        'item_hints': re.compile(
-            r'\[(.*?)\]: Notice \(Team #\d\): \[Hint\]: (.*?)\'s (.*) is at (.*) in (.*?)\'s World(?: at (?P<entrance>(.+)))?\.(?<! \(found\))$'),
+        'sent_items': re.compile(r'\[(.*?)]: \(Team #\d\) (\L<players>) sent (.*?(?= to)) to (\L<players>) \((.+)\)$', players=game.players.keys()),
+            'item_hints': re.compile(
+                r'\[(.*?)]: Notice \(Team #\d\): \[Hint]: (\L<players>)\'s (.*) is at (.*) in (\L<players>)\'s World(?: at (?P<entrance>(.+)))?\. \((?P<hint_status>(.+))\))$', players=game.players.keys()),
         'goals': re.compile(r'\[(.*?)\]: Notice \(all\): (.*?) \(Team #\d\) has completed their goal\.$'),
         'releases': re.compile(
             r'\[(.*?)\]: Notice \(all\): (.*?) \(Team #\d\) has released all remaining items from their world\.$'),
@@ -223,12 +262,29 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
             if match.group('entrance'):
                 entrance = match.group('entrance')
             else: entrance = None
+            if match.group('hint_status'):
+                hint_status = match.group('hint_status')
+
+            if hint_status == "found": continue
 
             SentItemObject = Item(game.players[sender],game.players[receiver],item,item_location,entrance=entrance)
             if item_location not in game.spoiler_log[sender]:
                 game.spoiler_log[sender][item_location] = SentItemObject
             else: SentItemObject = game.spoiler_log[sender].get(item_location)
+
+            # Store the hint in the player's hints dictionary
+            game.players[sender].add_hint("sending", SentItemObject)
+            game.players[receiver].add_hint("receiving", SentItemObject)
+
             message = f"**[Hint]** **{receiver}'s {item}** is at {item_location} in {sender}'s World{f" (found at {entrance})" if bool(entrance) else ''}."
+
+            match hint_status:
+                case "avoid":
+                    message += "**Avoid if possible.**"
+                case "priority":
+                    message += "**This item will unlock more checks.**"
+                case _:
+                    pass
 
             if not skip_msg and game.players[receiver].is_finished() is False and not SentItemObject.found: message_buffer.append(message)
             game.spoiler_log[sender][item_location].hint()
@@ -396,6 +452,21 @@ def watch_log(url, interval):
     logger.info(f"Checks Collected: {game.collected_locations}")
     # classification_thread = threading.Thread(target=save_classifications)
     # classification_thread.start()
+
+    # Send info to MQTT
+    game_settings = ["seed", "version_generator", "collected_locations", "total_locations"]
+    for key, value in game.items():
+        if key in game_settings:
+            mqtt_send(game, key, value, True)
+
+    for player in game.players.values():
+        for key, value in player.__dict__.items():
+            if key in ["items", "locations", "hints"]:
+                mqtt_send(player, key, json.dumps(value))
+            else:
+                mqtt_send(player, key, str(value), True)
+    del game_settings
+
     logger.info("Ready!")
     while True:
         time.sleep(interval)
@@ -423,4 +494,5 @@ if __name__ == "__main__":
     logger.info(f"logging messages from AP Room ID {room_id} to webhook {webhook_url}")
     release_thread = threading.Thread(target=process_releases)
     release_thread.start()
+    mqtt.loop_start()
     watch_log(log_url, INTERVAL)
