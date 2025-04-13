@@ -117,7 +117,7 @@ async def ap_itemlog_start(interaction: discord.Interaction, webhook: str, log_u
         ping_log = requests.get(log_url, cookies={'session': cfg['bot']['archipelago']['session_cookie']}, timeout=3)
         if ping_log.status_code == 200:
             # All checks successful, start the script
-            process = subprocess.Popen(['python', script_path], env=env)
+            process = subprocess.Popen([sys.executable, script_path], env=env)
             await interaction.response.send_message(f"Started logging messages from {log_url} to a webhook. PID: {process.pid}", ephemeral=True)
 
             # Save script to config
@@ -284,7 +284,7 @@ async def on_ready():
         
             try: 
                 script_path = os.path.join(os.path.dirname(__file__), 'ap_itemlog.py')
-                process = subprocess.Popen(['python', script_path], env=env)
+                process = subprocess.Popen([sys.executable, script_path], env=env)
                 itemlog_processes.update({log['guild']: process.pid})
             except:
                 logger.error("Error starting log:",exc_info=True)
