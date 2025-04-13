@@ -4,6 +4,7 @@ import re
 import psycopg2 as psql
 import logging
 import yaml
+
 from zoneinfo import ZoneInfo
 
 # setup logging
@@ -12,13 +13,24 @@ logger = logging.getLogger('ap_itemlog')
 with open('config.yaml', 'r', encoding='UTF-8') as file:
     cfg = yaml.safe_load(file)
 
+
+sqlcfg = cfg['bot']['archipelago']['psql']
+sqlcon = psql.connect(
+    dbname=sqlcfg['database'],
+    user=sqlcfg['user'],
+    password=sqlcfg['password'] if 'password' in sqlcfg else None,
+    host=sqlcfg['host']
+)
+
+
 classification_cache = {}
 cache_timeout = 1*60*60 # 1 hour(s)
 
 item_table = {}
 
-class Game:
+class Game(dict):
     seed = None
+    room_id = None
     version_generator = None
     version_server = None
     world_settings = {}
@@ -27,11 +39,28 @@ class Game:
     collected_locations: int = 0
     total_locations: int = 0
 
+    def init_db(self):
+        cursor = sqlcon.cursor()
+
+        # DBs to do:
+        # {room_id}
+        # {room_id}_locations
+        # {room_id}_items
+        # {room_id}_p_{player}
+
+        cursor.execute(
+            f"CREATE TABLE IF NOT EXISTS games.{self.room_id} (setting bpchar, value bpchar, classification varchar(32))")
+
     def update_locations(self):
         self.collected_locations = sum([p.collected_locations for p in self.players.values()])
         self.total_locations = sum([p.total_locations for p in self.players.values()])
 
-class Player:
+
+def handle_hint_update(self):
+    pass
+
+
+class Player(dict):
     name = None
     game = None
     items = {}
@@ -51,8 +80,8 @@ class Player:
         self.items = {}
         self.locations = {}
         self.hints = {
-            "sending": {},
-            "receiving": {}
+            "sending": [],
+            "receiving": []
         }
         self.settings = PlayerSettings()
         self.goaled = False
@@ -82,11 +111,18 @@ class Player:
         self.locations = {l.location: l for l in game.spoiler_log[self.name].values() if l.found is True}
         self.total_locations = len(game.spoiler_log[self.name])
         
-    def update_hints(self, game: Game):
-        logger.info(f"Updating hint table for {self.name}.")
-        self.hints["sending"] = [i for i in game]
+    def add_hint(self, hint_type: str, item):
+        if hint_type not in self.hints:
+            self.hints[hint_type] = list()
+        self.hints[hint_type].append(item)
+        self.on_hints_updated()
 
-class Item:
+    def on_hints_updated(self):
+        # This method will be called whenever hints are updated
+        logger.info(f"Hints for player {self.name} have been updated.")
+        handle_hint_update(self)
+
+class Item(dict):
     """An Archipelago item in the multiworld"""
 
     sender = None
@@ -267,6 +303,11 @@ def handle_item_tracking(game: Game, player: Player, item: str):
                         if i in collected: collected_string += i
                         else: collected_string += "_"
                     return f"{item} ({collected_string})"
+            case "Donkey Kong 64":
+                if item == "Golden Banana":
+                    total = 201
+                    count = player.items[item].count
+                    return f"{item} ({count}/{total})"
             case "DOOM 1993":
                 if item.endswith(" - Complete"):
                     count = len([i for i in player.items if i.endswith(" - Complete")])
@@ -360,6 +401,19 @@ def handle_item_tracking(game: Game, player: Player, item: str):
                     required = round(settings['Max Emblem Cap'] * (settings["Emblem Percentage for Cannon's Core"] / 100))
                     count = player.items[item].count
                     return f"{item} ({count}/{required})"
+            case "Super Cat Planet":
+                if item == "Cat":
+                    count = player.items[item].count
+                    total = 169
+                    return f"{item} ({count}/{total})"
+            case "Super Mario 64":
+                if item == "Power Star":
+                    count = player.items[item].count
+                    required = round(
+                        settings['Total Power Stars']
+                        * (settings['Endless Stairs Star %'] / 100)
+                    )
+                    return f"{item} ({count}/{required})"
             case "Super Mario World":
                 if item == "Yoshi Egg" and settings['Goal'] == "Yoshi Egg Hunt":
                     count = player.items[item].count
@@ -417,16 +471,6 @@ def handle_location_tracking(game: Game, player: Player, location: str):
                 return location
     return location
 
-sqlcfg = cfg['bot']['archipelago']['psql']
-
-sqlcon = psql.connect(
-    dbname=sqlcfg['database'],
-    user=sqlcfg['user'],
-    password=sqlcfg['password'] if 'password' in sqlcfg else None,
-    host=sqlcfg['host']
-)
-
-
 def item_classification(item: Item|CollectedItem, player: Player = None):
     """Refer to the itemdb and see whether the provided Item has a classification.
     If it doesn't, creates a new entry for that item with no classification.
@@ -448,10 +492,11 @@ def item_classification(item: Item|CollectedItem, player: Player = None):
     if item.game is None:
         return None
 
-    if (item.game in classification_cache and item.name in classification_cache[item.game]):
+    if item.game in classification_cache and item.name in classification_cache[item.game]:
         if bool(classification_cache[item.game][item.name][1]) and (time.time() - classification_cache[item.game][item.name][1] > cache_timeout):
-            logger.warning(f"Invalidating cache for {item.game}: {item.name}")
-            del classification_cache[item.game][item.name]
+            if classification_cache[item.game][item.name][0] is None:
+                logger.warning(f"Invalidating cache for {item.game}: {item.name}")
+                del classification_cache[item.game][item.name]
         else:
             classification = classification_cache[item.game][item.name][0]
             if classification != "conditional progression": return classification
