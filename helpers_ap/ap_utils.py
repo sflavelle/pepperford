@@ -334,12 +334,12 @@ def handle_item_tracking(game: Game, player: Player, item: str):
     if bool(player.settings):
         settings = player.settings
         game = player.game
+        count = player.items[item].count
 
         match game:
             case "A Link to the Past":
                 if item == "Triforce Piece" and "Triforce Hunt" in settings['Goal']:
                     required = settings['Triforce Pieces Required']
-                    count = player.items[item].count
                     return f"{item} ({count}/{required})"
             case "A Hat in Time":
                 if item == "Time Piece" and not settings['Death Wish Only']:
@@ -349,11 +349,9 @@ def handle_item_tracking(game: Game, player: Player, item: str):
                             required = settings['Chapter 5 Cost']
                         case 'Rush Hour':
                             required = settings['Chapter 7 Cost']
-                    count = player.items[item].count
                     return f"{item} ({count}/{required})"
                 if item == "Progressive Painting Unlock":
                     required = 3
-                    count = player.items[item].count
                     return f"{item} ({count}/{required})"
                 if item.startswith("Metro Ticket"):
                     required = 4
@@ -408,9 +406,11 @@ def handle_item_tracking(game: Game, player: Player, item: str):
                         else: collected_string += "_"
                     return f"{item} ({collected_string})"
             case "Donkey Kong 64":
+                if item == "Banana Fairy":
+                    total = 20
+                    return f"{item} ({count}/{total})"
                 if item == "Golden Banana":
                     total = 201
-                    count = player.items[item].count
                     return f"{item} ({count}/{total})"
                 if item.startswith("Key "):
                     keys = 8
@@ -470,22 +470,18 @@ def handle_item_tracking(game: Game, player: Player, item: str):
             case "Here Comes Niko!":
                 if item == "Cassette":
                     required = max({k: v for k, v in settings.items() if "Cassette Cost" in k}.values())
-                    count = player.items[item].count
                     return f"{item} ({count}/{required})"
                 if item == "Coin":
                     required = 76 if settings['Completion Goal'] == "Employee" else settings['Elevator Cost']
-                    count = player.items[item].count
                     return f"{item} ({count}/{required})"
                 if item in ["Hairball City Fish", "Turbine Town Fish", "Salmon Creek Forest Fish", "Public Pool Fish", "Bathhouse Fish", "Tadpole HQ Fish"] and settings['Fishsanity'] == "Insanity":
                     required = 5
-                    count = player.items[item].count
                     return f"{item} ({count}/{required})"
             case "Hollow Knight":
                 # There'll probably be something here later
                 return item.replace("_", " ").replace("-"," - ")
             case "Muse Dash":
                 if item == "Music Sheet":
-                    count = player.items[item].count
                     song_count = settings['Starting Song Count'] + settings['Additional Song Count']
                     total = round(song_count * (settings['Music Sheet Percentage'] / 100))
                     required = round(total / (settings['Music Sheets Needed to Win'] / 100))
@@ -493,11 +489,9 @@ def handle_item_tracking(game: Game, player: Player, item: str):
             case "Ocarina of Time":
                 if item == "Triforce Piece" and settings['Triforce Hunt'] is True:
                     required = settings['Required Triforce Pieces']
-                    count = player.items[item].count
                     return f"{item} ({count}/{required})"
                 if item == "Gold Skulltula Token":
                     required = 50
-                    count = player.items[item].count
                     return f"{item} ({count}/{required})"
                 if item == "Progressive Wallet":
                     capacities = ["99", "200", "500", "999"]
@@ -510,16 +504,13 @@ def handle_item_tracking(game: Game, player: Player, item: str):
             case "Sonic Adventure 2 Battle":
                 if item == "Emblem":
                     required = round(settings['Max Emblem Cap'] * (settings["Emblem Percentage for Cannon's Core"] / 100))
-                    count = player.items[item].count
                     return f"{item} ({count}/{required})"
             case "Super Cat Planet":
                 if item == "Cat":
-                    count = player.items[item].count
                     total = 169
                     return f"{item} ({count}/{total})"
             case "Super Mario 64":
                 if item == "Power Star":
-                    count = player.items[item].count
                     required = round(
                         settings['Total Power Stars']
                         * (settings['Endless Stairs Star %'] / 100)
@@ -527,32 +518,51 @@ def handle_item_tracking(game: Game, player: Player, item: str):
                     return f"{item} ({count}/{required})"
             case "Super Mario World":
                 if item == "Yoshi Egg" and settings['Goal'] == "Yoshi Egg Hunt":
-                    count = player.items[item].count
                     required = round(
                         settings['Max Number of Yoshi Eggs']
                         * (settings['Required Percentage of Yoshi Eggs'] / 100))
                     return f"{item} ({count}/{required})"
             case "TUNIC":
+                treasures = {
+                    "DEF": ["Secret Legend", "Phonomath"],
+                    "POTION": ["Spring Falls", "Just Some Pals", "Back to Work"],
+                    "SP": ["Forever Friend", "Mr Mayor", "Power Up", "Regal Weasel"],
+                    "MP": ["Sacred Geometry", "Vintage", "Dusty"]
+                }
                 if item == "Flask Shard":
                     flask_progress = player.items[item].count % 3
                     return f"{item} ({"Gained Flask!" if flask_progress == 0 else f"{flask_progress}/3"})"
                 if item == "Fairy":
-                    count = player.items[item].count
-                    return f"{item} ({count}/15)"
+                    required = 20
+                    if count < 10: required = 10
+                    return f"{item} ({count}/{required})"
                 if item == "Gold Questagon":
-                    count = player.items[item].count
                     required = settings['Gold Hexagons Required']
                     return f"{item} ({count}/{required})"
                 if item == "Golden Coin":
-                    count = player.items[item].count
-                    return f"{item} ({count}/15)"
+                    required = [3,6,10,15]
+                    next_req = 0
+                    for check in required:
+                        if count >= check: continue
+                        if count < check:
+                            next_req = check
+                            break
+                    return f"{item} ({count}/{next_req})"
                 if item in ["Blue Questagon", "Red Questagon", "Green Questagon"]:
                     count = len(i for i in ["Blue Questagon", "Red Questagon", "Green Questagon"] if i in player.items)
                     required = 3
                     return f"{item} ({count}/{required})"
+                if item == "Sword Upgrade":
+                    upgrades = ["Stick", "Sword", "Librarian's Sword", "Heir's Sword"]
+                    upgrade = upgrades[count-1]
+                    return f"{item} (LV{count}: {upgrade})"
+                # Treasures
+                for stat, stat_items in treasures.items():
+                    if item in stat_items:
+                        return f"{item} (+1 {stat})"
+                    
             case "Twilight Princess":
                 if item == "Poe Soul":
-                    count = player.items[item].count
                     required = 60
                     if count < 20: required = 20
                     return f"{item} ({count}/{required})"
