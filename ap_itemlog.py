@@ -327,7 +327,7 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
             except json.JSONDecodeError:
                 logger.error(f"Failed to parse player tags. {player}: {tags_str}")
                 tags = tags_str
-            if not skip_msg: logger.info(f"{player} ({playergame}) is online.")
+            if not skip_msg and "TextOnly" not in tags: logger.info(f"{player} ({playergame}) is online.")
             game.players[player].set_online(True, timestamp)
             if "Tracker" in tags:
                 if not skip_msg:
