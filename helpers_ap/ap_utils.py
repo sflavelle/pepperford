@@ -309,6 +309,13 @@ def handle_item_tracking(game: Game, player: Player, item: str):
                     total = 201
                     count = player.items[item].count
                     return f"{item} ({count}/{total})"
+                if item.startswith("Key "):
+                    keys = 8
+                    collected_string = ""
+                    for k in range(keys):
+                            if f"Key {k}" in player.items: collected_string += str(k)
+                            else: collected_string += "_"
+                    return f"{item} ({collected_string})"
             case "DOOM 1993":
                 if item.endswith(" - Complete"):
                     count = len([i for i in player.items if i.endswith(" - Complete")])
@@ -423,10 +430,19 @@ def handle_item_tracking(game: Game, player: Player, item: str):
                         * (settings['Required Percentage of Yoshi Eggs'] / 100))
                     return f"{item} ({count}/{required})"
             case "TUNIC":
+                if item == "Flask Shard":
+                    flask_progress = player.items[item].count % 3
+                    return f"{item} ({"Gained Flask!" if flask_progress == 0 else f"{flask_progress}/3"})"
+                if item == "Fairy":
+                    count = player.items[item].count
+                    return f"{item} ({count}/15)"
                 if item == "Gold Questagon":
                     count = player.items[item].count
                     required = settings['Gold Hexagons Required']
                     return f"{item} ({count}/{required})"
+                if item == "Golden Coin":
+                    count = player.items[item].count
+                    return f"{item} ({count}/15)"
                 if item in ["Blue Questagon", "Red Questagon", "Green Questagon"]:
                     count = len(i for i in ["Blue Questagon", "Red Questagon", "Green Questagon"] if i in player.items)
                     required = 3
