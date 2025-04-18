@@ -550,6 +550,12 @@ def handle_item_tracking(game: Game, player: Player, item: str):
                     count = len(i for i in ["Blue Questagon", "Red Questagon", "Green Questagon"] if i in player.items)
                     required = 3
                     return f"{item} ({count}/{required})"
+            case "Twilight Princess":
+                if item == "Poe Soul":
+                    count = player.items[item].count
+                    required = 60
+                    if count < 20: required = 20
+                    return f"{item} ({count}/{required})"
             case "Wario Land 4":
                 if item.endswith("Piece"):
                     # Gather up all the jewels
