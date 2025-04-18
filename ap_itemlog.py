@@ -331,7 +331,7 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
             game.players[player].set_online(True, timestamp)
             if "Tracker" in tags:
                 if not skip_msg:
-                    message = f"{sender} is checking what is in logic."
+                    message = f"{player} is checking what is in logic."
                     message_buffer.append(message)
 
         elif match := regex_patterns['parts'].match(line):
