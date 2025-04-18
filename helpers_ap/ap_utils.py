@@ -68,6 +68,7 @@ class Player(dict):
     hints = {}
     online = False
     last_online = None
+    tags = []
     settings = None
     goaled = False
     released = False

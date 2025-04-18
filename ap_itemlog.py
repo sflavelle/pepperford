@@ -196,7 +196,7 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
         'releases': re.compile(
             r'\[(.*?)\]: Notice \(all\): (.*?) \(Team #\d\) has released all remaining items from their world\.$'),
         'messages': re.compile(r'\[(.*?)\]: Notice \(all\): (.*?): (.+)$'),
-        'joins': re.compile(r'\[(.*?)\]: Notice \(all\): (.*?) \(Team #\d\) playing (.+?) has joined. Client\(([0-9\.]+)\), (?P<tags>.+)\.$'),
+        'joins': re.compile(r'\[(.*?)\]: Notice \(all\): (.*?) \(Team #\d\) (?:playing|viewing|tracking) (.+?) has joined. Client\(([0-9\.]+)\), (?P<tags>.+)\.$'),
         'parts': re.compile(r'\[(.*?)\]: Notice \(all\): (.*?) \(Team #\d\) has left the game\. Client\(([0-9\.]+)\), (?P<tags>.+)\.$'),
     }
 
@@ -280,7 +280,7 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
 
             match hint_status:
                 case "avoid":
-                    message += "**Avoid if possible.**"
+                    message += " This item is not useful."
                 case "priority":
                     message += "**This item will unlock more checks.**"
                 case _:
@@ -315,14 +315,28 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
                     if not skip_msg and sender in game.players: 
                         logger.info(f"{sender}: {message}")
                         send_chat(sender, message)
+
         elif match := regex_patterns['joins'].match(line):
             timestamp, player, playergame, version, tags = match.groups()
+            try:
+                tags_str = tags
+                tags = json.loads(tags_str)
+                game.players[player].tags = tags
+            except json.JSONDecodeError:
+                logger.error(f"Failed to parse player tags. {player}: {tags_str}")
+                tags = tags_str
             if not skip_msg: logger.info(f"{player} ({playergame}) is online.")
             game.players[player].set_online(True, timestamp)
+            if "Tracker" in tags:
+                if not skip_msg:
+                    message = f"{sender} is checking what is in logic."
+                    message_buffer.append(message)
+
         elif match := regex_patterns['parts'].match(line):
             timestamp, player, version, tags = match.groups()
             if not skip_msg: logger.info(f"{player} is offline.")
             game.players[player].set_online(False, timestamp)
+
         else:
             # Unmatched lines
             logger.debug(f"Unparsed line: {line}")
@@ -494,5 +508,5 @@ if __name__ == "__main__":
     logger.info(f"logging messages from AP Room ID {room_id} to webhook {webhook_url}")
     release_thread = threading.Thread(target=process_releases)
     release_thread.start()
-    mqtt.loop_start()
+    # mqtt.loop_start()
     watch_log(log_url, INTERVAL)
