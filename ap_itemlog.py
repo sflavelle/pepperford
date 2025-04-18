@@ -283,7 +283,8 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
                 case "avoid":
                     message += " This item is not useful."
                 case "priority":
-                    message += "**This item will unlock more checks.**"
+                    SentItemObject.update_item_classification("progression")
+                    message += " **This item will unlock more checks.**"
                 case _:
                     pass
 

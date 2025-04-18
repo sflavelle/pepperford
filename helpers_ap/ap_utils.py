@@ -145,7 +145,7 @@ class Item(dict):
         self.game = receiver.game
         self.location = location
         self.location_entrance = entrance
-        self.classification = None
+        self.classification = self.set_item_classification(self)
         self.count: int = 1
         self.found = False
         self.hinted = False
@@ -173,6 +173,107 @@ class Item(dict):
 
     def get_count(self) -> int:
         return 1
+    
+    def set_item_classification(self, player: Player = None):
+        """Refer to the itemdb and see whether the provided Item has a classification.
+        If it doesn't, creates a new entry for that item with no classification.
+        
+        We can pass this through an intermediate step to assume things about
+        some common items, but not everything.
+        """
+
+        permitted_values = [
+            "progression", # Unlocks new checks
+            "conditional progression", # Progression overall, but maybe only in certain settings or certain qualities
+            "useful", # Good to have but doesn't unlock anything new
+            "currency", # Filler, but specifically currency
+            "filler", # Filler - not really necessary
+            "trap" # Negative effect upon the player
+            ]
+        response = None # What we will ultimately return
+
+        if self.game is None:
+            return None
+
+        if self.game in classification_cache and self.name in classification_cache[self.game]:
+            if bool(classification_cache[self.game][self.name][1]) and (time.time() - classification_cache[self.game][self.name][1] > cache_timeout):
+                if classification_cache[self.game][self.name][0] is None:
+                    logger.warning(f"Invalidating cache for {self.game}: {self.name}")
+                    del classification_cache[self.game][self.name]
+            else:
+                classification = classification_cache[self.game][self.name][0]
+                if classification != "conditional progression": return classification
+
+        def progression_condition(prog_setting: str, value_true: str, value_false: str):
+            """If an item is classified differently based on a world setting, see if that setting is true.
+            If so, return value_true. Otherwise, return value_false."""
+
+            if prog_setting in player.settings:
+                if player.settings[prog_setting] is True: return value_true
+            else: return value_false
+
+        # Some games are 'simple' enough that everything (or near everything) is progression
+        match self.game:
+            case "Simon Tatham's Portable Puzzle Collection":
+                if self.name == "Filler": response = "filler"
+                else: response = "progression"
+            case "SlotLock"|"APBingo": response = "progression" # metagames are generally always progression
+            case _:
+                cursor = sqlcon.cursor()
+
+                cursor.execute("CREATE TABLE IF NOT EXISTS item_classification (game bpchar, item bpchar, classification varchar(32))")
+
+                try:
+                    cursor.execute("SELECT classification FROM item_classification WHERE game = %s AND item = %s;", (self.game, self.name))
+                    response = cursor.fetchone()[0]
+                    if response == "conditional progression":
+                        # Progression in certain settings, otherwise useful/filler
+                        if self.game == "gzDoom":
+                            # Weapons : extra copies can be filler
+                            if isinstance(self, CollectedItem) and self.get_count() > 1:
+                                response = "filler"
+                        # After checking everything, if not re-classified, it's probably progression
+                        if response == "conditional progression": response = "progression"
+                    elif response not in permitted_values:
+                        response = None
+                except TypeError:
+                    logger.debug("Nothing found for this item, likely")
+                    logger.info(f"itemsdb: adding {self.game}: {self.name} to the db")
+                    cursor.execute("INSERT INTO item_classification VALUES (%s, %s, %s)", (self.game, self.name, None))
+                finally:
+                    sqlcon.commit()
+        logger.debug(f"itemsdb: classified {self.game}: {self.name} as {response}")
+        if self.game not in classification_cache:
+            classification_cache[self.game] = {}
+        classification_cache[self.game][self.name] = (response.lower(), time.time()) if bool(response) else (None, time.time())
+        return classification_cache[self.game][self.name][0]
+        # return response
+
+    
+    def update_item_classification(self, classification: str) -> bool:
+        permitted_values = [
+            "progression", # Unlocks new checks
+            "conditional progression", # Progression overall, but maybe only in certain settings or certain qualities
+            "useful", # Good to have but doesn't unlock anything new
+            "currency", # Filler, but specifically currency
+            "filler", # Filler - not really necessary
+            "trap" # Negative effect upon the player
+            ]
+        if classification not in permitted_values:
+            logger.error(f"Tried to update classification for {self.game}: {self.name} (value '{classification}' not permitted)")
+            return False
+        
+        logger.info(f"Request to update classification for {self.game}: {self.name} (to: {classification})")
+        cursor = sqlcon.cursor()
+
+        cursor.execute("CREATE TABLE IF NOT EXISTS item_classification (game bpchar, item bpchar, classification varchar(32))")
+
+        try:
+            cursor.execute("UPDATE item_classification set classification = %s where game = %s and item = %s;", (classification, self.game, self.name))
+        finally:
+            sqlcon.commit()
+            self.set_item_classification(self.receiver)
+        return True
 
     def is_found(self):
         return self.found
@@ -188,7 +289,6 @@ class CollectedItem(Item):
         super().__init__(sender, receiver, item, location, game)
         self.locations = [f"{sender} - {location}"]
         self.count: int = 0
-        self.classification = item_classification(self)
 
         if self.classification is None:
             logger.warning(f"Item {self.name} is not classified in the DB yet.")
@@ -487,78 +587,3 @@ def handle_location_tracking(game: Game, player: Player, location: str):
             case _:
                 return location
     return location
-
-def item_classification(item: Item|CollectedItem, player: Player = None):
-    """Refer to the itemdb and see whether the provided Item has a classification.
-    If it doesn't, creates a new entry for that item with no classification.
-    
-    We can pass this through an intermediate step to assume things about
-    some common items, but not everything.
-    """
-
-    permitted_values = [
-        "progression", # Unlocks new checks
-        "conditional progression", # Progression overall, but maybe only in certain settings or certain qualities
-        "useful", # Good to have but doesn't unlock anything new
-        "currency", # Filler, but specifically currency
-        "filler", # Filler - not really necessary
-        "trap" # Negative effect upon the player
-        ]
-    response = None # What we will ultimately return
-
-    if item.game is None:
-        return None
-
-    if item.game in classification_cache and item.name in classification_cache[item.game]:
-        if bool(classification_cache[item.game][item.name][1]) and (time.time() - classification_cache[item.game][item.name][1] > cache_timeout):
-            if classification_cache[item.game][item.name][0] is None:
-                logger.warning(f"Invalidating cache for {item.game}: {item.name}")
-                del classification_cache[item.game][item.name]
-        else:
-            classification = classification_cache[item.game][item.name][0]
-            if classification != "conditional progression": return classification
-
-    def progression_condition(prog_setting: str, value_true: str, value_false: str):
-        """If an item is classified differently based on a world setting, see if that setting is true.
-        If so, return value_true. Otherwise, return value_false."""
-
-        if prog_setting in player.settings:
-            if player.settings[prog_setting] is True: return value_true
-        else: return value_false
-
-    # Some games are 'simple' enough that everything (or near everything) is progression
-    match item.game:
-        case "Simon Tatham's Portable Puzzle Collection":
-            if item.name == "Filler": response = "filler"
-            else: response = "progression"
-        case "SlotLock"|"APBingo": response = "progression" # metagames are generally always progression
-        case _:
-            cursor = sqlcon.cursor()
-
-            cursor.execute("CREATE TABLE IF NOT EXISTS item_classification (game bpchar, item bpchar, classification varchar(32))")
-
-            try:
-                cursor.execute("SELECT classification FROM item_classification WHERE game = %s AND item = %s;", (item.game, item.name))
-                response = cursor.fetchone()[0]
-                if response == "conditional progression":
-                    # Progression in certain settings, otherwise useful/filler
-                    if item.game == "gzDoom":
-                        # Weapons : extra copies can be filler
-                        if isinstance(item, CollectedItem) and item.get_count() > 1:
-                            response = "filler"
-                    # After checking everything, if not re-classified, it's probably progression
-                    if response == "conditional progression": response = "progression"
-                elif response not in permitted_values:
-                    response = None
-            except TypeError:
-                logger.debug("Nothing found for this item, likely")
-                logger.info(f"itemsdb: adding {item.game}: {item.name} to the db")
-                cursor.execute("INSERT INTO item_classification VALUES (%s, %s, %s)", (item.game, item.name, None))
-            finally:
-                sqlcon.commit()
-    logger.debug(f"itemsdb: classified {item.game}: {item.name} as {response}")
-    if item.game not in classification_cache:
-        classification_cache[item.game] = {}
-    classification_cache[item.game][item.name] = (response.lower(), time.time()) if bool(response) else (None, time.time())
-    return classification_cache[item.game][item.name][0]
-    # return response
