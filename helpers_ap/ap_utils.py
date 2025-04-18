@@ -251,6 +251,9 @@ class Item(dict):
 
     
     def update_item_classification(self, classification: str) -> bool:
+        # Abort if already set
+        if classification == self.classification: return True
+
         permitted_values = [
             "progression", # Unlocks new checks
             "conditional progression", # Progression overall, but maybe only in certain settings or certain qualities
