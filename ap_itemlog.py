@@ -4,6 +4,7 @@ import time
 import regex as re
 import os
 import sys
+import ast
 import logging
 from collections import defaultdict
 import requests
@@ -320,7 +321,7 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
             timestamp, player, playergame, version, tags = match.groups()
             try:
                 tags_str = tags
-                tags = json.loads(tags_str)
+                tags = ast.literal_eval(tags_str)
                 game.players[player].tags = tags
             except json.JSONDecodeError:
                 logger.error(f"Failed to parse player tags. {player}: {tags_str}")
