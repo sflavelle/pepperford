@@ -406,6 +406,21 @@ def handle_item_tracking(game: Game, player: Player, item: str):
                         else: collected_string += "_"
                     return f"{item} ({collected_string})"
             case "Donkey Kong 64":
+                kongs = ["Donkey", "Diddy", "Lanky", "Tiny", "Chunky"]
+                shopkeepers = ["Candy", "Cranky", "Funky", "Snide"]
+                moves = { # Translate rando names to full names for convenience
+                    "Barrels": "Barrel Throwing",
+                    "Bongos": "Bongo Blast",
+                    "Coconut": "Coconut Shooter",
+                    "Feather": "Feather Bow",
+                    "Grape": "Grape Shooter",
+                    "Guitar": "Guitar Gazump",
+                    "Oranges": "Orange Throwing",
+                    "Peanut": "Peanut Popguns",
+                    "Triangle": "Triangle Trample",
+                    "Trombone": "Trombone Tremor",
+                    "Vines": "Vine Swinging",
+                }
                 if item == "Banana Fairy":
                     total = 20
                     return f"{item} ({count}/{total})"
@@ -419,6 +434,14 @@ def handle_item_tracking(game: Game, player: Player, item: str):
                             if f"Key {k}" in player.items: collected_string += str(k)
                             else: collected_string += "_"
                     return f"{item} ({collected_string})"
+                if item in kongs:
+                    collected_string = ""
+                    for kong in kongs:
+                        if kong in player.items: collected_string += kong[0:1]
+                        else: collected_string += "__"
+                    return f"{item} Kong ({collected_string})"
+                if item in moves.keys():
+                    return moves.values()[item]
             case "DOOM 1993":
                 if item.endswith(" - Complete"):
                     count = len([i for i in player.items if i.endswith(" - Complete")])
@@ -560,7 +583,6 @@ def handle_item_tracking(game: Game, player: Player, item: str):
                 for stat, stat_items in treasures.items():
                     if item in stat_items:
                         return f"{item} (+1 {stat})"
-                    
             case "Twilight Princess":
                 if item == "Poe Soul":
                     required = 60
