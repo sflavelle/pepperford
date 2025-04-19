@@ -441,7 +441,7 @@ def handle_item_tracking(game: Game, player: Player, item: str):
                         else: collected_string += "__"
                     return f"{item} Kong ({collected_string})"
                 if item in moves.keys():
-                    return moves.values()[item]
+                    return moves[item]
             case "DOOM 1993":
                 if item.endswith(" - Complete"):
                     count = len([i for i in player.items if i.endswith(" - Complete")])
