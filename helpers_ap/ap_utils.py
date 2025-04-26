@@ -431,7 +431,7 @@ def handle_item_tracking(game: Game, player: Player, item: str):
                     keys = 8
                     collected_string = ""
                     for k in range(keys):
-                            if f"Key {k}" in player.items: collected_string += str(k)
+                            if f"Key {k+1}" in player.items: collected_string += str(k+1)
                             else: collected_string += "_"
                     return f"{item} ({collected_string})"
                 if item in kongs:
