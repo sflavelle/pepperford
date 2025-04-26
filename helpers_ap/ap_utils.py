@@ -548,7 +548,7 @@ def handle_item_tracking(game: Game, player: Player, item: str):
             case "TUNIC":
                 treasures = {
                     "DEF": ["Secret Legend", "Phonomath"],
-                    "POTION": ["Spring Falls", "Just Some Pals", "Back to Work"],
+                    "POTION": ["Spring Falls", "Just Some Pals", "Back To Work"],
                     "SP": ["Forever Friend", "Mr Mayor", "Power Up", "Regal Weasel"],
                     "MP": ["Sacred Geometry", "Vintage", "Dusty"]
                 }
@@ -576,7 +576,7 @@ def handle_item_tracking(game: Game, player: Player, item: str):
                     required = 3
                     return f"{item} ({count}/{required})"
                 if item == "Sword Upgrade":
-                    upgrades = ["Stick", "Sword", "Librarian's Sword", "Heir's Sword"]
+                    upgrades = ["Stick", "Ruin Seeker's Sword", "Librarian's Sword", "Heir's Sword"]
                     upgrade = upgrades[count-1]
                     return f"{item} (LV{count}: {upgrade})"
                 # Treasures
@@ -598,9 +598,9 @@ def handle_item_tracking(game: Game, player: Player, item: str):
                     jewel_count = len([i for i in player.items if f"{jewel} Piece" in i])
                     jewel_required = 4
                     jewels_complete = len(
-                        [j for j in jewels 
-                         if len([f"{part} {j} Piece" for part in parts
-                             if f"{part} {j} Piece" in player.items]) == 4 ])
+                        [j for j in jewels
+                        if len([f"{part} {j} Piece" for part in parts
+                            if f"{part} {j} Piece" in player.items]) == 4 ])
                     jewels_required = settings['Required Jewels']
                     return f"{item} ({jewel_count}/{jewel_required}P|{jewels_complete}/{jewels_required}C)"
             case _:
