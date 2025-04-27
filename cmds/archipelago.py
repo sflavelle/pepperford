@@ -98,7 +98,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
         """Run a basic PostgreSQL SELECT command on a table."""
 
         cursor = sqlcon.cursor()
-        cursor.execute(f"SELECT %s FROM %s {'WHERE %s' if bool(where) else ''};", (selection, table, where))
+        cursor.execute(f"SELECT {selection} FROM {table} {f'WHERE {where}' if bool(where) else ''};", (selection, table, where))
         response = cursor.fetchall()
         await interaction.response.send_message(tabulate(response),ephemeral=not public)
 
