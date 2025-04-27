@@ -113,8 +113,8 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
     
     async def db_item_complete(self, ctx: discord.Interaction, current: str) -> typing.List[app_commands.Choice[str]]:
         cursor = sqlcon.cursor()
-        game_selection = ctx.namespace.game
-        print(ctx.namespace)
+        game_selection = ctx.data.get("options", [{}])[0].get("game")
+        print(ctx.data)
         cursor.execute("select item from item_classification group by game where game = %s;", (game_selection))
         response = cursor.fetchall()
         if len(current) == 0:
@@ -165,11 +165,12 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
 
         if '%' in item:
             cursor.execute("UPDATE item_classification SET classification = %s where game = %s and item like %s", (classification, game, item))
-            count = len(cursor.fetchall())
+            count = cursor.rowcount
             return await interaction.response.send_message(f"Classification for {game}'s {str(count)} items matching '{item}' was successful.",ephemeral=True)
         else: 
             try:
                 cursor.execute("UPDATE item_classification SET classification = %s where game = %s and item = %s", (classification, game, item))
+                sqlcon.commit()
                 return await interaction.response.send_message(f"Classification for {game}'s '{item}' was successful.",ephemeral=True)
             finally:
                 pass
