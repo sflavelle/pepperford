@@ -110,7 +110,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
         if len(current) == 0:
             return [app_commands.Choice(name=opt,value=opt) for opt in response[:20]]
         else:
-            return [app_commands.Choice(name=opt[0],value=opt[0]) for opt in response if current in opt][:20]
+            return [app_commands.Choice(name=opt,value=opt) for opt in response if current in opt][:20]
     
     async def db_item_complete(self, ctx: discord.Interaction, current: str) -> typing.List[app_commands.Choice[str]]:
         cursor = sqlcon.cursor()
@@ -122,7 +122,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
         elif "%" in current or "?" in current:
             return [app_commands.Choice(name=f"{current} (Multi-Selection)",value=current)]
         else:
-            return [app_commands.Choice(name=opt[0],value=opt[0]) for opt in response if current in opt][:20]
+            return [app_commands.Choice(name=opt,value=opt) for opt in response if current in opt][:20]
         
     async def db_location_complete(self, ctx: discord.Interaction, current: str) -> typing.List[app_commands.Choice[str]]:
         cursor = sqlcon.cursor()
