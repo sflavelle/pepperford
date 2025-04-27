@@ -114,6 +114,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
     async def db_item_complete(self, ctx: discord.Interaction, current: str) -> typing.List[app_commands.Choice[str]]:
         cursor = sqlcon.cursor()
         game_selection = ctx.namespace.game
+        print(game_selection)
         cursor.execute("select item from item_classification group by game where game = %s;", (game_selection))
         response = cursor.fetchall()
         if len(current) == 0:
@@ -130,7 +131,10 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
             "filler", # Filler - not really necessary
             "trap" # Negative effect upon the player
             ]
-        return [app_commands.Choice(name=opt.title(),value=opt) for opt in permitted_values]
+        if len(current) == 0:
+            return [app_commands.Choice(name=opt.title(),value=opt) for opt in permitted_values]
+        else:
+            return [app_commands.Choice(name=opt.title(),value=opt) for opt in permitted_values if current in opt]
 
     @commands.is_owner()
     @db.command(name='select')
@@ -156,7 +160,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
     @db.command(name='update_item_classification')
     @app_commands.autocomplete(game=db_game_complete,item=db_item_complete,classification=db_classification_complete)
     async def db_update_item_classification(self, interaction: discord.Interaction, game: str, item: str, classification: str):
-        """Run a basic PostgreSQL SELECT command on a table."""
+        """Update the classification of a single item. For a more advanced interface, see 'update_classifications'."""
 
         cursor = sqlcon.cursor()
         try:
