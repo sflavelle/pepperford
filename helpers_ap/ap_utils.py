@@ -199,7 +199,7 @@ class Item(dict):
 
         try:
             cursor.execute("SELECT * FROM game_locations WHERE game = %s AND location = %s;", (self.game, self.location))
-            game, location, is_checkable = cursor.fetchone()[0]
+            game, location, is_checkable = cursor.fetchone()
             if is_checkable != is_check:
                 logger.info(f"Request to update checkable status for {self.game}: {self.location} (to: {str(is_check)})")
                 cursor.execute("UPDATE game_locations set is_checkable = %s WHERE game = %s AND location = %s;", (str(is_check), game, location))
