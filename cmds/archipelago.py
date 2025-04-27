@@ -101,7 +101,32 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
         cursor.execute("select tablename from pg_catalog.pg_tables where schemaname = 'public'")
         response = cursor.fetchall()
         return [app_commands.Choice(name=opt[0],value=opt[0]) for opt in response]
+    
+    async def db_game_complete(self, ctx: discord.Interaction, current: str) -> typing.List[app_commands.Choice[str]]:
+        cursor = sqlcon.cursor()
+        cursor.execute("select game, count(*) from item_classifications group by game;")
+        response = cursor.fetchall()
+        return [app_commands.Choice(name=opt[0],value=opt[0]) for opt in response]
+    
+    async def db_item_complete(self, ctx: discord.Interaction, current: str) -> typing.List[app_commands.Choice[str]]:
+        cursor = sqlcon.cursor()
+        game_selection = ctx.namespace.game
+        cursor.execute("select item from item_classifications group by game where game = %s;", (game_selection))
+        response = cursor.fetchall()
+        return [app_commands.Choice(name=opt[0],value=opt[0]) for opt in response]
+    
+    async def db_classification_complete(self, ctx: discord.Interaction, current: str) -> typing.List[app_commands.Choice[str]]:
+        permitted_values = [
+            "progression", # Unlocks new checks
+            "conditional progression", # Progression overall, but maybe only in certain settings or certain qualities
+            "useful", # Good to have but doesn't unlock anything new
+            "currency", # Filler, but specifically currency
+            "filler", # Filler - not really necessary
+            "trap" # Negative effect upon the player
+            ]
+        return [app_commands.Choice(name=opt.title(),value=opt) for opt in permitted_values]
 
+    @commands.is_owner()
     @db.command(name='select')
     @app_commands.autocomplete(table=db_table_complete)
     async def db_select(self, interaction: discord.Interaction, table: str, selection: str, where: str = None, public: bool = False):
@@ -120,6 +145,19 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
         except discord.errors.HTTPException:
             responsefile = bytes(str_response,encoding='UTF-8')
             await interaction.response.send_message("Here's the result, as a file:",file=discord.File(BytesIO(responsefile), 'result.txt'),ephemeral=not public)
+
+    @commands.is_owner()
+    @db.command(name='update_item_classification')
+    @app_commands.autocomplete(game=db_game_complete,item=db_item_complete,classification=db_classification_complete)
+    async def db_update_item_classification(self, interaction: discord.Interaction, game: str, item: str, classification: str):
+        """Run a basic PostgreSQL SELECT command on a table."""
+
+        cursor = sqlcon.cursor()
+        try:
+            cursor.execute("UPDATE item_classification SET classification = %s where game = %s and item = %s", (classification, game, item))
+            return await interaction.response.send_message(f"Classification for {game}'s '{item}' was successful.",ephemeral=True)
+        finally:
+            pass
 
     itemlogging = app_commands.Group(name="itemlog",description="Manage an item logging webhook")
 
