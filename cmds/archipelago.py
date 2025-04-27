@@ -116,7 +116,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
         cursor = sqlcon.cursor()
         game_selection = ctx.data.get("options", [{}])[0].get("game")
         print(ctx.data)
-        cursor.execute("select item from item_classification group by game where game = %s;", (game_selection))
+        cursor.execute("select item from item_classification where game = %s group by game;", (game_selection))
         response = sorted([opt[0] for opt in cursor.fetchall()])
         if len(current) == 0:
             return [app_commands.Choice(name=opt[0],value=opt[0]) for opt in response[:20]]
