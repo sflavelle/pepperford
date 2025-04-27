@@ -219,9 +219,9 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
             self.ctx.procs['archipelago'] = {}
         # self.ctx.extras['ap_channel'] = next((chan for chan in self.ctx.spotzone.text_channels if chan.id == 1163808574045167656))
         # while testing
-        self.ctx.extras['ap_channel'] = self.ctx.get_channel(1349546289490034821)
-        self.ctx.extras['ap_webhook'] = await self.ctx.extras['ap_channel'].webhooks()
-        if len(self.ctx.extras['ap_webhook']) == 1: self.ctx.extras['ap_webhook'] = self.ctx.extras['ap_webhook'][0]
+        # self.ctx.extras['ap_channel'] = self.ctx.fetch_channel(1349546289490034821)
+        # self.ctx.extras['ap_webhook'] = await self.ctx.extras['ap_channel'].webhooks()
+        # if len(self.ctx.extras['ap_webhook']) == 1: self.ctx.extras['ap_webhook'] = self.ctx.extras['ap_webhook'][0]
 
             # Run itemlogs if any are configured
         if len(cfg['bot']['archipelago']['itemlogs']) > 0:
