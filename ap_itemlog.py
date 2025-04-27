@@ -173,6 +173,7 @@ def process_spoiler_log(seed_url):
                     if item_location == item and sender == receiver:
                         continue # Most likely an event, can be skipped
                     ItemObject = Item(game.players[sender],game.players[receiver],item,item_location)
+                    ItemObject.db_add_location()
                     if sender not in game.spoiler_log: game.spoiler_log.update({sender: {}})
                     game.spoiler_log[sender].update({item_location: ItemObject})
             case "Starting Items":
@@ -225,6 +226,7 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
             if ReceivedItemObject.is_filler() or ReceivedItemObject.is_currency(): continue
 
             # Update location totals
+            ReceivedItemObject.db_add_location(True)
             game.players[receiver].update_locations(game)
             game.update_locations()
 

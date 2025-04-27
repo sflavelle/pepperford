@@ -174,6 +174,39 @@ class Item(dict):
     def get_count(self) -> int:
         return 1
     
+    def location_is_checkable(self) -> bool:
+        cursor = sqlcon.cursor()
+        cursor.execute("SELECT is_checkable FROM game_locations WHERE game = %s AND location = %s;", (self.game, self.location))
+        response = cursor.fetchone()[0]
+        return response
+
+    def db_add_location(self, is_check: bool = False):
+        """Add this item's location to the database if it doesn't already exist.
+        If a location shows up in a playthrough, it is a checkable location.
+        If it doesn't (only appears in spoiler log), it is *likely* an event.
+
+        If the location already exists, but the 'checkable' value is wrong,
+        this function will update the value in the database.
+        
+        This should help to establish accurate location counts when we start tracking those."""
+        cursor = sqlcon.cursor()
+
+        cursor.execute("CREATE TABLE IF NOT EXISTS game_locations (game bpchar, location bpchar, is_checkable boolean)")
+
+        try:
+            cursor.execute("SELECT * FROM game_locations WHERE game = %s AND location = %s;", (self.game, self.location))
+            game, location, is_checkable = cursor.fetchone()[0]
+            if is_checkable != is_check:
+                logger.info(f"Request to update checkable status for {self.game}: {self.location} (to: {str(is_check)})")
+                cursor.execute("UPDATE game_locations set is_checkable = %s WHERE game = %s AND location = %s;", (str(is_check), game, location))
+        except TypeError:
+            logger.debug("Nothing found for this location, likely")
+            logger.info(f"locationsdb: adding {self.game}: {self.location} to the db")
+            cursor.execute("INSERT INTO game_locations VALUES (%s, %s, %s)", (self.game, self.location, str(is_check)))
+        finally:
+            sqlcon.commit()
+        logger.debug(f"locationsdb: classified {self.game}: {self.location} as {is_checkable}")
+    
     def set_item_classification(self, player: Player = None):
         """Refer to the itemdb and see whether the provided Item has a classification.
         If it doesn't, creates a new entry for that item with no classification.
