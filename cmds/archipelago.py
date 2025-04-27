@@ -114,7 +114,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
     async def db_item_complete(self, ctx: discord.Interaction, current: str) -> typing.List[app_commands.Choice[str]]:
         cursor = sqlcon.cursor()
         game_selection = ctx.namespace.game
-        print(game_selection)
+        print(ctx.namespace)
         cursor.execute("select item from item_classification group by game where game = %s;", (game_selection))
         response = cursor.fetchall()
         if len(current) == 0:
@@ -147,7 +147,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
         response = cursor.fetchall()
 
         # Set headers (for prettiness)
-        headers = [desc[0] for desc in cursor.description]
+        headers = [desc[0].replace("_", " ").title() for desc in cursor.description]
         
         str_response = tabulate(response,headers=headers)
         try: 
