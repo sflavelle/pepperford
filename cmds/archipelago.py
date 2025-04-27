@@ -6,6 +6,7 @@ import requests
 import logging
 import yaml
 import traceback
+from io import BytesIO
 import psycopg2 as psql
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
@@ -100,7 +101,10 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
         cursor = sqlcon.cursor()
         cursor.execute(f"SELECT {selection} FROM {table} {f'WHERE {where}' if bool(where) else ''};", (selection, table, where))
         response = cursor.fetchall()
-        await interaction.response.send_message(tabulate(response),ephemeral=not public)
+        try: 
+            await interaction.response.send_message(tabulate(response),ephemeral=not public)
+        except discord.errors.HTTPException:
+            await interaction.response.send_message("Here's the result, as a file:",file=discord.File(BytesIO(tabulate(response))),ephemeral=not public)
 
     itemlogging = app_commands.Group(name="itemlog",description="Manage an item logging webhook")
 
