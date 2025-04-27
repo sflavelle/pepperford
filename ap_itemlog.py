@@ -37,6 +37,8 @@ msg_webhook = os.getenv('MSGHOOK_URL')
 
 if not (bool(log_url) or bool(webhook_url) or bool(session_cookie)):
     logger.error("Something required isn't configured properly!")
+    for var in [("LOG_URL",log_url), ("WEBHOOK_URL",webhook_url), ("SESSION_COOKIE",session_cookie)]:
+        logger.error(f"{var[0]}: {var[1]}")
     sys.exit(1)
 
 room_id = log_url.split('/')[-1]
