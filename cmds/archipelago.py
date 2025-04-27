@@ -6,9 +6,10 @@ import requests
 import logging
 import yaml
 import traceback
-import time
+import psycopg2 as psql
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
+from tabulate import tabulate
 import discord
 from discord import app_commands
 from discord.ext import commands
@@ -24,6 +25,17 @@ logger = logging.getLogger('discord.ap')
 with open('config.yaml', 'r') as file:
     cfg = yaml.safe_load(file)
 
+sqlcfg = cfg['bot']['archipelago']['psql']
+try: 
+    sqlcon = psql.connect(
+        dbname=sqlcfg['database'],
+        user=sqlcfg['user'],
+        password=sqlcfg['password'] if 'password' in sqlcfg else None,
+        host=sqlcfg['host']
+    )
+except psql.OperationalError:
+    # TODO Disable commands that need SQL connectivity
+    sqlcon = False
 
 class Archipelago(commands.GroupCog, group_name="archipelago"):
     """Commands relating to the Archipelago randomizer"""
@@ -78,6 +90,17 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
         else:
             msg += f"Players: {", ".join(sorted(players))}"
         await newpost.edit(content=msg)
+
+    db = app_commands.Group(name="db",description="Query the bot's Archipelago database")
+
+    @db.command()
+    async def db_select(self, interaction: discord.Interaction, table: str, selection: str, where: str = None, public: bool = False):
+        """Run a basic PostgreSQL SELECT command on a table."""
+
+        cursor = sqlcon.cursor()
+        cursor.execute(f"SELECT %s FROM %s {'WHERE %s' if bool(where) else ''};", (selection, table, where))
+        response = cursor.fetchall()
+        await interaction.response.send_message(tabulate(response),ephemeral=not public)
 
     itemlogging = app_commands.Group(name="itemlog",description="Manage an item logging webhook")
 
