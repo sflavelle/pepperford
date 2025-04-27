@@ -105,7 +105,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
             await interaction.response.send_message(tabulate(response),ephemeral=not public)
         except discord.errors.HTTPException:
             responsefile = bytes(tabulate(response),encoding='UTF-8')
-            await interaction.response.send_message("Here's the result, as a file:",file=discord.File(BytesIO(responsefile)),ephemeral=not public)
+            await interaction.response.send_message("Here's the result, as a file:",file=discord.File(BytesIO(responsefile), 'result.txt'),ephemeral=not public)
 
     itemlogging = app_commands.Group(name="itemlog",description="Manage an item logging webhook")
 
