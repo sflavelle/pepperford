@@ -108,6 +108,7 @@ class Player(dict):
             return self.last_online
         
     def update_locations(self, game: Game):
+        
         self.collected_locations = len([l for l in game.spoiler_log[self.name].values() if l.found is True])
         self.locations = {l.location: l for l in game.spoiler_log[self.name].values() if l.found is True}
         self.total_locations = len(game.spoiler_log[self.name])
@@ -132,6 +133,7 @@ class Item(dict):
     game = None
     location = None
     location_entrance = None
+    location_is_checkable = None
     classification = None
     count = 1
     found = False
@@ -192,6 +194,8 @@ class Item(dict):
         cursor = sqlcon.cursor()
 
         cursor.execute("CREATE TABLE IF NOT EXISTS game_locations (game bpchar, location bpchar, is_checkable boolean)")
+
+        is_checkable: bool = None
 
         try:
             cursor.execute("SELECT * FROM game_locations WHERE game = %s AND location = %s;", (self.game, self.location))
