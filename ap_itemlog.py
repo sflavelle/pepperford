@@ -27,7 +27,7 @@ with open('config.yaml', 'r', encoding='UTF-8') as file:
 # Everything since is my own code. Thank you :-)
 
 # URL of the log file and Discord webhook URL from environment variables
-log_url = os.getenv('LOG_URL')
+log_url = os.getenv('LOG_URL') if bool(os.getenv('LOG_URL')) else 
 webhook_url = os.getenv('WEBHOOK_URL')
 session_cookie = os.getenv('SESSION_COOKIE')
 

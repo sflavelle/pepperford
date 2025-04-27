@@ -15,7 +15,7 @@ from discord.ext import commands
 from discord.ext.commands import Context
 from discord.ext.commands._types import BotT
 
-from cmds.ap_scripts.archilogger import ItemLog
+# from cmds.ap_scripts.archilogger import ItemLog
 
 cfg = None
 
