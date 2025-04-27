@@ -161,13 +161,18 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
     @app_commands.autocomplete(game=db_game_complete,item=db_item_complete,classification=db_classification_complete)
     async def db_update_item_classification(self, interaction: discord.Interaction, game: str, item: str, classification: str):
         """Update the classification of a single item. For a more advanced interface, see 'update_classifications'."""
-
         cursor = sqlcon.cursor()
-        try:
-            cursor.execute("UPDATE item_classification SET classification = %s where game = %s and item = %s", (classification, game, item))
-            return await interaction.response.send_message(f"Classification for {game}'s '{item}' was successful.",ephemeral=True)
-        finally:
-            pass
+
+        if '%' in item:
+            cursor.execute("UPDATE item_classification SET classification = %s where game = %s and item like %s", (classification, game, item))
+            count = len(cursor.fetchall())
+            return await interaction.response.send_message(f"Classification for {game}'s {str(count)} items matching '{item}' was successful.",ephemeral=True)
+        else: 
+            try:
+                cursor.execute("UPDATE item_classification SET classification = %s where game = %s and item = %s", (classification, game, item))
+                return await interaction.response.send_message(f"Classification for {game}'s '{item}' was successful.",ephemeral=True)
+            finally:
+                pass
 
     itemlogging = app_commands.Group(name="itemlog",description="Manage an item logging webhook")
 
