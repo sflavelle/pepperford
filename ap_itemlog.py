@@ -10,9 +10,8 @@ from collections import defaultdict
 import requests
 import threading
 import yaml
-from helpers_ap.ap_utils import Game, Item, CollectedItem, Player, PlayerSettings, handle_item_tracking, handle_location_tracking
+from cmds.ap_scripts.utils import Game, Item, CollectedItem, Player, PlayerSettings, handle_item_tracking, handle_location_tracking
 from word2number import w2n
-import paho.mqtt.client as mqtt
 
 # setup logging
 logger = logging.getLogger('ap_itemlog')
@@ -58,40 +57,6 @@ message_buffer = []
 # Store for players, items, settings
 game = Game()
 game.room_id = room_id
-
-# Init MQTT
-mqtt = mqtt.Client(mqtt.CallbackAPIVersion.VERSION1, client_id=f"archilog-{room_id}")
-mqtt.enable_logger()
-
-mqttparams = (
-    cfg['mqtt']['broker'],
-    cfg['mqtt']['port'],
-    cfg['mqtt']['user'],
-    cfg['mqtt']['password']
-)
-logger.info(f"initialising MQTT with params: {str(mqttparams)}")
-mqtt.username_pw_set(mqttparams[2], mqttparams[3])
-mqtt.connect(mqttparams[0], mqttparams[1])
-
-def mqtt_send(classtype: Game|Player|PlayerSettings, topic: str, payload, retain: bool = False):
-    topicbase = f"archilog/{room_id}"
-    topicident = ""
-
-    match type(classtype):
-        case "Game":
-            topicident = f"game"
-        case "Player":
-            topicident = f"players/{classtype.name}"
-        case _:
-            pass
-
-    fulltopic = "/".join([topicbase, topicident, topic])
-
-    logger.debug(f"Sending MQTT payload to topic: {fulltopic}")
-
-    return mqtt.publish(fulltopic, payload, qos=1, retain=retain)
-
-
 
 # small functions
 goaled = lambda player : game.players[player].is_finished()
@@ -471,20 +436,6 @@ def watch_log(url, interval):
     # classification_thread = threading.Thread(target=save_classifications)
     # classification_thread.start()
 
-    # Send info to MQTT
-    game_settings = ["seed", "version_generator", "collected_locations", "total_locations"]
-    for key, value in game.items():
-        if key in game_settings:
-            mqtt_send(game, key, value, True)
-
-    for player in game.players.values():
-        for key, value in player.__dict__.items():
-            if key in ["items", "locations", "hints"]:
-                mqtt_send(player, key, json.dumps(value))
-            else:
-                mqtt_send(player, key, str(value), True)
-    del game_settings
-
     logger.info("Ready!")
     while True:
         time.sleep(interval)
@@ -512,5 +463,4 @@ if __name__ == "__main__":
     logger.info(f"logging messages from AP Room ID {room_id} to webhook {webhook_url}")
     release_thread = threading.Thread(target=process_releases)
     release_thread.start()
-    # mqtt.loop_start()
     watch_log(log_url, INTERVAL)

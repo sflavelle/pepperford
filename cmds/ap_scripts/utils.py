@@ -15,12 +15,16 @@ with open('config.yaml', 'r', encoding='UTF-8') as file:
 
 
 sqlcfg = cfg['bot']['archipelago']['psql']
-sqlcon = psql.connect(
-    dbname=sqlcfg['database'],
-    user=sqlcfg['user'],
-    password=sqlcfg['password'] if 'password' in sqlcfg else None,
-    host=sqlcfg['host']
-)
+try: 
+    sqlcon = psql.connect(
+        dbname=sqlcfg['database'],
+        user=sqlcfg['user'],
+        password=sqlcfg['password'] if 'password' in sqlcfg else None,
+        host=sqlcfg['host']
+    )
+except psql.OperationalError:
+    # TODO Disable commands that need SQL connectivity
+    sqlcon = False
 
 
 classification_cache = {}
