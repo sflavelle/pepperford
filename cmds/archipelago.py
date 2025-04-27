@@ -106,9 +106,9 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
     async def db_game_complete(self, ctx: discord.Interaction, current: str) -> typing.List[app_commands.Choice[str]]:
         cursor = sqlcon.cursor()
         cursor.execute("select game, count(*) from item_classification group by game;")
-        response = cursor.fetchall()
+        response = sorted([opt[0] for opt in cursor.fetchall()])
         if len(current) == 0:
-            return sorted([app_commands.Choice(name=opt[0],value=opt[0]) for opt in response[:20]])
+            return [app_commands.Choice(name=opt,value=opt) for opt in response[:20]]
         else:
             return [app_commands.Choice(name=opt[0],value=opt[0]) for opt in response if current in opt[0]][:20]
     
@@ -117,7 +117,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
         game_selection = ctx.data.get("options", [{}])[0].get("game")
         print(ctx.data)
         cursor.execute("select item from item_classification group by game where game = %s;", (game_selection))
-        response = cursor.fetchall()
+        response = sorted([opt[0] for opt in cursor.fetchall()])
         if len(current) == 0:
             return [app_commands.Choice(name=opt[0],value=opt[0]) for opt in response[:20]]
         else:
