@@ -172,7 +172,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
             return await interaction.response.send_message(f"Classification for {game}'s {str(count)} items matching '{item}' was successful.",ephemeral=True)
         else: 
             try:
-                cursor.execute("UPDATE item_classification SET classification = %s where game = %s and item = %s", (classification, game, item))
+                cursor.execute("UPDATE item_classification SET classification = %s where game = %s and item = %s", (classification.lower(), game, item))
                 return await interaction.response.send_message(f"Classification for {game}'s '{item}' was successful.",ephemeral=True)
             finally:
                 pass
