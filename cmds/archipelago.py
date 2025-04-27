@@ -238,9 +238,9 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                 env['MSGHOOK_URL'] = log['msghook'] if log['msghook'] else None
             
                 try: 
-                    script_path = os.path.join(os.path.dirname(__file__), 'ap_itemlog.py')
+                    script_path = os.path.join(os.path.dirname(__file__), '..', 'ap_itemlog.py')
                     process = subprocess.Popen([sys.executable, script_path], env=env)
-                    itemlog_processes.update({self.ctx.procs['archipelago'][log['guild']]: process.pid})
+                    self.ctx.procs['archipelago'][log['guild']] = process.pid
                 except:
                     logger.error("Error starting log:",exc_info=True)
 
