@@ -33,8 +33,9 @@ try:
         dbname=sqlcfg['database'],
         user=sqlcfg['user'],
         password=sqlcfg['password'] if 'password' in sqlcfg else None,
-        host=sqlcfg['host']
+        host=sqlcfg['host'],
     )
+    sqlcon.set_session(autocommit=True)
 except psql.OperationalError:
     # TODO Disable commands that need SQL connectivity
     sqlcon = False
@@ -107,7 +108,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
         cursor.execute("select game, count(*) from item_classification group by game;")
         response = cursor.fetchall()
         if len(current) == 0:
-            return [app_commands.Choice(name=opt[0],value=opt[0]) for opt in response[:20]]
+            return sorted([app_commands.Choice(name=opt[0],value=opt[0]) for opt in response[:20]])
         else:
             return [app_commands.Choice(name=opt[0],value=opt[0]) for opt in response if current in opt[0]][:20]
     
@@ -170,7 +171,6 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
         else: 
             try:
                 cursor.execute("UPDATE item_classification SET classification = %s where game = %s and item = %s", (classification, game, item))
-                sqlcon.commit()
                 return await interaction.response.send_message(f"Classification for {game}'s '{item}' was successful.",ephemeral=True)
             finally:
                 pass
