@@ -204,7 +204,7 @@ class Item(dict):
         try:
             cursor.execute("SELECT * FROM game_locations WHERE game = %s AND location = %s;", (self.sender.game, self.location))
             game, location, is_checkable = cursor.fetchone()
-            if is_checkable != is_check:
+            if is_checkable != is_check and is_check == True:
                 logger.info(f"Request to update checkable status for {self.sender.game}: {self.location} (to: {str(is_check)})")
                 cursor.execute("UPDATE game_locations set is_checkable = %s WHERE game = %s AND location = %s;", (str(is_check), game, location))
         except TypeError:
