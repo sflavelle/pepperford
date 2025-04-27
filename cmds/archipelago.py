@@ -116,7 +116,20 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
         cursor = sqlcon.cursor()
         game_selection = ctx.data.get("options", [{}])[0].get("game")
         print(ctx.data)
-        cursor.execute("select item from item_classification where game = %s group by game;", (game_selection))
+        cursor.execute("select item from item_classification where game = %s;", (game_selection))
+        response = sorted([opt[0] for opt in cursor.fetchall()])
+        if len(current) == 0:
+            return [app_commands.Choice(name=opt[0],value=opt[0]) for opt in response[:20]]
+        elif "%" in current or "?" in current:
+            return [app_commands.Choice(name=f"{current} (Multi-Selection)",value=current)]
+        else:
+            return [app_commands.Choice(name=opt[0],value=opt[0]) for opt in response if current in opt[0]][:20]
+        
+    async def db_location_complete(self, ctx: discord.Interaction, current: str) -> typing.List[app_commands.Choice[str]]:
+        cursor = sqlcon.cursor()
+        game_selection = ctx.data.get("options", [{}])[0].get("game")
+        print(ctx.data)
+        cursor.execute("select location from game_locations where game = %s;", (game_selection))
         response = sorted([opt[0] for opt in cursor.fetchall()])
         if len(current) == 0:
             return [app_commands.Choice(name=opt[0],value=opt[0]) for opt in response[:20]]
@@ -163,17 +176,35 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
     @db.command(name='update_item_classification')
     @app_commands.autocomplete(game=db_game_complete,item=db_item_complete,classification=db_classification_complete)
     async def db_update_item_classification(self, interaction: discord.Interaction, game: str, item: str, classification: str):
-        """Update the classification of a single item. For a more advanced interface, see 'update_classifications'."""
+        """Update the classification of an item."""
         cursor = sqlcon.cursor()
 
         if '%' in item:
-            cursor.execute("UPDATE item_classification SET classification = %s where game = %s and item like %s", (classification, game, item))
+            cursor.execute("UPDATE item_classification SET classification = %s where game = %s and item like %s", (classification.lower(), game, item))
             count = cursor.rowcount
             return await interaction.response.send_message(f"Classification for {game}'s {str(count)} items matching '{item}' was successful.",ephemeral=True)
         else: 
             try:
                 cursor.execute("UPDATE item_classification SET classification = %s where game = %s and item = %s", (classification.lower(), game, item))
                 return await interaction.response.send_message(f"Classification for {game}'s '{item}' was successful.",ephemeral=True)
+            finally:
+                pass
+
+    @commands.is_owner()
+    @db.command(name='update_location_checkability')
+    @app_commands.autocomplete(game=db_game_complete,location=db_location_complete)
+    async def db_update_location_checkability(self, interaction: discord.Interaction, game: str, location: str, is_checkable: bool):
+        """Update the checkability of a game's location. Non-checkable locations are classified as Events in Archipelago."""
+        cursor = sqlcon.cursor()
+
+        if '%' in location:
+            cursor.execute("UPDATE game_locations SET is_checkable = %s where game = %s and location like %s", (is_checkable, game, location))
+            count = cursor.rowcount
+            return await interaction.response.send_message(f"Classification for {game}'s {str(count)} locations matching '{location}' was successful.",ephemeral=True)
+        else: 
+            try:
+                cursor.execute("UPDATE game_locations SET is_checkable = %s where game = %s and location = %s", (is_checkable, game, location))
+                return await interaction.response.send_message(f"Classification for {game}'s '{location}' was successful.",ephemeral=True)
             finally:
                 pass
 
