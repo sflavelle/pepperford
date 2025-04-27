@@ -161,7 +161,8 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
         """Run a basic PostgreSQL SELECT command on a table."""
 
         cursor = sqlcon.cursor()
-        cursor.execute(f"SELECT {selection} FROM {table} {f'WHERE {where}' if bool(where) else ''};", (selection, table, where))
+        logger.info(f"executed SQL command from discord: SELECT {selection} FROM {table} {f'WHERE {where}' if bool(where) else ''};")
+        cursor.execute(f"SELECT {selection} FROM {table} {f'WHERE {where}' if bool(where) else ''};")
         response = cursor.fetchall()
 
         # Set headers (for prettiness)
@@ -187,10 +188,12 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
         if '%' in item:
             cursor.execute("UPDATE item_classification SET classification = %s where game = %s and item like %s", (classification.lower(), game, item))
             count = cursor.rowcount
+            logger.info(f"Classified {str(count)} item(s) matching '{item}' in {game} to {classification}")
             return await interaction.response.send_message(f"Classification for {game}'s {str(count)} items matching '{item}' was successful.",ephemeral=True)
         else: 
             try:
                 cursor.execute("UPDATE item_classification SET classification = %s where game = %s and item = %s", (classification.lower(), game, item))
+                logger.info(f"Classified '{item}' in {game} to {classification}")
                 return await interaction.response.send_message(f"Classification for {game}'s '{item}' was successful.",ephemeral=True)
             finally:
                 pass
@@ -208,10 +211,12 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
         if '%' in location:
             cursor.execute("UPDATE game_locations SET is_checkable = %s where game = %s and location like %s", (is_checkable, game, location))
             count = cursor.rowcount
+            logger.info(f"Classified {str(count)} locations(s) matching '{location}' in {game} to {'not ' if is_checkable is False else ''}checkable")
             return await interaction.response.send_message(f"Classification for {game}'s {str(count)} locations matching '{location}' was successful.",ephemeral=True)
         else: 
             try:
                 cursor.execute("UPDATE game_locations SET is_checkable = %s where game = %s and location = %s", (is_checkable, game, location))
+                logger.info(f"Classified '{location}' in {game} to {'not ' if is_checkable is False else ''}checkable")
                 return await interaction.response.send_message(f"Classification for {game}'s '{location}' was successful.",ephemeral=True)
             finally:
                 pass
