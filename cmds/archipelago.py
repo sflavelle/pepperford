@@ -115,7 +115,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
     async def db_item_complete(self, ctx: discord.Interaction, current: str) -> typing.List[app_commands.Choice[str]]:
         cursor = sqlcon.cursor()
         game_selection = ctx.data['options'][0]['options'][0]['options'][0]['value']
-        logger.debug(ctx.data['options'][0]['options'][0])
+        logger.debug(ctx.data['options'][0]['options'][0]['options'][0]['value'])
         cursor.execute("select item from item_classification where game = %s;", (game_selection))
         response = sorted([opt[0] for opt in cursor.fetchall()])
         if len(current) == 0:
@@ -128,7 +128,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
     async def db_location_complete(self, ctx: discord.Interaction, current: str) -> typing.List[app_commands.Choice[str]]:
         cursor = sqlcon.cursor()
         game_selection = ctx.data['options'][0]['options'][0]['options'][0]['value']
-        logger.debug(ctx.data['options'][0]['options'][0])
+        logger.debug(ctx.data['options'][0]['options'][0]['options'][0]['value'])
         cursor.execute("select location from game_locations where game = %s;", (game_selection))
         response = sorted([opt[0] for opt in cursor.fetchall()])
         if len(current) == 0:
