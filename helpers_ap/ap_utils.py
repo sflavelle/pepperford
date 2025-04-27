@@ -133,7 +133,7 @@ class Item(dict):
     game = None
     location = None
     location_entrance = None
-    location_is_checkable = None
+    is_location_checkable = None
     classification = None
     count = 1
     found = False
@@ -178,7 +178,7 @@ class Item(dict):
     
     def location_is_checkable(self) -> bool:
         cursor = sqlcon.cursor()
-        cursor.execute("SELECT is_checkable FROM game_locations WHERE game = %s AND location = %s;", (self.game, self.location))
+        cursor.execute("SELECT is_checkable FROM game_locations WHERE game = %s AND location = %s;", (self.sender.game, self.location))
         response = cursor.fetchone()[0]
         return response
 
@@ -198,18 +198,18 @@ class Item(dict):
         is_checkable: bool = None
 
         try:
-            cursor.execute("SELECT * FROM game_locations WHERE game = %s AND location = %s;", (self.game, self.location))
+            cursor.execute("SELECT * FROM game_locations WHERE game = %s AND location = %s;", (self.sender.game, self.location))
             game, location, is_checkable = cursor.fetchone()
             if is_checkable != is_check:
-                logger.info(f"Request to update checkable status for {self.game}: {self.location} (to: {str(is_check)})")
+                logger.info(f"Request to update checkable status for {self.sender.game}: {self.location} (to: {str(is_check)})")
                 cursor.execute("UPDATE game_locations set is_checkable = %s WHERE game = %s AND location = %s;", (str(is_check), game, location))
         except TypeError:
             logger.debug("Nothing found for this location, likely")
-            logger.info(f"locationsdb: adding {self.game}: {self.location} to the db")
-            cursor.execute("INSERT INTO game_locations VALUES (%s, %s, %s)", (self.game, self.location, str(is_check)))
+            logger.info(f"locationsdb: adding {self.sender.game}: {self.location} to the db")
+            cursor.execute("INSERT INTO game_locations VALUES (%s, %s, %s)", (self.sender.game, self.location, str(is_check)))
         finally:
             sqlcon.commit()
-        logger.debug(f"locationsdb: classified {self.game}: {self.location} as {is_checkable}")
+        logger.debug(f"locationsdb: classified {self.sender.game}: {self.location} as {is_checkable}")
     
     def set_item_classification(self, player: Player = None):
         """Refer to the itemdb and see whether the provided Item has a classification.
