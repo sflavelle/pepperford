@@ -1,3 +1,6 @@
+import os
+import sys
+import subprocess
 import requests
 import logging
 import yaml
@@ -108,12 +111,12 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
         if interaction.guild_id in self.ctx.procs['archipelago']:
             if isinstance(self.ctx.procs['archipelago'][interaction.guild_id], ItemLog):
                 return await newpost.edit(content=f"We've already got an itemlog configured for this guild.")
-        # env = os.environ.copy()
-        # env['LOG_URL'] = log_url
-        # env['WEBHOOK_URL'] = webhook
-        # env['SESSION_COOKIE'] = cfg['bot']['archipelago']['session_cookie']
-        # env['SPOILER_URL'] = spoiler_url if spoiler_url else None
-        # env['MSGHOOK_URL'] = log['msghook'] if log['msghook'] else None
+        env = os.environ.copy()
+        env['LOG_URL'] = log_url
+        env['WEBHOOK_URL'] = webhook
+        env['SESSION_COOKIE'] = cfg['bot']['archipelago']['session_cookie']
+        env['SPOILER_URL'] = spoiler_url if spoiler_url else None
+        env['MSGHOOK_URL'] = log['msghook'] if log['msghook'] else None
 
         ping_log = requests.get(log_url, cookies={'session': cfg['bot']['archipelago']['session_cookie']}, timeout=3)
         if ping_log.status_code == 200:
@@ -218,6 +221,26 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
         self.ctx.extras['ap_channel'] = self.ctx.get_channel(1349546289490034821)
         self.ctx.extras['ap_webhook'] = await self.ctx.extras['ap_channel'].webhooks()
         if len(self.ctx.extras['ap_webhook']) == 1: self.ctx.extras['ap_webhook'] = self.ctx.extras['ap_webhook'][0]
+
+            # Run itemlogs if any are configured
+        if len(cfg['bot']['archipelago']['itemlogs']) > 0:
+            logger.info("Starting saved itemlog processes.")
+            for log in cfg['bot']['archipelago']['itemlogs']:
+                logger.info(f"Starting itemlog for guild ID {log['guild']}")
+                env = os.environ.copy()
+            
+                env['LOG_URL'] = log['log_url']
+                env['WEBHOOK_URL'] = log['webhook']
+                env['SESSION_COOKIE'] = cfg['bot']['archipelago']['session_cookie']
+                env['SPOILER_URL'] = log['spoiler_url'] if log['spoiler_url'] else None
+                env['MSGHOOK_URL'] = log['msghook'] if log['msghook'] else None
+            
+                try: 
+                    script_path = os.path.join(os.path.dirname(__file__), 'ap_itemlog.py')
+                    process = subprocess.Popen([sys.executable, script_path], env=env)
+                    itemlog_processes.update({self.ctx.procs['archipelago'][log['guild']]: process.pid})
+                except:
+                    logger.error("Error starting log:",exc_info=True)
 
 async def setup(bot):
     logger.info("Loading Archipelago cog extension.")
