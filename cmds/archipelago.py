@@ -118,7 +118,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
         cursor.execute(f"select item from item_classification where game = '{str(game_selection)}';")
         response = sorted([opt[0] for opt in cursor.fetchall()])
         if len(current) == 0:
-            return [app_commands.Choice(name=opt[0],value=opt[0]) for opt in response[:20]]
+            return [app_commands.Choice(name=opt,value=opt) for opt in response[:20]]
         elif "%" in current or "?" in current:
             return [app_commands.Choice(name=f"{current} (Multi-Selection)",value=current)]
         else:
@@ -130,11 +130,11 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
         cursor.execute(f"select location from game_locations where game = '{str(game_selection)}';")
         response = sorted([opt[0] for opt in cursor.fetchall()])
         if len(current) == 0:
-            return [app_commands.Choice(name=opt[0],value=opt[0]) for opt in response[:20]]
+            return [app_commands.Choice(name=opt,value=opt) for opt in response[:20]]
         elif "%" in current or "?" in current:
             return [app_commands.Choice(name=f"{current} (Multi-Selection)",value=current)]
         else:
-            return [app_commands.Choice(name=opt[0],value=opt[0]) for opt in response if current in opt[0]][:20]
+            return [app_commands.Choice(name=opt,value=opt) for opt in response if current in opt[0]][:20]
     
     async def db_classification_complete(self, ctx: discord.Interaction, current: str) -> typing.List[app_commands.Choice[str]]:
         permitted_values = [
