@@ -6,6 +6,7 @@ import requests
 import logging
 import yaml
 import traceback
+import typing
 from io import BytesIO
 import psycopg2 as psql
 import asyncio
@@ -94,17 +95,30 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
 
     db = app_commands.Group(name="db",description="Query the bot's Archipelago database")
 
-    @db.command()
+    # First some helpers
+    async def db_table_complete(self, ctx: discord.Interaction, current: str) -> typing.List[app_commands.Choice[str]]:
+        cursor = sqlcon.cursor()
+        cursor.execute("select tablename from pg_catalog.pg_tables where schemaname = 'public'")
+        response = cursor.fetchall()
+        return [app_commands.Choice(name=opt[0],value=opt[0]) for opt in response]
+
+    @db.command(name='select')
+    @app_commands.autocomplete(table=db_table_complete)
     async def db_select(self, interaction: discord.Interaction, table: str, selection: str, where: str = None, public: bool = False):
         """Run a basic PostgreSQL SELECT command on a table."""
 
         cursor = sqlcon.cursor()
         cursor.execute(f"SELECT {selection} FROM {table} {f'WHERE {where}' if bool(where) else ''};", (selection, table, where))
         response = cursor.fetchall()
+
+        # Set headers (for prettiness)
+        headers = [desc[0] for desc in cursor.description]
+        
+        str_response = tabulate(response,headers=headers)
         try: 
-            await interaction.response.send_message(tabulate(response),ephemeral=not public)
+            await interaction.response.send_message(str_response,ephemeral=not public)
         except discord.errors.HTTPException:
-            responsefile = bytes(tabulate(response),encoding='UTF-8')
+            responsefile = bytes(str_response,encoding='UTF-8')
             await interaction.response.send_message("Here's the result, as a file:",file=discord.File(BytesIO(responsefile), 'result.txt'),ephemeral=not public)
 
     itemlogging = app_commands.Group(name="itemlog",description="Manage an item logging webhook")
