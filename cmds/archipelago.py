@@ -106,14 +106,20 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
         cursor = sqlcon.cursor()
         cursor.execute("select game, count(*) from item_classification group by game;")
         response = cursor.fetchall()
-        return [app_commands.Choice(name=opt[0],value=opt[0]) for opt in response]
+        if len(current) == 0:
+            return [app_commands.Choice(name=opt[0],value=opt[0]) for opt in response[:20]]
+        else:
+            return [app_commands.Choice(name=opt[0],value=opt[0]) for opt in response if current in opt[0]][:20]
     
     async def db_item_complete(self, ctx: discord.Interaction, current: str) -> typing.List[app_commands.Choice[str]]:
         cursor = sqlcon.cursor()
         game_selection = ctx.namespace.game
         cursor.execute("select item from item_classification group by game where game = %s;", (game_selection))
         response = cursor.fetchall()
-        return [app_commands.Choice(name=opt[0],value=opt[0]) for opt in response]
+        if len(current) == 0:
+            return [app_commands.Choice(name=opt[0],value=opt[0]) for opt in response[:20]]
+        else:
+            return [app_commands.Choice(name=opt[0],value=opt[0]) for opt in response if current in opt[0]][:20]
     
     async def db_classification_complete(self, ctx: discord.Interaction, current: str) -> typing.List[app_commands.Choice[str]]:
         permitted_values = [
