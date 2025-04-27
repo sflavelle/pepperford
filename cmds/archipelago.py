@@ -152,6 +152,10 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
 
     @commands.is_owner()
     @db.command(name='select')
+    @app_commands.describe(table="The table to select from",
+                           selection="What columns/functions to select (* for all)",
+                           where="specify a WHERE filter",
+                           public="publish the result?")
     @app_commands.autocomplete(table=db_table_complete)
     async def db_select(self, interaction: discord.Interaction, table: str, selection: str, where: str = None, public: bool = False):
         """Run a basic PostgreSQL SELECT command on a table."""
@@ -172,6 +176,9 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
 
     @commands.is_owner()
     @db.command(name='update_item_classification')
+    @app_commands.describe(game="The game that contains the item",
+                           item="The item to act on (wildcards: ? one, % many)",
+                           classification="The item's importance")
     @app_commands.autocomplete(game=db_game_complete,item=db_item_complete,classification=db_classification_complete)
     async def db_update_item_classification(self, interaction: discord.Interaction, game: str, item: str, classification: str):
         """Update the classification of an item."""
@@ -190,6 +197,9 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
 
     @commands.is_owner()
     @db.command(name='update_location_checkability')
+    @app_commands.describe(game="The game that contains the location",
+                           location="The location to act on (wildcards: ? one, % many)",
+                           is_checkable="Can the location be checked by a player?")
     @app_commands.autocomplete(game=db_game_complete,location=db_location_complete)
     async def db_update_location_checkability(self, interaction: discord.Interaction, game: str, location: str, is_checkable: bool):
         """Update the checkability of a game's location. Non-checkable locations are classified as Events in Archipelago."""
