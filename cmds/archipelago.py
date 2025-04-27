@@ -1,3 +1,4 @@
+import json
 import os
 import sys
 import subprocess
@@ -111,12 +112,12 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
         if interaction.guild_id in self.ctx.procs['archipelago']:
             if isinstance(self.ctx.procs['archipelago'][interaction.guild_id], ItemLog):
                 return await newpost.edit(content=f"We've already got an itemlog configured for this guild.")
-        env = os.environ.copy()
-        env['LOG_URL'] = log_url
-        env['WEBHOOK_URL'] = webhook
-        env['SESSION_COOKIE'] = cfg['bot']['archipelago']['session_cookie']
-        env['SPOILER_URL'] = spoiler_url if spoiler_url else None
-        env['MSGHOOK_URL'] = log['msghook'] if log['msghook'] else None
+        # env = os.environ.copy()
+        # env['LOG_URL'] = log_url
+        # env['WEBHOOK_URL'] = webhook
+        # env['SESSION_COOKIE'] = cfg['bot']['archipelago']['session_cookie']
+        # env['SPOILER_URL'] = spoiler_url if spoiler_url else None
+        # env['MSGHOOK_URL'] = log['msghook'] if log['msghook'] else None
 
         ping_log = requests.get(log_url, cookies={'session': cfg['bot']['archipelago']['session_cookie']}, timeout=3)
         if ping_log.status_code == 200:
@@ -227,6 +228,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
             logger.info("Starting saved itemlog processes.")
             for log in cfg['bot']['archipelago']['itemlogs']:
                 logger.info(f"Starting itemlog for guild ID {log['guild']}")
+                logger.info(f"Info: {json.dumps(log)}")
                 env = os.environ.copy()
             
                 env['LOG_URL'] = log['log_url']
