@@ -221,6 +221,42 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
             finally:
                 pass
 
+    @db.command()
+    async def import_datapackage(self, interaction: discord.Interaction, url: str = "https://archipelago.gg/datapackage"):
+        """Import items and locations from an Archipelago datapackage into the database."""
+
+        cursor = sqlcon.cursor()
+
+        deferpost = await interaction.response.defer(ephemeral=True, thinking=True,)
+        newpost = await interaction.original_response()
+
+        data = requests.get(url)
+        datapackage = data.json()
+
+        games = datapackage['games'].keys()[1:] # Skip the Archipelago data
+
+        msg = f"The datapackage provided has data for:\n\n{", ".join(games)}\n\nImport in progress..."
+        if len(msg) > 2000:
+            msg = f"The datapackage provided has data for {len(games)} games. Import in progress..."
+        newpost.edit(content=msg)
+
+        for game, data in datapackage['games'][1:].items():
+            for item in data['item_name_groups']['Everything']:
+                logger.info(f"Importing {game}: {item} to item_classification")
+                cursor.execute(
+                    "INSERT INTO item_classification (game, item, classification) VALUES (%s, %s, %s) ON CONFLICT (game, item) DO NOTHING;",
+                    (game, item, None))
+            for location in game['location_name_groups']['Everywhere']:
+                logger.info(f"Importing {game}: {location} to game_locations")
+                # Any location that shows up in the datapackage appears to be checkable
+                cursor.execute(
+                    "INSERT INTO game_locations (game, location, is_checkable) VALUES (%s, %s, %s) ON CONFLICT (game, location) DO UPDATE SET is_checkable = EXCLUDED.is_checkable;",
+                    (game, location, True))
+            await newpost.edit(f"Imported {game}...")
+
+        return await newpost.edit("Import *should* be complete!")
+
+
     itemlogging = app_commands.Group(name="itemlog",description="Manage an item logging webhook")
 
     """ (2025-03-15)
