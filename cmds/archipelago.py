@@ -239,7 +239,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
         msg = f"The datapackage provided has data for:\n\n{", ".join(games)}\n\nImport in progress..."
         if len(msg) > 2000:
             msg = f"The datapackage provided has data for {len(games)} games. Import in progress..."
-        newpost.edit(content=msg)
+        await newpost.edit(content=msg)
 
         for game, data in datapackage['games'].items():
             if game == "Archipelago": continue
@@ -254,9 +254,9 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                 cursor.execute(
                     "INSERT INTO game_locations (game, location, is_checkable) VALUES (%s, %s, %s) ON CONFLICT (game, location) DO UPDATE SET is_checkable = EXCLUDED.is_checkable;",
                     (game, location, True))
-            await newpost.edit(f"Imported {game}...")
+            await newpost.edit(content=f"Imported {game}...")
 
-        return await newpost.edit("Import *should* be complete!")
+        return await newpost.edit(content="Import *should* be complete!")
 
 
     itemlogging = app_commands.Group(name="itemlog",description="Manage an item logging webhook")
