@@ -233,7 +233,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
         data = requests.get(url)
         datapackage = data.json()
 
-        games = datapackage['games'].keys() 
+        games = list(datapackage['games'].keys())
         games.remove("Archipelago") # Skip the Archipelago data
 
         msg = f"The datapackage provided has data for:\n\n{", ".join(games)}\n\nImport in progress..."
