@@ -233,20 +233,22 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
         data = requests.get(url)
         datapackage = data.json()
 
-        games = datapackage['games'].keys()[1:] # Skip the Archipelago data
+        games = datapackage['games'].keys() 
+        games.remove("Archipelago") # Skip the Archipelago data
 
         msg = f"The datapackage provided has data for:\n\n{", ".join(games)}\n\nImport in progress..."
         if len(msg) > 2000:
             msg = f"The datapackage provided has data for {len(games)} games. Import in progress..."
         newpost.edit(content=msg)
 
-        for game, data in datapackage['games'][1:].items():
+        for game, data in datapackage['games'].items():
+            if game == "Archipelago": continue
             for item in data['item_name_groups']['Everything']:
                 logger.info(f"Importing {game}: {item} to item_classification")
                 cursor.execute(
                     "INSERT INTO item_classification (game, item, classification) VALUES (%s, %s, %s) ON CONFLICT (game, item) DO NOTHING;",
                     (game, item, None))
-            for location in game['location_name_groups']['Everywhere']:
+            for location in data['location_name_groups']['Everywhere']:
                 logger.info(f"Importing {game}: {location} to game_locations")
                 # Any location that shows up in the datapackage appears to be checkable
                 cursor.execute(
