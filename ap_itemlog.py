@@ -187,7 +187,6 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
                 logger.error(f"""Sent Item Object Creation error. Parsed item name: '{item}', Receiver: '{receiver}', Location: '{item_location}', Error: '{str(e)}'""", e, exc_info=True)
                 logger.error(f"Line being parsed: {line}")
 
-            if not skip_msg: logger.info(f"{sender}: {item_location} -> {receiver}'s {item} ({ReceivedItemObject.classification})")
 
             # By vote of spotzone: if it's filler, don't post it
             if ReceivedItemObject.is_filler() or ReceivedItemObject.is_currency(): continue
@@ -196,6 +195,8 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
             ReceivedItemObject.db_add_location(True)
             game.players[receiver].update_locations(game)
             game.update_locations()
+
+            if not skip_msg: logger.info(f"{sender}: ({str(game.players[sender].collected_locations)}/{str(game.players[sender].total_locations)}) {item_location} -> {receiver}'s {item} ({ReceivedItemObject.classification})")
 
             # If this is part of a release, send it there instead
             if sender in release_buffer and not skip_msg and (to_epoch(timestamp) - release_buffer[sender]['timestamp'] <= 2):
@@ -257,8 +258,9 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
                 case _:
                     pass
 
-            if not skip_msg and game.players[receiver].is_finished() is False and not SentItemObject.found: message_buffer.append(message)
             game.spoiler_log[sender][item_location].hint()
+            if SentItemObject.is_filler(): continue
+            if not skip_msg and game.players[receiver].is_finished() is False and not SentItemObject.found: message_buffer.append(message)
 
 
         elif match := regex_patterns['goals'].match(line):
