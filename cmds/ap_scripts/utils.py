@@ -112,7 +112,6 @@ class Player(dict):
             return self.last_online
         
     def update_locations(self, game: Game):
-        
         self.collected_locations = len([l for l in game.spoiler_log[self.name].values() if l.found is True])
         self.locations = {l.location: l for l in game.spoiler_log[self.name].values() if l.found is True}
         self.total_locations = len(game.spoiler_log[self.name])
@@ -446,6 +445,11 @@ def handle_item_tracking(game: Game, player: Player, item: str):
                         if i in collected: collected_string += i
                         else: collected_string += "_"
                     return f"{item} ({collected_string})"
+            case "Celeste (Open World)":
+                if item == 'Strawberry':
+                    total = settings['Total Strawberries']
+                    required = round(total * (settings['Strawberries Required Percentage'] / 100))
+                    return f"{item} *({count}/{required})*"
             case "Donkey Kong 64":
                 kongs = ["Donkey", "Diddy", "Lanky", "Tiny", "Chunky"]
                 shopkeepers = ["Candy", "Cranky", "Funky", "Snide"]

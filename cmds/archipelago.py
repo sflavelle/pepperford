@@ -225,39 +225,84 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
     async def import_datapackage(self, interaction: discord.Interaction, url: str = "https://archipelago.gg/datapackage"):
         """Import items and locations from an Archipelago datapackage into the database."""
 
-        cursor = sqlcon.cursor()
+        with sqlcon.cursor() as cursor:
+
+            deferpost = await interaction.response.defer(ephemeral=True, thinking=True,)
+            newpost = await interaction.original_response()
+
+            data = requests.get(url, timeout=5)
+            datapackage = data.json()
+
+            games = list(datapackage['games'].keys())
+            games.remove("Archipelago") # Skip the Archipelago data
+
+            msg = f"The datapackage provided has data for:\n\n{", ".join(games)}\n\nImport in progress..."
+            if len(msg) > 2000:
+                msg = f"The datapackage provided has data for {len(games)} games. Import in progress..."
+            await newpost.edit(content=msg)
+
+            for game, data in datapackage['games'].items():
+                if game == "Archipelago": continue
+                for item in data['item_name_groups']['Everything']:
+                    logger.info(f"Importing {game}: {item} to item_classification")
+                    cursor.execute(
+                        "INSERT INTO item_classification (game, item, classification) VALUES (%s, %s, %s) ON CONFLICT (game, item) DO NOTHING;",
+                        (game, item, None))
+                for location in data['location_name_groups']['Everywhere']:
+                    logger.info(f"Importing {game}: {location} to game_locations")
+                    # Any location that shows up in the datapackage appears to be checkable
+                    cursor.execute(
+                        "INSERT INTO game_locations (game, location, is_checkable) VALUES (%s, %s, %s) ON CONFLICT (game, location) DO UPDATE SET is_checkable = EXCLUDED.is_checkable;",
+                        (game, location, True))
+                await newpost.edit(content=f"Imported {game}...")
+
+        return await newpost.edit(content="Import *should* be complete!")
+    
+    aproom = app_commands.Group(name="room",description="Commands to do with the current room")
+
+    @aproom.command()
+    async def set_room(self, interaction: discord.Interaction, room_url: str):
+        """Set the current Archipelago room for this server. Will affect other commands."""
 
         deferpost = await interaction.response.defer(ephemeral=True, thinking=True,)
         newpost = await interaction.original_response()
 
-        data = requests.get(url)
-        datapackage = data.json()
+        if room_url.split('/')[-2] != "room":
+            return await newpost.edit(content="**Error**: the provided URL is not an Archipelago room URL.",delete_after=15.0)
 
-        games = list(datapackage['games'].keys())
-        games.remove("Archipelago") # Skip the Archipelago data
+        room_id = room_url.split('/')[-1]
+        hostname = room_url.split('/')[2]
 
-        msg = f"The datapackage provided has data for:\n\n{", ".join(games)}\n\nImport in progress..."
-        if len(msg) > 2000:
-            msg = f"The datapackage provided has data for {len(games)} games. Import in progress..."
-        await newpost.edit(content=msg)
+        api_url = f"https://{hostname}/api/room_status/{room_id}"
 
-        for game, data in datapackage['games'].items():
-            if game == "Archipelago": continue
-            for item in data['item_name_groups']['Everything']:
-                logger.info(f"Importing {game}: {item} to item_classification")
-                cursor.execute(
-                    "INSERT INTO item_classification (game, item, classification) VALUES (%s, %s, %s) ON CONFLICT (game, item) DO NOTHING;",
-                    (game, item, None))
-            for location in data['location_name_groups']['Everywhere']:
-                logger.info(f"Importing {game}: {location} to game_locations")
-                # Any location that shows up in the datapackage appears to be checkable
-                cursor.execute(
-                    "INSERT INTO game_locations (game, location, is_checkable) VALUES (%s, %s, %s) ON CONFLICT (game, location) DO UPDATE SET is_checkable = EXCLUDED.is_checkable;",
-                    (game, location, True))
-            await newpost.edit(content=f"Imported {game}...")
+        api_data = requests.get(api_url, timeout=5).json()
 
-        return await newpost.edit(content="Import *should* be complete!")
+        room_port = api_data['last_port']
 
+        players = {}
+        player_count = 1
+        for p in api_data['players']:
+            players[p[0]] = {
+                "game": p[1],
+                "slot": player_count,
+            }
+            player_count = player_count + 1
+        
+        with sqlcon.cursor() as cursor:
+            commands = [
+                f'''INSERT INTO games.all_rooms
+                (room_id, guild, active, host, players)
+                VALUES ('{room_id}', 
+                NULL,
+                '{interaction.guild_id}',
+                'true',
+                '{hostname}',
+                '{room_port}');''',
+            ]
+
+            # When we're ready
+            for cmd in commands:
+                cursor.execute(cmd)
 
     itemlogging = app_commands.Group(name="itemlog",description="Manage an item logging webhook")
 
