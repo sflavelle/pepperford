@@ -259,7 +259,11 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
                     pass
 
             game.spoiler_log[sender][item_location].hint()
-            if SentItemObject.is_filler(): continue
+
+            if SentItemObject.is_filler() or SentItemObject.is_currency(): continue
+            # Balatro shop items are hinted as soon as they appear and are usually bought right away, so skip their hints
+            if SentItemObject.game == "Balatro" and any([SentItemObject.location.startswith(shop) for shop in ['Shop Item', 'Consumable Item']]): continue
+
             if not skip_msg and game.players[receiver].is_finished() is False and not SentItemObject.found: message_buffer.append(message)
 
 
