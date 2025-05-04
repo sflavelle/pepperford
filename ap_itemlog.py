@@ -47,6 +47,8 @@ seed_id = seed_url.split('/')[-1] if bool(seed_url) else None
 
 api_url = f"https://{hostname}/api/room_status/{room_id}"
 
+seed_address = None
+
 # Time interval between checks (in seconds)
 INTERVAL = 30
 # Maximum Discord message length in characters
@@ -155,6 +157,7 @@ def process_spoiler_log(seed_url):
 def process_new_log_lines(new_lines, skip_msg: bool = False):
     global release_buffer
     global players
+    global seed_address
 
     # Regular expressions for different log message types
     regex_patterns = {
@@ -165,6 +168,7 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
         'releases': re.compile(
             r'\[(.*?)\]: Notice \(all\): (.*?) \(Team #\d\) has released all remaining items from their world\.$'),
         'messages': re.compile(r'\[(.*?)\]: Notice \(all\): (.*?): (.+)$'),
+        'room_spinup': re.compile(r'\[(.*?)\]: Hosting game at (.+?)$'),
         'joins': re.compile(r'\[(.*?)\]: Notice \(all\): (.*?) \(Team #\d\) (?:playing|viewing|tracking) (.+?) has joined. Client\(([0-9\.]+)\), (?P<tags>.+)\.$'),
         'parts': re.compile(r'\[(.*?)\]: Notice \(all\): (.*?) \(Team #\d\) has left the game\. Client\(([0-9\.]+)\), (?P<tags>.+)\.$'),
     }
@@ -284,6 +288,13 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
                     'timestamp': to_epoch(timestamp),
                     'items': defaultdict(list)
                 }
+        elif match := regex_patterns['room_spinup'].match(line):
+            timestamp, address = match.groups()
+            if address != seed_address:
+                seed_address = address
+                if not skip_msg: logger.info(f"Seed URI has changed: {address}")
+                message = f"**The seed address has changed.** Use this updated address: {address}"
+                if not skip_msg: send_chat("Archipelago", message)
         elif match := regex_patterns['messages'].match(line):
             timestamp, sender, message = match.groups()
             if msg_webhook:
