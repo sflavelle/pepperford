@@ -563,7 +563,7 @@ def handle_item_tracking(game: Game, player: Player, item: str):
                     return f"{item} ({count}/{required})"
                 if item == "Progressive Wallet":
                     capacities = ["99", "200", "500", "999"]
-                    return f"{item} ({capacities[player.items[item].count]} Capacity)"
+                    return f"{item} ({capacities[player.items[item].count+1]} Capacity)"
             case "Simon Tatham's Portable Puzzle Collection":
                 # Tracking total access to puzzles instead of completion percentage, that's for the locations
                 total = settings['puzzle_count']
