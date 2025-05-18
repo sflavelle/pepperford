@@ -306,27 +306,31 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
         
         with sqlcon.cursor() as cursor:
             commands = [
-                f'''INSERT INTO games.all_rooms
-                (room_id, guild, active, host, players)
-                VALUES ('{room_id}', 
-                '{interaction.guild_id}',
-                'true',
-                '{hostname}',
-                {psql_json(players)});''',
-                f'''UPDATE games.all_rooms
-                SET active = 'false'
-                WHERE room_id != '{room_id}' AND guild = '{interaction.guild_id}';''',
+                (
+                    '''INSERT INTO games.all_rooms
+                    (room_id, guild, active, host, players)
+                    VALUES (%s, %s, %s, %s, %s);''',
+                    (room_id, interaction.guild_id, 'true', hostname, psql_json(players))
+                ),
+                (
+                    '''UPDATE games.all_rooms
+                    SET active = %s
+                    WHERE room_id != %s AND guild = %s;''',
+                    ('false', room_id, interaction.guild_id)
+                ),
             ]
             for p in players.keys():
-                commands.append(f'''INSERT INTO games.room_players
-                (room_id, guild, player_name)
-                VALUES ('{room_id}',
-                '{interaction.guild_id}',
-                '{p}');''')
+                commands.append((
+                    '''INSERT INTO games.room_players
+                    (room_id, guild, player_name)
+                    VALUES (%s, %s, %s);''',
+                    (room_id, interaction.guild_id, p)
+                ))
 
             # When we're ready
-            for cmd in commands:
-                cursor.execute(cmd)
+            for command in commands:
+                cmd, params = command
+                cursor.execute(cmd, params)
 
         self.ctx.extras['ap_rooms'] = {}
         self.ctx.extras['ap_rooms'][interaction.guild_id] = {
