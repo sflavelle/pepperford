@@ -268,6 +268,10 @@ class Item(dict):
                     response = cursor.fetchone()[0]
                     if response == "conditional progression":
                         # Progression in certain settings, otherwise useful/filler
+                        if self.game == "Here Comes Niko!":
+                            if self.name == "Snail Money" and (player.settings["Enable Achievements"] == "all_achievements" or player.settings['Snail Shop'] is True):
+                                response = "progression"
+                            else: response = "filler"
                         if self.game == "gzDoom":
                             # Weapons : extra copies can be filler
                             if isinstance(self, CollectedItem) and self.get_count() > 1:
