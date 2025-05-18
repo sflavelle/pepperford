@@ -292,8 +292,8 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
             timestamp, address = match.groups()
             if address != seed_address:
                 seed_address = address
-                if not skip_msg: logger.info(f"Seed URI has changed: {address}")
-                message = f"**The seed address has changed.** Use this updated address: {address}"
+                logger.info(f"Seed URI has changed: {address}")
+                message = f"**The seed address has changed.** Use this updated address: `{address}`"
                 if not skip_msg: send_chat("Archipelago", message)
         elif match := regex_patterns['messages'].match(line):
             timestamp, sender, message = match.groups()
