@@ -269,9 +269,9 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
         if user is None:
             user = interaction.user
 
-        cmd = "INSERT INTO games.players (player_name, discord_user) VALUES (%s, %s)"
+        cmd = "UPDATE games.players SET discord_user = %s WHERE player_name = %s"
         with sqlcon.cursor() as cursor:
-            cursor.execute(cmd, (slot_name, user.id))
+            cursor.execute(cmd, (user.id, slot_name))
             # sqlcon.commit()
 
         return await interaction.response.send_message(f"Linked {slot_name} to {user.display_name} ({user.id})!",ephemeral=True)
@@ -316,10 +316,10 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
             ]
             for p in players:
                 commands.append((
-                    '''INSERT INTO games.room_players
-                    (room_id, guild, player_name)
-                    VALUES (%s, %s, %s);''',
-                    (room_id, interaction.guild_id, p)
+                    '''INSERT INTO games.players
+                    (player_name)
+                    VALUES (%s);''',
+                    (p)
                 ))
 
             # When we're ready
