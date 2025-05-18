@@ -112,9 +112,9 @@ class Player(dict):
             return self.last_online
         
     def update_locations(self, game: Game):
-        self.collected_locations = len([l for l in game.spoiler_log[self.name].values() if l.found is True])
-        self.locations = {l.location: l for l in game.spoiler_log[self.name].values() if l.found is True}
-        self.total_locations = len(game.spoiler_log[self.name])
+        self.locations = {l.location: l for l in game.spoiler_log[self.name].values()}
+        self.collected_locations = len([l for l in self.locations if l.found is True])
+        self.total_locations = len([l for l in self.locations if l.is_location_checkable is True])
         
     def add_hint(self, hint_type: str, item):
         if hint_type not in self.hints:
