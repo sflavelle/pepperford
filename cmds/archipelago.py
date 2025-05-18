@@ -286,6 +286,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
         return await interaction.response.send_message(f"Linked {slot_name} to {user.display_name} ({user.id})!",ephemeral=True)
 
     @aproom.command()
+    @app_commands.owner()
     @app_commands.guild_only()
     @app_commands.describe(room_url="Link to the Archipelago room")
     async def set_room(self, interaction: discord.Interaction, room_url: str):
@@ -325,26 +326,15 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
         with sqlcon.cursor() as cursor:
             commands = [
                 (
-                    '''INSERT INTO games.all_rooms
-                    (room_id, guild, active, host, port, players)
-                    VALUES (%s, %s, %s, %s, %s, %s);''',
-                    (room_id, interaction.guild_id, 'true', hostname, room_port, players)
-                ),
-                (
-                    '''UPDATE games.all_rooms
-                    SET active = %s
-                    WHERE room_id != %s AND guild = %s;''',
-                    ('false', room_id, interaction.guild_id)
+                    # This is a PostgreSQL function that deals with updating
+                    # all the various tables that need to be updated
+                    # Master room table: games.all_rooms
+                    # Master players table: games.players
+                    # Active rooms/players table: games.room_players
+                    '''SELECT games.create_room_with_players(%s, %s, %s, %s, %s);''',
+                    (room_id, interaction.guild_id, players, hostname, room_port)
                 ),
             ]
-            for p in players:
-                commands.append((
-                    '''INSERT INTO games.players
-                    (player_name)
-                    VALUES (%s);''',
-                    (p,)
-                ))
-
             # When we're ready
             for command in commands:
                 logger.info(f"Executing SQL: {command[0]} with {command[1]}")
@@ -360,8 +350,13 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
             'room_port': room_port,
             'players': players,
         }
+        
+        # Persist the room data to disk
+        with open('ap_rooms.json', 'w', encoding='UTF-8') as file:
+            json.dump(self.ctx.extras['ap_rooms'], file, indent=4)
+        
         logger.info(f"Set room for {interaction.guild.name} ({interaction.guild.id}) to {room_url}")
-        await newpost.edit(content=f"Set room for {interaction.guild.name} to {room_url}!")
+        await newpost.edit(content=f"Set room for {interaction.guild.name} to {room_url} !")
 
     @aproom.command()
     async def get_hints(self, interaction: discord.Interaction):
@@ -561,6 +556,18 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
     async def on_ready(self):
         if not self.ctx.procs.get('archipelago'):
             self.ctx.procs['archipelago'] = {}
+            
+        if not self.ctx.extras.get('ap_rooms'):
+            self.ctx.extras['ap_rooms'] = {}
+            # Load persisted ap_rooms.json if it exists
+        if os.path.exists('ap_rooms.json'):
+            try:
+                with open('ap_rooms.json', 'r', encoding='UTF-8') as file:
+                    self.ctx.extras['ap_rooms'] = json.load(file)
+                logger.info("Loaded persisted ap_rooms.json successfully.")
+            except (json.JSONDecodeError, IOError) as e:
+                logger.error(f"Error loading ap_rooms.json: {e}")
+            
         # self.ctx.extras['ap_channel'] = next((chan for chan in self.ctx.spotzone.text_channels if chan.id == 1163808574045167656))
         # while testing
         # self.ctx.extras['ap_channel'] = self.ctx.fetch_channel(1349546289490034821)
