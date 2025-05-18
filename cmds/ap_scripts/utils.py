@@ -375,7 +375,7 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
     if bool(player.settings):
         settings = player.settings
         game = player.game
-        count = ItemObject.count
+        count = player.items[item].count
 
         match game:
             case "A Link to the Past":
@@ -675,7 +675,7 @@ def handle_location_tracking(game: Game, player: Player, item: Item):
             case "Simon Tatham's Portable Puzzle Collection":
                 required = round(settings['puzzle_count'] 
                                  * (settings['Target Completion Percentage'] / 100))
-                count = len([loc for loc in player.locations.values() if loc.is_found()])
+                count = player.collected_locations
                 return f"{location} ({count}/{required})"
             case _:
                 return location
