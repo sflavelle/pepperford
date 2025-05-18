@@ -383,7 +383,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
         linked_slots = []
         with sqlcon.cursor() as cursor:
             cursor.execute(
-                "SELECT player_name FROM games.room_players rp JOIN games.players p ON rp.player_name = p.player_name WHERE rp.room_id = %s AND rp.guild = %s AND p.discord_user = %s;",
+                "SELECT rp.player_name FROM games.room_players rp JOIN games.players p ON rp.player_name = p.player_name WHERE rp.room_id = %s AND rp.guild = %s AND p.discord_user = %s;",
                 (room["room_id"], interaction.guild_id, interaction.user.id),
             )
             linked_slots = [row[0] for row in cursor.fetchall()]
