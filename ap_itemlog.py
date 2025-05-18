@@ -510,6 +510,10 @@ def inspect():
     import pprint
     return Response(pprint.pformat(safe_globals()), mimetype='text/plain')
 
+@webview.route('/inspectgame', methods=['GET'])
+def get_game():
+    return jsonify(game.to_dict())
+
 def run_flask():
     # Listen only on localhost by default for safety
     webview.run(host='127.0.0.1', port=42069, debug=False, use_reloader=False)

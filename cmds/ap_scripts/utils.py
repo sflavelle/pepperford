@@ -59,6 +59,19 @@ class Game(dict):
         self.collected_locations = sum([p.collected_locations for p in self.players.values()])
         self.total_locations = sum([p.total_locations for p in self.players.values()])
 
+    def to_dict(self):
+        return {
+            "seed": self.seed,
+            "room_id": self.room_id,
+            "version_generator": self.version_generator,
+            "version_server": self.version_server,
+            "world_settings": self.world_settings,
+            "spoiler_log": {k: {lk: lv.to_dict() for lk, lv in v.items()} for k, v in self.spoiler_log.items()},
+            "players": {k: v.to_dict() for k, v in self.players.items()},
+            "collected_locations": self.collected_locations,
+            "total_locations": self.total_locations,
+        }
+
 
 def handle_hint_update(self):
     pass
@@ -94,6 +107,23 @@ class Player(dict):
 
     def __str__(self):
         return self.name
+
+    def to_dict(self):
+        return {
+            "name": self.name,
+            "game": self.game,
+            "items": {k: v.to_dict() for k, v in self.items.items()},
+            "locations": {k: v.to_dict() for k, v in self.locations.items()},
+            "hints": {k: [i.to_dict() for i in v] for k, v in self.hints.items()},
+            "online": self.online,
+            "last_online": self.last_online,
+            "tags": self.tags,
+            "settings": dict(self.settings) if self.settings else {},
+            "goaled": self.goaled,
+            "released": self.released,
+            "collected_locations": self.collected_locations,
+            "total_locations": self.total_locations,
+        }
 
     def is_finished(self) -> bool:
         return self.goaled or self.released
@@ -166,6 +196,22 @@ class Item(dict):
     
     def __str__(self):
         return self.name
+
+    def to_dict(self):
+        return {
+            "sender": str(self.sender) if hasattr(self.sender, 'name') else self.sender,
+            "receiver": str(self.receiver) if hasattr(self.receiver, 'name') else self.receiver,
+            "name": self.name,
+            "game": self.game,
+            "location": self.location,
+            "location_entrance": self.location_entrance,
+            "is_location_checkable": self.is_location_checkable,
+            "classification": self.classification,
+            "count": self.count,
+            "found": self.found,
+            "hinted": self.hinted,
+            "spoiled": self.spoiled,
+        }
 
     def collect(self):
         self.found = True
@@ -333,6 +379,22 @@ class CollectedItem(Item):
 
         if self.classification is None:
             logger.warning(f"Item {self.name} is not classified in the DB yet.")
+
+    def to_dict(self):
+        return {
+            "sender": str(self.sender) if hasattr(self.sender, 'name') else self.sender,
+            "receiver": str(self.receiver) if hasattr(self.receiver, 'name') else self.receiver,
+            "name": self.name,
+            "game": self.game,
+            "locations": self.locations,
+            "location_entrance": self.location_entrance,
+            "is_location_checkable": self.is_location_checkable,
+            "classification": self.classification,
+            "count": self.count,
+            "found": self.found,
+            "hinted": self.hinted,
+            "spoiled": self.spoiled,
+        }
 
     def collect(self, sender, location):
         self.found = True
