@@ -301,6 +301,15 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
 
         api_url = f"https://{hostname}/api/room_status/{room_id}"
 
+        logger.info(f"Fetching room data from {api_url}...")
+        try:
+            room = requests.get(api_url, timeout=5)
+        except requests.exceptions.Timeout:
+            return await newpost.edit(content="**Error**: the provided URL is not responding. Please check the URL and try again.",delete_after=15.0)
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Error fetching room data: {e}")
+            return await newpost.edit(content="**Error**: there was a problem fetching the room data. Please try again later.",delete_after=15.0)
+
         api_data = requests.get(api_url, timeout=5).json()
         logger.info("Fetched room data from API...")
 
