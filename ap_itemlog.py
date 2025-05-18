@@ -209,7 +209,7 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
             game.players[receiver].update_locations(game)
             game.update_locations()
 
-            if not skip_msg: logger.info(f"{sender}: ({str(game.players[sender].collected_locations)}/{str(game.players[sender].total_locations)}/{str(game.players[sender].collection_percentage)}%) {item_location} -> {receiver}'s {item} ({ReceivedItemObject.classification})")
+            if not skip_msg: logger.info(f"{sender}: ({str(game.players[sender].collected_locations)}/{str(game.players[sender].total_locations)}/{str(round(game.players[sender].collection_percentage,2))}%) {item_location} -> {receiver}'s {item} ({ReceivedItemObject.classification})")
 
             # If this is part of a release, send it there instead
             if sender in release_buffer and not skip_msg and (to_epoch(timestamp) - release_buffer[sender]['timestamp'] <= 2):
@@ -485,7 +485,7 @@ def watch_log(url, interval):
     game.update_locations()
     logger.info(f"Total Checks: {game.total_locations}")
     logger.info(f"Checks Collected: {game.collected_locations}")
-    logger.info(f"Completion Percentage: {game.collection_percentage}%")
+    logger.info(f"Completion Percentage: {round(game.collection_percentage,2)}%")
     logger.info(f"Total Players: {len(game.players)}")
     if len(previous_lines) < 8: # If the seed has just started, post some info
         message = f'''
