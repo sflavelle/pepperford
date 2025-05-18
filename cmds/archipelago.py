@@ -261,8 +261,11 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
     aproom = app_commands.Group(name="room",description="Commands to do with the current room")
 
     @aproom.command()
-    async def link_slot(self, interaction: discord.Interaction, slot_name: str, user: discord.User = interaction.user):
+    async def link_slot(self, interaction: discord.Interaction, slot_name: str, user: discord.User = None):
         """Link an Archipelago slot name to your Discord account."""
+
+        if user is None:
+            user = interaction.user
 
         cmd = "INSERT INTO games.players (player_name, discord_user) VALUES (%s, %s)"
 
