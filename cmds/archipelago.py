@@ -330,12 +330,12 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                     '''INSERT INTO games.players
                     (player_name)
                     VALUES (%s);''',
-                    (p)
+                    (str(p))
                 ))
 
             # When we're ready
             for command in commands:
-                logger.info("Executing SQL...")
+                logger.info(f"Executing SQL: {command[0]} with {command[1]}")
                 cmd, params = command
                 cursor.execute(cmd, params)
 
