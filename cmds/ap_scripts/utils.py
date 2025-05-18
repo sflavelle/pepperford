@@ -716,7 +716,7 @@ def handle_location_hinting(game: Game, player: Player, item: Item) -> str:
                     ] + [
                         f"Salmon Creek Forest - {npc}" for npc in (["SPORTVIVAL", "Mai"]
                         + ["Fish with Fischer", "Bass", "Catfish", "Pike", "Salmon", "Trout"])
-                    ]
+                    ],
                     "2": [
                         f"Hairball City - {npc}" for npc in ["Game Kid", "Blippy", "Serschel & Louist"]
                     ] + [
