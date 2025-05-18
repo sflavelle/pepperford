@@ -368,12 +368,16 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
     async def get_hints(self, interaction: discord.Interaction, public: bool = False):
         """Get hints for the current room."""
 
+        deferpost = await interaction.response.defer(ephemeral=not public, thinking=True,)
+        newpost = await interaction.original_response()
+
+
         if not self.ctx.extras.get('ap_rooms'):
-            return await interaction.response.send_message(content="No Archipelago room is currently set for this server.",ephemeral=True)
+            return await newpost.edit(content="No Archipelago room is currently set for this server.")
 
         room = self.ctx.extras['ap_rooms'].get(interaction.guild_id)
         if not room:
-            return await interaction.response.send_message(content="No Archipelago room is currently set for this server.",ephemeral=True)
+            return await newpost.edit(content="No Archipelago room is currently set for this server.")
 
         room_slots = requests.get(f"https://{room['hostname']}/api/room_status/{room['room_id']}", timeout=10).json()['players']
 
@@ -385,7 +389,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
             )
             linked_slots = [row[0] for row in cursor.fetchall()]
         if len(linked_slots) == 0:
-            return await interaction.response.send_message(content="None of your Archipelago slots are linked to this game.",ephemeral=True)
+            return await newpost.edit(content="None of your Archipelago slots are linked to this game.")
 
         # Get the game table
         game_table = requests.get(f"http://localhost:42069/inspectgame", timeout=10).json()
@@ -424,7 +428,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                 })
 
         if len(hint_table_list) == 0:  
-            return await interaction.response.send_message(content="No hints available for your linked slots.",ephemeral = True)
+            return await newpost.edit(content="No hints available for your linked slots.",ephemeral = True)
 
         hints_list = "## To Find:"
         for hint in hint_table_list:
@@ -437,15 +441,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
             hints_list += f"\n**Your {hint['Item']}** is on {hint['Sender']}'s {hint['Location']}{f" at {hint['Entrance']}" if hint['Entrance'] else ""}."
 
 
-        if len(hints_list) > 2000:
-            # List is too long, may as well make it pretty and send it as a file
-            logger.info(f"Hint table too long ({len(hints_list)} characters). Sending as a file.")
-            hints_formatted = tabulate(hint_table_list, headers="keys", tablefmt="grid")
-            hint_table_file = bytes(hints_formatted, encoding='UTF-8')
-            hints_formatted = "Here's the hint table, as a file:"
-            await interaction.response.send_message(content=hints_formatted, file=discord.File(BytesIO(hint_table_file), 'hints.txt'), ephemeral=not public)
-        else:
-            await interaction.response.send_message(content=hints_list, ephemeral=not public)
+        await newpost.edit(content=hints_list, ephemeral=not public)
 
     itemlogging = app_commands.Group(name="itemlog",description="Manage an item logging webhook")
 
