@@ -286,7 +286,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
         return await interaction.response.send_message(f"Linked {slot_name} to {user.display_name} ({user.id})!",ephemeral=True)
 
     @aproom.command()
-    @app_commands.owner()
+    @commands.is_owner()
     @app_commands.guild_only()
     @app_commands.describe(room_url="Link to the Archipelago room")
     async def set_room(self, interaction: discord.Interaction, room_url: str):
