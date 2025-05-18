@@ -228,7 +228,7 @@ class Item(dict):
     def location_is_checkable(self) -> bool:
         cursor = sqlcon.cursor()
         cursor.execute("SELECT is_checkable FROM game_locations WHERE game = %s AND location = %s;", (self.sender.game, self.location))
-        response = cursor.fetchone()[0]
+        response = cursor.fetchone()
         return response
 
     def db_add_location(self, is_check: bool = False):
