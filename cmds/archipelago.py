@@ -308,11 +308,13 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                 f'''INSERT INTO games.all_rooms
                 (room_id, guild, active, host, players)
                 VALUES ('{room_id}', 
-                NULL,
                 '{interaction.guild_id}',
                 'true',
                 '{hostname}',
-                '{player_count}');'''
+                '{player_count}');''',
+                f'''UPDATE games.all_rooms
+                SET active = 'false'
+                WHERE room_id != '{room_id}' AND guild = '{interaction.guild_id}';''',
             ]
             for p in players.keys():
                 commands.append(f'''INSERT INTO games.room_players
