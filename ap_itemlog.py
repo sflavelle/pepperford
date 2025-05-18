@@ -200,16 +200,15 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
                 logger.error(f"""Sent Item Object Creation error. Parsed item name: '{item}', Receiver: '{receiver}', Location: '{item_location}', Error: '{str(e)}'""", e, exc_info=True)
                 logger.error(f"Line being parsed: {line}")
 
-
-            # By vote of spotzone: if it's filler, don't post it
-            if ReceivedItemObject.is_filler() or ReceivedItemObject.is_currency(): continue
-
             # Update location totals
             ReceivedItemObject.db_add_location(True)
             game.players[receiver].update_locations(game)
             game.update_locations()
 
             if not skip_msg: logger.info(f"{sender}: ({str(game.players[sender].collected_locations)}/{str(game.players[sender].total_locations)}/{str(round(game.players[sender].collection_percentage,2))}%) {item_location} -> {receiver}'s {item} ({ReceivedItemObject.classification})")
+
+            # By vote of spotzone: if it's filler, don't post it
+            if ReceivedItemObject.is_filler() or ReceivedItemObject.is_currency(): continue
 
             # If this is part of a release, send it there instead
             if sender in release_buffer and not skip_msg and (to_epoch(timestamp) - release_buffer[sender]['timestamp'] <= 2):
