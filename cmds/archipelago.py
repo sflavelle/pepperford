@@ -261,8 +261,16 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
         return await newpost.edit(content="Import *should* be complete!")
     
     aproom = app_commands.Group(name="room",description="Commands to do with the current room")
+    
+    async def link_slot_complete(self, ctx: discord.Interaction, current: str) -> typing.List[app_commands.Choice[str]]:
+        permitted_values = self.ctx.extras['ap_rooms'][ctx.guild_id]['players']
+        if len(current) == 0:
+            return [app_commands.Choice(name=opt.title(),value=opt) for opt in permitted_values]
+        else:
+            return [app_commands.Choice(name=opt.title(),value=opt) for opt in permitted_values if current in opt]
 
     @aproom.command()
+    @app_commands.autocomplete(slot_name=link_slot_complete)
     async def link_slot(self, interaction: discord.Interaction, slot_name: str, user: discord.User = None):
         """Link an Archipelago slot name to your Discord account."""
 
@@ -306,9 +314,9 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
             commands = [
                 (
                     '''INSERT INTO games.all_rooms
-                    (room_id, guild, active, host, players)
-                    VALUES (%s, %s, %s, %s, %s);''',
-                    (room_id, interaction.guild_id, 'true', hostname, players)
+                    (room_id, guild, active, host, port, players)
+                    VALUES (%s, %s, %s, %s, %s, %s);''',
+                    (room_id, interaction.guild_id, 'true', hostname, room_port, players)
                 ),
                 (
                     '''UPDATE games.all_rooms
