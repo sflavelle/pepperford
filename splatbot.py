@@ -58,7 +58,7 @@ async def load_extensions(bot: commands.Bot):
     ]:
         await bot.load_extension(ext,package=ext)
         
-async def ext_autocomplete(self, ctx: discord.Interaction, current: str) -> typing.List[app_commands.Choice[str]]:
+async def ext_autocomplete(ctx: discord.Interaction, current: str) -> typing.List[app_commands.Choice[str]]:
     permitted_values = list(pon.extensions.keys())
     if len(current) == 0:
         return [app_commands.Choice(name=opt.title(),value=opt) for opt in permitted_values]
