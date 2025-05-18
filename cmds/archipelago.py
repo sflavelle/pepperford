@@ -339,7 +339,12 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
             for command in commands:
                 logger.info(f"Executing SQL: {command[0]} with {command[1]}")
                 cmd, params = command
-                cursor.execute(cmd, params)
+                try:
+                    cursor.execute(cmd, params)
+                except psql.Error as e:
+                    logger.error(f"Error executing SQL command: {e}")
+                    await newpost.edit(content=f"**Error**: there was a problem executing the SQL command. Please try again later.\n\n```{e}```")
+                    return
 
         logger.info("SQL commands executed.")
         logger.info("Setting up room data...")
