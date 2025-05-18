@@ -229,7 +229,8 @@ class Item(dict):
         cursor = sqlcon.cursor()
         cursor.execute("SELECT is_checkable FROM game_locations WHERE game = %s AND location = %s;", (self.sender.game, self.location))
         response = cursor.fetchone()
-        return response
+        logger.info(f"locationsdb: {self.sender.game}: {self.location} is checkable: {response[0]}") # debugging in info, yes i know
+        return response[0] if response else False
 
     def db_add_location(self, is_check: bool = False):
         """Add this item's location to the database if it doesn't already exist.
