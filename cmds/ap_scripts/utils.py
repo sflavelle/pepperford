@@ -751,7 +751,7 @@ def handle_location_hinting(game: Game, player: Player, item: Item) -> str:
                         requirements.append("Contact List 2")
 
 
-    if len(requirements) > 1:
+    if len(requirements) > 0:
         # bold costs
         required = [f"**{req}**" for req in requirements]
         final_extra += f"This location requires {join_words(required)}."
