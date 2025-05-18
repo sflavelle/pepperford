@@ -12,6 +12,7 @@ import threading
 import yaml
 from cmds.ap_scripts.utils import Game, Item, CollectedItem, Player, PlayerSettings, handle_item_tracking, handle_location_tracking, handle_location_hinting
 from word2number import w2n
+from flask import Flask, jsonify, Response
 
 # setup logging
 logger = logging.getLogger('ap_itemlog')
@@ -174,6 +175,7 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
         'releases': re.compile(
             r'\[(.*?)\]: Notice \(all\): (.*?) \(Team #\d\) has released all remaining items from their world\.$'),
         'messages': re.compile(r'\[(.*?)\]: Notice \(all\): (.*?): (.+)$'),
+        'room_shutdown': re.compile(r'\[(.*?)\]: Shutting down due to inactivity.$'),
         'room_spinup': re.compile(r'\[(.*?)\]: Hosting game at (.+?)$'),
         'joins': re.compile(r'\[(.*?)\]: Notice \(all\): (.*?) \(Team #\d\) (?:playing|viewing|tracking) (.+?) has joined. Client\(([0-9\.]+)\), (?P<tags>.+)\.$'),
         'parts': re.compile(r'\[(.*?)\]: Notice \(all\): (.*?) \(Team #\d\) has left the game\. Client\(([0-9\.]+)\), (?P<tags>.+)\.$'),
@@ -298,6 +300,9 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
                     'timestamp': to_epoch(timestamp),
                     'items': defaultdict(list)
                 }
+        elif match := regex_patterns['room_shutdown'].match(line):
+            if not skip_msg:
+                logger.info("Room has spun down due to inactivity.")
         elif match := regex_patterns['room_spinup'].match(line):
             timestamp, address = match.groups()
             if address != seed_address:
@@ -488,8 +493,35 @@ def process_releases():
             time.sleep(2)
             send_release_messages()
 
+# Flask stuff
+webview = Flask(__name__)
+
+def safe_globals():
+    # Only show non-private, non-module, non-callable globals
+    return {k: repr(v) for k, v in globals().items()
+            if not k.startswith('__') and
+               not callable(v) and
+               not isinstance(v, type(webview)) and
+               k not in ('webview', 'request', 'Response')}
+
+@webview.route('/inspect', methods=['GET'])
+def inspect():
+    # For easier reading, return as plain text
+    import pprint
+    return Response(pprint.pformat(safe_globals()), mimetype='text/plain')
+
+def run_flask():
+    # Listen only on localhost by default for safety
+    app.run(host='127.0.0.1', port=42069, debug=False, use_reloader=False)
+
 if __name__ == "__main__":
+
+    flask_thread = threading.Thread(target=run_flask, daemon=True)
+    flask_thread.start()
+
     logger.info(f"logging messages from AP Room ID {room_id} to webhook {webhook_url}")
+
     release_thread = threading.Thread(target=process_releases)
     release_thread.start()
+    
     watch_log(log_url, INTERVAL)
