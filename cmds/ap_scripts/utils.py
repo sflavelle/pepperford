@@ -232,8 +232,7 @@ class Item(dict):
             ]
         response = None # What we will ultimately return
 
-        if player is None:
-            player = self.receiver
+        player = self.receiver if player is None else player
 
         if self.game is None:
             return None
@@ -246,14 +245,6 @@ class Item(dict):
             else:
                 classification = classification_cache[self.game][self.name][0]
                 if classification != "conditional progression": return classification
-
-        def progression_condition(prog_setting: str, value_true: str, value_false: str):
-            """If an item is classified differently based on a world setting, see if that setting is true.
-            If so, return value_true. Otherwise, return value_false."""
-
-            if prog_setting in player.settings:
-                if player.settings[prog_setting] is True: return value_true
-            else: return value_false
 
         # Some games are 'simple' enough that everything (or near everything) is progression
         match self.game:
