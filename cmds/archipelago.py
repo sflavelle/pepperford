@@ -265,9 +265,9 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
     async def link_slot_complete(self, ctx: discord.Interaction, current: str) -> typing.List[app_commands.Choice[str]]:
         permitted_values = self.ctx.extras['ap_rooms'][ctx.guild_id]['players']
         if len(current) == 0:
-            return [app_commands.Choice(name=opt.title(),value=opt) for opt in permitted_values]
+            return [app_commands.Choice(name=opt,value=opt) for opt in permitted_values]
         else:
-            return [app_commands.Choice(name=opt.title(),value=opt) for opt in permitted_values if current in opt]
+            return [app_commands.Choice(name=opt,value=opt) for opt in permitted_values if current in opt.lower()]
 
     @aproom.command()
     @app_commands.autocomplete(slot_name=link_slot_complete)
@@ -282,9 +282,12 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
             cursor.execute(cmd, (user.id, slot_name))
             # sqlcon.commit()
 
+        logger.info(f"Linked {slot_name} to {user.display_name} ({user.id}) in {interaction.guild.name} ({interaction.guild.id})")
         return await interaction.response.send_message(f"Linked {slot_name} to {user.display_name} ({user.id})!",ephemeral=True)
 
     @aproom.command()
+    @app_commands.guild_only()
+    @app_commands.describe(room_url="Link to the Archipelago room")
     async def set_room(self, interaction: discord.Interaction, room_url: str):
         """Set the current Archipelago room for this server. Will affect other commands."""
         

@@ -57,8 +57,17 @@ async def load_extensions(bot: commands.Bot):
         "cmds.archipelago"
     ]:
         await bot.load_extension(ext,package=ext)
+        
+async def ext_autocomplete(self, ctx: discord.Interaction, current: str) -> typing.List[app_commands.Choice[str]]:
+    permitted_values = list(pon.extensions.keys())
+    if len(current) == 0:
+        return [app_commands.Choice(name=opt.title(),value=opt) for opt in permitted_values]
+    else:
+        return [app_commands.Choice(name=opt.title(),value=opt) for opt in permitted_values if current in opt.lower()]
 
 @commands.is_owner()
+@app_commands.describe(extension="The extension to reload")
+@app_commands.autocomplete(extension=ext_autocomplete)
 @app_commands.command(name="reload_ext")
 async def extension_reload(interaction: discord.Interaction, extension: str):
     try:
