@@ -261,48 +261,54 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
     aproom = app_commands.Group(name="room",description="Commands to do with the current room")
 
     @aproom.command()
-    async def set_room(self, interaction: discord.Interaction, room_url: str):
-        """Set the current Archipelago room for this server. Will affect other commands."""
+    async def link_slot(self, interaction: discord.Interaction, slot_name: str, user: discord.User = interaction.user):
+        """Link an Archipelago slot name to your Discord account."""
 
-        deferpost = await interaction.response.defer(ephemeral=True, thinking=True,)
-        newpost = await interaction.original_response()
+        cmd = "INSERT INTO games.players (player_name, discord_user) VALUES (%s, %s)"
 
-        if room_url.split('/')[-2] != "room":
-            return await newpost.edit(content="**Error**: the provided URL is not an Archipelago room URL.",delete_after=15.0)
+    # @aproom.command()
+    # async def set_room(self, interaction: discord.Interaction, room_url: str):
+    #     """Set the current Archipelago room for this server. Will affect other commands."""
 
-        room_id = room_url.split('/')[-1]
-        hostname = room_url.split('/')[2]
+    #     deferpost = await interaction.response.defer(ephemeral=True, thinking=True,)
+    #     newpost = await interaction.original_response()
 
-        api_url = f"https://{hostname}/api/room_status/{room_id}"
+    #     if room_url.split('/')[-2] != "room":
+    #         return await newpost.edit(content="**Error**: the provided URL is not an Archipelago room URL.",delete_after=15.0)
 
-        api_data = requests.get(api_url, timeout=5).json()
+    #     room_id = room_url.split('/')[-1]
+    #     hostname = room_url.split('/')[2]
 
-        room_port = api_data['last_port']
+    #     api_url = f"https://{hostname}/api/room_status/{room_id}"
 
-        players = {}
-        player_count = 1
-        for p in api_data['players']:
-            players[p[0]] = {
-                "game": p[1],
-                "slot": player_count,
-            }
-            player_count = player_count + 1
+    #     api_data = requests.get(api_url, timeout=5).json()
+
+    #     room_port = api_data['last_port']
+
+    #     players = {}
+    #     player_count = 1
+    #     for p in api_data['players']:
+    #         players[p[0]] = {
+    #             "game": p[1],
+    #             "slot": player_count,
+    #         }
+    #         player_count = player_count + 1
         
-        with sqlcon.cursor() as cursor:
-            commands = [
-                f'''INSERT INTO games.all_rooms
-                (room_id, guild, active, host, players)
-                VALUES ('{room_id}', 
-                NULL,
-                '{interaction.guild_id}',
-                'true',
-                '{hostname}',
-                '{room_port}');''',
-            ]
+    #     with sqlcon.cursor() as cursor:
+    #         commands = [
+    #             f'''INSERT INTO games.all_rooms
+    #             (room_id, guild, active, host, players)
+    #             VALUES ('{room_id}', 
+    #             NULL,
+    #             '{interaction.guild_id}',
+    #             'true',
+    #             '{hostname}',
+    #             '{room_port}');''',
+    #         ]
 
-            # When we're ready
-            for cmd in commands:
-                cursor.execute(cmd)
+    #         # When we're ready
+    #         for cmd in commands:
+    #             cursor.execute(cmd)
 
     itemlogging = app_commands.Group(name="itemlog",description="Manage an item logging webhook")
 

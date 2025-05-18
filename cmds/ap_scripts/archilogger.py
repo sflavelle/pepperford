@@ -61,7 +61,7 @@ class ItemLog:
     out: 'LogOutput'
 
     class LogInput(dict):
-
+        """Container class for receiving text from an Archipelago log."""
         cookie: str = None
 
         log_url: str = None
@@ -196,7 +196,7 @@ class ItemLog:
                 return getattr(self, classification)
 
 
-    def __init__(self, bot, guild: discord.Guild, log_url: str,
+    def __init__(self, bot, log_url: str,
                  log_channel: discord.TextChannel | discord.Thread,
                  cookie: str = cfg['bot']['archipelago']['session_cookie'], seed_url: str = None,
                  chat_channel: discord.TextChannel | discord.Thread = None) -> None:
