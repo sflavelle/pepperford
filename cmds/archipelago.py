@@ -295,14 +295,9 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
 
         room_port = api_data['last_port']
 
-        players = {}
-        player_count = 0
+        players = []
         for p in api_data['players']:
-            players[p[0]] = {
-                "game": p[1],
-                "slot": player_count,
-            }
-            player_count = player_count + 1
+            players.append(p[0])
         
         with sqlcon.cursor() as cursor:
             commands = [
@@ -310,7 +305,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                     '''INSERT INTO games.all_rooms
                     (room_id, guild, active, host, players)
                     VALUES (%s, %s, %s, %s, %s);''',
-                    (room_id, interaction.guild_id, 'true', hostname, psql_json(players))
+                    (room_id, interaction.guild_id, 'true', hostname, players)
                 ),
                 (
                     '''UPDATE games.all_rooms
