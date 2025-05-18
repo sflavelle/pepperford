@@ -545,6 +545,16 @@ def inspect():
 def get_game():
     return jsonify(game.to_dict())
 
+@webview.route('/locations/checkable', methods=['GET'])
+def get_checkable_locations():
+    locationtable = {}
+    for player_name, player in game.players.items():
+        if player.game not in locationtable:
+            locationtable[player.game] = {}
+        for location_name, location in player.locations.items():
+            locationtable[player.game][location_name] = location.is_location_checkable()
+    return jsonify(locationtable)
+
 def run_flask():
     # Listen only on localhost by default for safety
     webview.run(host='127.0.0.1', port=42069, debug=False, use_reloader=False)
