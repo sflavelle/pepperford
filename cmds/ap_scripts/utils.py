@@ -367,20 +367,23 @@ class APEvent:
                 if not all([bool(criteria) for criteria in [self.sender, self.receiver, self.location, self.item]]):
                     raise ValueError(f"Invalid {self.type} event! Requires a sender, receiver, location, and item.")
 
-def handle_item_tracking(game: Game, player: Player, item: str):
+def handle_item_tracking(game: Game, player: Player, item: Item):
     """If an item is an important collectable of some kind, we should put some extra info in the item name for the logs."""
     global item_table
+
+    ItemObject = item
+    item = item.name
 
     if bool(player.settings):
         settings = player.settings
         game = player.game
-        count = player.items[item].count
+        count = ItemObject.count
 
         match game:
             case "A Link to the Past":
                 if item == "Triforce Piece" and "Triforce Hunt" in settings['Goal']:
                     required = settings['Triforce Pieces Required']
-                    return f"{item} ({count}/{required})"
+                    return f"{item} (*{count}/{required}*)"
             case "A Hat in Time":
                 if item == "Time Piece" and not settings['Death Wish Only']:
                     required = 0
@@ -389,7 +392,7 @@ def handle_item_tracking(game: Game, player: Player, item: str):
                             required = settings['Chapter 5 Cost']
                         case 'Rush Hour':
                             required = settings['Chapter 7 Cost']
-                    return f"{item} ({count}/{required})"
+                    return f"{item} (*{count}/{required}*)"
                 if item == "Progressive Painting Unlock":
                     required = 3
                     return f"{item} ({count}/{required})"
@@ -533,15 +536,18 @@ def handle_item_tracking(game: Game, player: Player, item: str):
                             collected_string = f"~~{collected_string}~~" # Strikethrough keys if not found
                         return f"{item} ({collected_string})"
                     except AttributeError as e:
-                        logger.error(f"Error while parsing tracking info for item {item} in game {game}:",e,exc_info=False)
+                        logger.error(f"Error while parsing tracking info for item {item} in game {game}:",e,exc_info=True)
                         return item
             case "Here Comes Niko!":
                 if item == "Cassette":
                     required = max({k: v for k, v in settings.items() if "Cassette Cost" in k}.values())
                     return f"{item} ({count}/{required})"
+                if item.endswith("Cassette") and settings['Cassette Logic'] == "level_based":
+                    total = 10
+                    return f"{item} ({count}/{total})"
                 if item == "Coin":
                     required = 76 if settings['Completion Goal'] == "Employee" else settings['Elevator Cost']
-                    return f"{item} ({count}/{required})"
+                    return f"{item} (*{count}/{required}*)"
                 if item in ["Hairball City Fish", "Turbine Town Fish", "Salmon Creek Forest Fish", "Public Pool Fish", "Bathhouse Fish", "Tadpole HQ Fish"] and settings['Fishsanity'] == "Insanity":
                     required = 5
                     return f"{item} ({count}/{required})"
@@ -654,8 +660,11 @@ def handle_item_tracking(game: Game, player: Player, item: str):
     # Return the same name if nothing matched (or no settings available)
     return item
 
-def handle_location_tracking(game: Game, player: Player, location: str):
+def handle_location_tracking(game: Game, player: Player, item: Item):
     """If checking a location is an indicator of progress, we should track that in the location name."""
+
+    ItemObject = item
+    location = item.location
 
     if bool(player.settings):
         settings = player.settings

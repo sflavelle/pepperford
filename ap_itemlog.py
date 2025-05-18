@@ -211,8 +211,8 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
                 location = item_location
                 if bool(game.players[receiver].settings):
                     try: 
-                        item = handle_item_tracking(game, game.players[receiver], item)
-                        location = handle_location_tracking(game, game.players[sender], item_location)
+                        item = handle_item_tracking(game, game.players[receiver], ReceivedItemObject)
+                        location = handle_location_tracking(game, game.players[sender], ReceivedItemObject)
                     except KeyError as e:
                         logger.error(f"Couldn't do tracking for item {item} or location {location}:", e, exc_info=True)
 
