@@ -435,7 +435,8 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
             if hint["Sender"] not in linked_slots: continue
             if hint["Sender"] == hint["Receiver"]:
                 hints_list += f"\n**Your {hint['Item']}** is on {hint['Location']}{f" at {hint['Entrance']}" if hint['Entrance'] else ""}."
-            hints_list += f"\n**{hint['Receiver']}'s {hint['Item']}** is on {hint['Location']}{f" at {hint['Entrance']}" if hint['Entrance'] else ""}."
+            else:
+                hints_list += f"\n**{hint['Receiver']}'s {hint['Item']}** is on {hint['Location']}{f" at {hint['Entrance']}" if hint['Entrance'] else ""}."
 
         hints_list += "\n\n## To Be Found:"
         for hint in hint_table_list:
