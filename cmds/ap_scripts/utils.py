@@ -680,3 +680,84 @@ def handle_location_tracking(game: Game, player: Player, item: Item):
             case _:
                 return location
     return location
+
+def handle_location_hinting(game: Game, player: Player, item: Item) -> str:
+    """Some locations have a cost or extra info associated with it.
+    If an item that's hinted is on this location, go through similar steps to 
+    the tracking functions to provide info on costs etc."""
+
+    ItemObject = item
+    location = item.location
+
+    requirements = []
+    extra_info = ""
+
+    final_extra = ""
+
+    def join_words(words):
+        if len(words) > 2:
+            return '%s, and %s' % ( ', '.join(words[:-1]), words[-1] )
+        elif len(words) == 2:
+            return ' and '.join(words)
+        else:
+            return words[0]
+
+    if bool(player.settings):
+        settings = player.settings
+        game = player.game
+
+        match game:
+            case "Here Comes Niko!":
+                contact_lists = {
+                    "1": [
+                        f"Hairball City - {npc}" for npc in ["Mitch", "Mai", "Moomy", "Blippy Dog", "Nina"]
+                    ] + [
+                        f"Turbine Town - {npc}" for npc in ["Mitch", "Mai", "Blippy Dog"]
+                    ] + [
+                        f"Salmon Creek Forest - {npc}" for npc in (["SPORTVIVAL", "Mai"]
+                        + ["Fish with Fischer", "Bass", "Catfish", "Pike", "Salmon", "Trout"])
+                    ]
+                    "2": [
+                        f"Hairball City - {npc}" for npc in ["Game Kid", "Blippy", "Serschel & Louist"]
+                    ] + [
+                        f"Turbine Town - {npc}" for npc in ["Blippy", "Serschel & Louist"]
+                    ] + [
+                        f"Salmon Creek Forest - {npc}" for npc in ["Game Kid", "Blippy", "Serschel & Louist"]
+                    ] + [
+                        f"Public Pool - {npc}" for npc in (["Mitch", "SPORTVIVAL VOLLEY", "Blessley"]
+                        + ["Little Gabi's Flowers"] + [f"Flowerbed {num+1}" for num in range(3)])
+                    ] + [
+                        f"Bathhouse - {npc}" for npc in (["Blessley", "Blippy", "Blippy Dog"]
+                        + ["Little Gabi's Flowers"] + [f"Flowerbed {num+1}" for num in range(3)]
+                        + ["Fish with Fischer", "Anglerfish", "Clione", "Jellyfish", "Little Wiggly Guy", "Pufferfish"])
+                    ]
+                }
+
+                if location.endswith("Mitch") or location.endswith("Mai"):
+                    # Get the cassette cost
+                    cost = settings[f"{location} Cassette Cost"]
+                    level, npc = location.split(" - ")
+
+                    # Cassette Requirements
+                    if settings['Cassette Logic'] == "Level Based":
+                        requirements.append(f"{cost} {level} Cassettes")
+                    else:
+                        requirements.append(f"{cost} Cassettes")
+                    
+                    # Contact List Requirements
+                    if location in contact_lists["1"]:
+                        requirements.append("Contact List 1")
+                    if location in contact_lists["2"]:
+                        requirements.append("Contact List 2")
+
+
+    if len(requirements) > 1:
+        # bold costs
+        required = [f"**{req}**" for req in requirements]
+        final_extra += f"This location requires {join_words(required)}."
+    if len(extra_info) > 0:
+        final_extra += f"\n{extra_info}"
+    
+    if len(final_extra) > 0:
+        return final_extra
+    else: return None

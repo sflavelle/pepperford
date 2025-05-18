@@ -10,7 +10,7 @@ from collections import defaultdict
 import requests
 import threading
 import yaml
-from cmds.ap_scripts.utils import Game, Item, CollectedItem, Player, PlayerSettings, handle_item_tracking, handle_location_tracking
+from cmds.ap_scripts.utils import Game, Item, CollectedItem, Player, PlayerSettings, handle_item_tracking, handle_location_tracking, handle_location_hinting
 from word2number import w2n
 
 # setup logging
@@ -267,6 +267,10 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
                     message += " **This item will unlock more checks.**"
                 case _:
                     pass
+
+            extra = handle_location_hinting(game, game.players[receiver], SentItemObject)
+            if extra is not None:
+                message += "\n" + extra
 
             game.spoiler_log[sender][item_location].hint()
 
