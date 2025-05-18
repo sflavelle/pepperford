@@ -48,7 +48,6 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
     def __init__(self, bot):
         self.ctx = bot
 
-
     async def cog_command_error(self, ctx: Context[BotT], error: Exception) -> None:
         await ctx.reply(f"Command error: {error}",ephemeral=True)
 
@@ -74,8 +73,10 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
 
         match room_url.split('/')[3]:
             case "tracker":
-                await newpost.edit(content=f"**:no_entry_sign: You tried!**\n{interaction.user.display_name} gave me a tracker link, "
-                                           "but I need a room URL to post room details.")
+                await newpost.edit(
+                    content=f"**:no_entry_sign: You tried!**\n{interaction.user.display_name} gave me a tracker link, "
+                    "but I need a room URL to post room details."
+                )
                 raise ValueError
 
         api_url = f"https://{hostname}/api/room_status/{room_id}"
@@ -104,7 +105,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
         cursor.execute("select tablename from pg_catalog.pg_tables where schemaname = 'public'")
         response = cursor.fetchall()
         return [app_commands.Choice(name=opt[0],value=opt[0]) for opt in response]
-    
+
     async def db_game_complete(self, ctx: discord.Interaction, current: str) -> typing.List[app_commands.Choice[str]]:
         cursor = sqlcon.cursor()
         cursor.execute("select game, count(*) from item_classification group by game;")
@@ -113,7 +114,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
             return [app_commands.Choice(name=opt,value=opt) for opt in response[:20]]
         else:
             return [app_commands.Choice(name=opt,value=opt) for opt in response if current in opt][:20]
-    
+
     async def db_item_complete(self, ctx: discord.Interaction, current: str) -> typing.List[app_commands.Choice[str]]:
         cursor = sqlcon.cursor()
         game_selection = ctx.data['options'][0]['options'][0]['options'][0]['value']
@@ -125,7 +126,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
             return [app_commands.Choice(name=f"{current} (Multi-Selection)",value=current)]
         else:
             return [app_commands.Choice(name=opt,value=opt) for opt in response if current in opt][:20]
-        
+
     async def db_location_complete(self, ctx: discord.Interaction, current: str) -> typing.List[app_commands.Choice[str]]:
         cursor = sqlcon.cursor()
         game_selection = ctx.data['options'][0]['options'][0]['options'][0]['value']
@@ -137,7 +138,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
             return [app_commands.Choice(name=f"{current} (Multi-Selection)",value=current)]
         else:
             return [app_commands.Choice(name=opt,value=opt) for opt in response if current in opt][:20]
-    
+
     async def db_classification_complete(self, ctx: discord.Interaction, current: str) -> typing.List[app_commands.Choice[str]]:
         permitted_values = [
             "progression", # Unlocks new checks
@@ -169,7 +170,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
 
         # Set headers (for prettiness)
         headers = [desc[0].replace("_", " ").title() for desc in cursor.description]
-        
+
         str_response = tabulate(response,headers=headers)
         try: 
             await interaction.response.send_message(str_response,ephemeral=not public)
@@ -259,9 +260,9 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                 await newpost.edit(content=f"Imported {game}...")
 
         return await newpost.edit(content="Import *should* be complete!")
-    
+
     aproom = app_commands.Group(name="room",description="Commands to do with the current room")
-    
+
     async def link_slot_complete(self, ctx: discord.Interaction, current: str) -> typing.List[app_commands.Choice[str]]:
         permitted_values = self.ctx.extras['ap_rooms'][ctx.guild_id]['players']
         if len(current) == 0:
@@ -291,7 +292,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
     @app_commands.describe(room_url="Link to the Archipelago room")
     async def set_room(self, interaction: discord.Interaction, room_url: str):
         """Set the current Archipelago room for this server. Will affect other commands."""
-        
+
         logger.info(f"Setting room for {interaction.guild.name} ({interaction.guild.id}) to {room_url}...")
 
         deferpost = await interaction.response.defer(ephemeral=True, thinking=True,)
@@ -322,7 +323,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
         players = []
         for p in api_data['players']:
             players.append(p[0])
-        
+
         with sqlcon.cursor() as cursor:
             commands = [
                 (
@@ -355,11 +356,11 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
             'room_port': room_port,
             'players': players,
         }
-        
+
         # Persist the room data to disk
         with open('ap_rooms.json', 'w', encoding='UTF-8') as file:
             json.dump(self.ctx.extras['ap_rooms'], file, indent=4)
-        
+
         logger.info(f"Set room for {interaction.guild.name} ({interaction.guild.id}) to {room_url}")
         await newpost.edit(content=f"Set room for {interaction.guild.name} to {room_url} !")
 
@@ -381,8 +382,11 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
 
         linked_slots = []
         with sqlcon.cursor() as cursor:
-            cursor.execute("SELECT player_name FROM games.room_players WHERE room_id = %s AND guild = %s;", (room['room_id'], interaction.guild_id))
-            linked_slots = [row[0] for row in cursor.fetchall() if row[0] in room_slots]
+            cursor.execute(
+                "SELECT player_name FROM games.room_players rp JOIN games.players p ON rp.player_name = p.player_name WHERE rp.room_id = %s AND rp.guild = %s AND p.discord_user = %s;",
+                (room["room_id"], interaction.guild_id, interaction.user.id),
+            )
+            linked_slots = [row[0] for row in cursor.fetchall()]
         if len(linked_slots) == 0:
             return await newpost.edit(content="None of your Archipelago slots are linked to this game.")
 
@@ -399,7 +403,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                                  "classification": h.classification,
                                  "entrance": h.location_entrance,
                                 } for h in game_table['players'][slot].hints if h.found is False}
-                
+
         # Format the hint table
         hint_table_list = []
         for slot, hints in hint_table.items():
@@ -412,7 +416,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                     "Receiver": details["receiver"],
                     "Classification": details["classification"],
                 })
-        
+
         hint_table_str = tabulate(hint_table_list, headers="keys", tablefmt="grid")
         if len(hint_table_str) > 2000:
             hint_table_str = f"Hint table too long ({len(hint_table_str)} characters). Sending as a file."
@@ -421,7 +425,6 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
             await newpost.edit(content=hint_table_str, file=discord.File(BytesIO(hint_table_file), 'hints.txt'))
         else:
             await newpost.edit(content=hint_table_str)
-
 
     itemlogging = app_commands.Group(name="itemlog",description="Manage an item logging webhook")
 
@@ -561,7 +564,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
     async def on_ready(self):
         if not self.ctx.procs.get('archipelago'):
             self.ctx.procs['archipelago'] = {}
-            
+
         if not self.ctx.extras.get('ap_rooms'):
             self.ctx.extras['ap_rooms'] = {}
             # Load persisted ap_rooms.json if it exists
@@ -572,27 +575,27 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                 logger.info("Loaded persisted ap_rooms.json successfully.")
             except (json.JSONDecodeError, IOError) as e:
                 logger.error(f"Error loading ap_rooms.json: {e}")
-            
+
         # self.ctx.extras['ap_channel'] = next((chan for chan in self.ctx.spotzone.text_channels if chan.id == 1163808574045167656))
         # while testing
         # self.ctx.extras['ap_channel'] = self.ctx.fetch_channel(1349546289490034821)
         # self.ctx.extras['ap_webhook'] = await self.ctx.extras['ap_channel'].webhooks()
         # if len(self.ctx.extras['ap_webhook']) == 1: self.ctx.extras['ap_webhook'] = self.ctx.extras['ap_webhook'][0]
 
-            # Run itemlogs if any are configured
+        # Run itemlogs if any are configured
         if len(cfg['bot']['archipelago']['itemlogs']) > 0:
             logger.info("Starting saved itemlog processes.")
             for log in cfg['bot']['archipelago']['itemlogs']:
                 logger.info(f"Starting itemlog for guild ID {log['guild']}")
                 logger.info(f"Info: {json.dumps(log)}")
                 env = os.environ.copy()
-            
+
                 env['LOG_URL'] = log['log_url']
                 env['WEBHOOK_URL'] = log['webhook']
                 env['SESSION_COOKIE'] = cfg['bot']['archipelago']['session_cookie']
                 env['SPOILER_URL'] = log['spoiler_url'] if log['spoiler_url'] else None
                 env['MSGHOOK_URL'] = log['msghook'] if log['msghook'] else None
-            
+
                 try: 
                     script_path = os.path.join(os.path.dirname(__file__), '..', 'ap_itemlog.py')
                     process = subprocess.Popen([sys.executable, script_path], env=env)
