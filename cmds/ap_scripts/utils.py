@@ -113,8 +113,8 @@ class Player(dict):
         
     def update_locations(self, game: Game):
         self.locations = {l.location: l for l in game.spoiler_log[self.name].values()}
-        self.collected_locations = len([l for l in self.locations if l.found is True])
-        self.total_locations = len([l for l in self.locations if l.is_location_checkable is True])
+        self.collected_locations = len([l for l in self.locations.values() if l.found is True])
+        self.total_locations = len([l for l in self.locations.values() if l.is_location_checkable is True])
         
     def add_hint(self, hint_type: str, item):
         if hint_type not in self.hints:
