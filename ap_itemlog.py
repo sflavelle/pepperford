@@ -512,7 +512,7 @@ def inspect():
 
 def run_flask():
     # Listen only on localhost by default for safety
-    app.run(host='127.0.0.1', port=42069, debug=False, use_reloader=False)
+    webview.run(host='127.0.0.1', port=42069, debug=False, use_reloader=False)
 
 if __name__ == "__main__":
 
@@ -523,5 +523,5 @@ if __name__ == "__main__":
 
     release_thread = threading.Thread(target=process_releases)
     release_thread.start()
-    
+
     watch_log(log_url, INTERVAL)
