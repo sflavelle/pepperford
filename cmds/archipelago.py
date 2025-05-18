@@ -428,7 +428,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                 })
 
         if len(hint_table_list) == 0:  
-            return await newpost.edit(content="No hints available for your linked slots.",ephemeral = True)
+            return await newpost.edit(content="No hints available for your linked slots.")
 
         hints_list = "## To Find:"
         for hint in hint_table_list:
@@ -441,7 +441,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
             hints_list += f"\n**Your {hint['Item']}** is on {hint['Sender']}'s {hint['Location']}{f" at {hint['Entrance']}" if hint['Entrance'] else ""}."
 
 
-        await newpost.edit(content=hints_list, ephemeral=not public)
+        await newpost.edit(content=hints_list)
 
     itemlogging = app_commands.Group(name="itemlog",description="Manage an item logging webhook")
 
