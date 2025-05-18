@@ -399,10 +399,18 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
             if slot in game_table['players']:
                 hint_table[slot] = {
                     h.location: {"item": h.item,
+                                 "sender": h.sender,
                                  "receiver": h.receiver,
                                  "classification": h.classification,
                                  "entrance": h.location_entrance,
-                                } for h in game_table['players'][slot]['hints'] if h.found is False}
+                                } for h in game_table['players'][slot]['hints']['sending'] if h.found is False}
+                hint_table[slot].update({
+                    h.location: {"item": h.item,
+                                 "sender": h.sender,
+                                 "receiver": h.receiver,
+                                 "classification": h.classification,
+                                 "entrance": h.location_entrance,
+                                } for h in game_table['players'][slot]['hints']['receiving'] if h.found is False})
 
         # Format the hint table
         hint_table_list = []
@@ -413,6 +421,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                     "Item": details["item"],
                     "Location": location,
                     "Entrance": details["entrance"],
+                    "Sender": details["sender"],
                     "Receiver": details["receiver"],
                     "Classification": details["classification"],
                 })
