@@ -232,6 +232,9 @@ class Item(dict):
             ]
         response = None # What we will ultimately return
 
+        if player is None:
+            player = self.receiver
+
         if self.game is None:
             return None
 
