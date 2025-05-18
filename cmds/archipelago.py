@@ -314,7 +314,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                     ('false', room_id, interaction.guild_id)
                 ),
             ]
-            for p in players.keys():
+            for p in players:
                 commands.append((
                     '''INSERT INTO games.room_players
                     (room_id, guild, player_name)
