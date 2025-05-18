@@ -5,6 +5,7 @@ import psycopg2 as psql
 import logging
 import yaml
 
+from cmds.ap_scripts.emitter import event_emitter
 from zoneinfo import ZoneInfo
 
 # setup logging
@@ -42,6 +43,7 @@ class Game(dict):
     players = {}
     collected_locations: int = 0
     total_locations: int = 0
+    collection_percentage: float = 0.0
 
     def init_db(self):
         cursor = sqlcon.cursor()
@@ -58,6 +60,18 @@ class Game(dict):
     def update_locations(self):
         self.collected_locations = sum([p.collected_locations for p in self.players.values()])
         self.total_locations = sum([p.total_locations for p in self.players.values()])
+        self.collection_percentage = (self.collected_locations / self.total_locations) * 100 if self.total_locations > 0 else 0.0
+
+        self.check_milestones()
+
+    def check_milestones(self):
+        milestones = [25, 50, 75, 100]  # Define milestones
+        for milestone in milestones:
+            if self.collection_percentage >= milestone and milestone not in self.milestones:
+                self.milestones.add(milestone)
+                logger.info(f"Game reached {milestone}% completion!")
+                message = f"**The game has reached {milestone}% completion!**"
+                event_emitter.emit("milestone", message)  # Emit the milestone message
 
     def to_dict(self):
         return {
@@ -70,6 +84,7 @@ class Game(dict):
             "players": {k: v.to_dict() for k, v in self.players.items()},
             "collected_locations": self.collected_locations,
             "total_locations": self.total_locations,
+            "collection_percentage": self.collection_percentage,
         }
 
 
@@ -91,6 +106,7 @@ class Player(dict):
     released = False
     collected_locations: int = 0
     total_locations: int = 0
+    collection_percentage: float = 0.0
 
     def __init__(self,name,game):
         self.name = name
@@ -104,6 +120,7 @@ class Player(dict):
         self.settings = PlayerSettings()
         self.goaled = False
         self.released = False
+        self.milestones = set()
 
     def __str__(self):
         return self.name
@@ -123,6 +140,7 @@ class Player(dict):
             "released": self.released,
             "collected_locations": self.collected_locations,
             "total_locations": self.total_locations,
+            "collection_percentage": self.collection_percentage,
         }
 
     def is_finished(self) -> bool:
@@ -145,6 +163,17 @@ class Player(dict):
         self.locations = {l.location: l for l in game.spoiler_log[self.name].values()}
         self.collected_locations = len([l for l in self.locations.values() if l.found is True])
         self.total_locations = len([l for l in self.locations.values() if l.is_location_checkable is True])
+        self.collection_percentage = (self.collected_locations / self.total_locations) * 100 if self.total_locations > 0 else 0.0
+
+        self.check_milestones()
+
+    def check_milestones(self):
+        milestones = [50, 75, 100]  # Define milestones
+        for milestone in milestones:
+            if self.collection_percentage >= milestone and milestone not in self.milestones:
+                self.milestones.add(milestone)
+                message = f"**{self.name} has reached {milestone}% completion!**"
+                event_emitter.emit("milestone", message)  # Emit the milestone message
         
     def add_hint(self, hint_type: str, item):
         if hint_type not in self.hints:

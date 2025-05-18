@@ -11,6 +11,7 @@ import requests
 import threading
 import yaml
 from cmds.ap_scripts.utils import Game, Item, CollectedItem, Player, PlayerSettings, handle_item_tracking, handle_location_tracking, handle_location_hinting
+from cmds.ap_scripts.emitter import event_emitter
 from word2number import w2n
 from flask import Flask, jsonify, Response
 
@@ -208,7 +209,7 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
             game.players[receiver].update_locations(game)
             game.update_locations()
 
-            if not skip_msg: logger.info(f"{sender}: ({str(game.players[sender].collected_locations)}/{str(game.players[sender].total_locations)}) {item_location} -> {receiver}'s {item} ({ReceivedItemObject.classification})")
+            if not skip_msg: logger.info(f"{sender}: ({str(game.players[sender].collected_locations)}/{str(game.players[sender].total_locations)}/{str(game.players[sender].collection_percentage)}%) {item_location} -> {receiver}'s {item} ({ReceivedItemObject.classification})")
 
             # If this is part of a release, send it there instead
             if sender in release_buffer and not skip_msg and (to_epoch(timestamp) - release_buffer[sender]['timestamp'] <= 2):
@@ -234,6 +235,11 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
                 else:
                     message = f"{dim_if_goaled(receiver)}{sender} sent **{item}** to **{receiver}** ({location})"
                 if not skip_msg: message_buffer.append(message.replace("_",r"\_"))
+
+                # Handle completion milestones
+                if game.players[receiver].collection_percentage == 100 and game.players[receiver].is_finished() is False:
+                    message = f"**That was their last check! They're probably just waiting to finish now...**"
+                    message_buffer.append(message)
 
 
         elif match := regex_patterns['item_hints'].match(line):
@@ -271,7 +277,7 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
                     pass
 
             extra = handle_location_hinting(game, game.players[receiver], SentItemObject)
-            if extra is not None:
+            if bool(extra):
                 message += "\n" + extra
 
             game.spoiler_log[sender][item_location].hint()
@@ -309,7 +315,9 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
                 seed_address = address
                 logger.info(f"Seed URI has changed: {address}")
                 message = f"**The seed address has changed.** Use this updated address: `{address}`"
-                if not skip_msg: send_chat("Archipelago", message)
+                if not skip_msg:
+                    send_chat("Archipelago", message)
+                    message_buffer.append(message)
         elif match := regex_patterns['messages'].match(line):
             timestamp, sender, message = match.groups()
             if msg_webhook:
@@ -343,6 +351,8 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
         else:
             # Unmatched lines
             logger.debug(f"Unparsed line: {line}")
+
+### Common non-loop functions
 
 def send_chat(sender, message):
     payload = {
@@ -439,7 +449,15 @@ def fetch_log(url):
     except requests.RequestException as e:
         logger.error(f"Error fetching log file: {e}")
         return []
+    
+### Emitter events
+    
+def handle_milestone_message(message):
+    message_buffer.append(message)
 
+event_emitter.on("milestone", handle_milestone_message)
+
+### Main function to watch the log file
 
 def watch_log(url, interval):
     global release_buffer
@@ -467,6 +485,20 @@ def watch_log(url, interval):
     game.update_locations()
     logger.info(f"Total Checks: {game.total_locations}")
     logger.info(f"Checks Collected: {game.collected_locations}")
+    logger.info(f"Completion Percentage: {game.collection_percentage}%")
+    logger.info(f"Total Players: {len(game.players)}")
+    if previous_lines < 8: # If the seed has just started, post some info
+        message = f'''
+        **So begins another Archipelago...**
+        **Seed ID:** `{game.seed}`
+        **Seed Address:** `{seed_address}`
+        **Archipelago Version:** `{game.version_generator}`
+        **Players:** `{game.world_settings["Players"]}`
+        **Total Checks:** `{game.total_locations}` (possibly inaccurate)'''
+
+        message_buffer.append(message)
+        logger.info("New room: Queuing initial message to Discord.")
+        del message
     # classification_thread = threading.Thread(target=save_classifications)
     # classification_thread.start()
 
