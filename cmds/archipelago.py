@@ -9,6 +9,7 @@ import traceback
 import typing
 from io import BytesIO
 import psycopg2 as psql
+from psycopg2.extras import Json as psql_json
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
 from tabulate import tabulate
@@ -311,7 +312,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                 '{interaction.guild_id}',
                 'true',
                 '{hostname}',
-                '{psql.extras.Json(players)}');''',
+                '{psql_json(players)}');''',
                 f'''UPDATE games.all_rooms
                 SET active = 'false'
                 WHERE room_id != '{room_id}' AND guild = '{interaction.guild_id}';''',
