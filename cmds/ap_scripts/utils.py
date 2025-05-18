@@ -179,6 +179,7 @@ class Item(dict):
         self.name = item
         self.game = receiver.game
         self.location = location
+        self.is_location_checkable = self.location_is_checkable()
         self.location_entrance = entrance
         self.classification = self.set_item_classification(self)
         self.count: int = 1
@@ -229,7 +230,7 @@ class Item(dict):
         cursor = sqlcon.cursor()
         cursor.execute("SELECT is_checkable FROM game_locations WHERE game = %s AND location = %s;", (self.sender.game, self.location))
         response = cursor.fetchone()
-        logger.info(f"locationsdb: {self.sender.game}: {self.location} is checkable: {response[0]}") # debugging in info, yes i know
+        # logger.info(f"locationsdb: {self.sender.game}: {self.location} is checkable: {response[0]}") # debugging in info, yes i know
         return response[0] if response else False
 
     def db_add_location(self, is_check: bool = False):
