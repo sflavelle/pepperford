@@ -19,6 +19,7 @@ from discord.ext.commands import Context
 from discord.ext.commands._types import BotT
 
 # from cmds.ap_scripts.archilogger import ItemLog
+from cmds.ap_scripts.emitter import event_emitter
 
 cfg = None
 
@@ -268,50 +269,131 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
             user = interaction.user
 
         cmd = "INSERT INTO games.players (player_name, discord_user) VALUES (%s, %s)"
+        with sqlcon.cursor() as cursor:
+            cursor.execute(cmd, (slot_name, user.id))
+            # sqlcon.commit()
 
-    # @aproom.command()
-    # async def set_room(self, interaction: discord.Interaction, room_url: str):
-    #     """Set the current Archipelago room for this server. Will affect other commands."""
+        return await interaction.response.send_message(f"Linked {slot_name} to {user.display_name} ({user.id})!",ephemeral=True)
 
-    #     deferpost = await interaction.response.defer(ephemeral=True, thinking=True,)
-    #     newpost = await interaction.original_response()
+    @aproom.command()
+    async def set_room(self, interaction: discord.Interaction, room_url: str):
+        """Set the current Archipelago room for this server. Will affect other commands."""
 
-    #     if room_url.split('/')[-2] != "room":
-    #         return await newpost.edit(content="**Error**: the provided URL is not an Archipelago room URL.",delete_after=15.0)
+        deferpost = await interaction.response.defer(ephemeral=True, thinking=True,)
+        newpost = await interaction.original_response()
 
-    #     room_id = room_url.split('/')[-1]
-    #     hostname = room_url.split('/')[2]
+        if room_url.split('/')[-2] != "room":
+            return await newpost.edit(content="**Error**: the provided URL is not an Archipelago room URL.",delete_after=15.0)
 
-    #     api_url = f"https://{hostname}/api/room_status/{room_id}"
+        room_id = room_url.split('/')[-1]
+        hostname = room_url.split('/')[2]
 
-    #     api_data = requests.get(api_url, timeout=5).json()
+        api_url = f"https://{hostname}/api/room_status/{room_id}"
 
-    #     room_port = api_data['last_port']
+        api_data = requests.get(api_url, timeout=5).json()
 
-    #     players = {}
-    #     player_count = 1
-    #     for p in api_data['players']:
-    #         players[p[0]] = {
-    #             "game": p[1],
-    #             "slot": player_count,
-    #         }
-    #         player_count = player_count + 1
+        room_port = api_data['last_port']
+
+        players = {}
+        player_count = 0
+        for p in api_data['players']:
+            players[p[0]] = {
+                "game": p[1],
+                "slot": player_count,
+            }
+            player_count = player_count + 1
         
-    #     with sqlcon.cursor() as cursor:
-    #         commands = [
-    #             f'''INSERT INTO games.all_rooms
-    #             (room_id, guild, active, host, players)
-    #             VALUES ('{room_id}', 
-    #             NULL,
-    #             '{interaction.guild_id}',
-    #             'true',
-    #             '{hostname}',
-    #             '{room_port}');''',
-    #         ]
+        with sqlcon.cursor() as cursor:
+            commands = [
+                f'''INSERT INTO games.all_rooms
+                (room_id, guild, active, host, players)
+                VALUES ('{room_id}', 
+                NULL,
+                '{interaction.guild_id}',
+                'true',
+                '{hostname}',
+                '{player_count}');'''
+            ]
+            for p in players.keys():
+                commands.append(f'''INSERT INTO games.room_players
+                (room_id, guild, player_name)
+                VALUES ('{room_id}',
+                '{interaction.guild_id}',
+                '{p}');''')
 
-    #         # When we're ready
-    #         for cmd in commands:
-    #             cursor.execute(cmd)
+            # When we're ready
+            for cmd in commands:
+                cursor.execute(cmd)
+
+        self.ctx.extras['ap_rooms'] = {}
+        self.ctx.extras['ap_rooms'][interaction.guild_id] = {
+            'room_id': room_id,
+            'hostname': hostname,
+            'room_port': room_port,
+            'players': players,
+        }
+        logger.info(f"Set room for {interaction.guild.name} ({interaction.guild.id}) to {room_url}")
+        await newpost.edit(content=f"Set room for {interaction.guild.name} to {room_url}!")
+
+    @aproom.command()
+    async def get_hints(self, interaction: discord.Interaction):
+        """Get hints for the current room."""
+
+        deferpost = await interaction.response.defer(ephemeral=True, thinking=True,)
+        newpost = await interaction.original_response()
+
+        if not self.ctx.extras.get('ap_rooms'):
+            return await newpost.edit(content="No Archipelago room is currently set for this server.")
+
+        room = self.ctx.extras['ap_rooms'].get(interaction.guild_id)
+        if not room:
+            return await newpost.edit(content="No Archipelago room is currently set for this server.")
+
+        room_slots = requests.get(f"https://{room['hostname']}/api/room_status/{room['room_id']}", timeout=10).json()['players']
+
+        linked_slots = []
+        with sqlcon.cursor() as cursor:
+            cursor.execute("SELECT player_name FROM games.room_players WHERE room_id = %s AND guild = %s;", (room['room_id'], interaction.guild_id))
+            linked_slots = [row[0] for row in cursor.fetchall() if row[0] in room_slots]
+        if len(linked_slots) == 0:
+            return await newpost.edit(content="None of your Archipelago slots are linked to this game.")
+
+        # Get the game table
+        game_table = requests.get(f"http://localhost:42069/inspectgame", timeout=10).json()
+
+        # Build the hint table
+        hint_table = {}
+        for slot in linked_slots:
+            if slot in game_table['players']:
+                hint_table[slot] = {
+                    h.location: {"item": h.item,
+                                 "receiver": h.receiver,
+                                 "classification": h.classification,
+                                 "entrance": h.location_entrance,
+                                } for h in game_table['players'][slot].hints if h.found is False}
+                
+        # Format the hint table
+        hint_table_list = []
+        for slot, hints in hint_table.items():
+            for location, details in hints.items():
+                hint_table_list.append({
+                    "Slot": slot,
+                    "Item": details["item"],
+                    "Location": location,
+                    "Entrance": details["entrance"],
+                    "Receiver": details["receiver"],
+                    "Classification": details["classification"],
+                })
+        
+        hint_table_str = tabulate(hint_table_list, headers="keys", tablefmt="grid")
+        if len(hint_table_str) > 2000:
+            hint_table_str = f"Hint table too long ({len(hint_table_str)} characters). Sending as a file."
+            hint_table_file = bytes(hint_table_str, encoding='UTF-8')
+            hint_table_str = "Here's the hint table, as a file:"
+            await newpost.edit(content=hint_table_str, file=discord.File(BytesIO(hint_table_file), 'hints.txt'))
+        else:
+            await newpost.edit(content=hint_table_str)
+
 
     itemlogging = app_commands.Group(name="itemlog",description="Manage an item logging webhook")
 
