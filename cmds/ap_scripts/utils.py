@@ -744,11 +744,11 @@ def handle_location_hinting(game: Game, player: Player, item: Item) -> str:
                     else:
                         requirements.append(f"{cost} Cassettes")
                     
-                    # Contact List Requirements
-                    if location in contact_lists["1"]:
-                        requirements.append("Contact List 1")
-                    if location in contact_lists["2"]:
-                        requirements.append("Contact List 2")
+                # Contact List Requirements
+                if location in contact_lists["1"]:
+                    requirements.append("Contact List 1")
+                if location in contact_lists["2"]:
+                    requirements.append("Contact List 2")
 
 
     if len(requirements) > 0:
