@@ -279,6 +279,8 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
     @aproom.command()
     async def set_room(self, interaction: discord.Interaction, room_url: str):
         """Set the current Archipelago room for this server. Will affect other commands."""
+        
+        logger.info(f"Setting room for {interaction.guild.name} ({interaction.guild.id}) to {room_url}...")
 
         deferpost = await interaction.response.defer(ephemeral=True, thinking=True,)
         newpost = await interaction.original_response()
@@ -292,6 +294,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
         api_url = f"https://{hostname}/api/room_status/{room_id}"
 
         api_data = requests.get(api_url, timeout=5).json()
+        logger.info("Fetched room data from API...")
 
         room_port = api_data['last_port']
 
@@ -324,9 +327,12 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
 
             # When we're ready
             for command in commands:
+                logger.info("Executing SQL...")
                 cmd, params = command
                 cursor.execute(cmd, params)
 
+        logger.info("SQL commands executed.")
+        logger.info("Setting up room data...")
         self.ctx.extras['ap_rooms'] = {}
         self.ctx.extras['ap_rooms'][interaction.guild_id] = {
             'room_id': room_id,
