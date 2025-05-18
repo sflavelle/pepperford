@@ -365,7 +365,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
         await newpost.edit(content=f"Set room for {interaction.guild.name} to {room_url} !")
 
     @aproom.command()
-    async def get_hints(self, interaction: discord.Interaction):
+    async def get_hints(self, interaction: discord.Interaction, public: bool = False):
         """Get hints for the current room."""
 
         if not self.ctx.extras.get('ap_rooms'):
@@ -423,14 +423,29 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                     "Classification": details["classification"],
                 })
 
-        hint_table_str = tabulate(hint_table_list, headers="keys", tablefmt="grid")
-        if len(hint_table_str) > 2000:
-            logger.info(f"Hint table too long ({len(hint_table_str)} characters). Sending as a file.")
-            hint_table_file = bytes(hint_table_str, encoding='UTF-8')
-            hint_table_str = "Here's the hint table, as a file:"
-            await interaction.response.send_message(content=hint_table_str, file=discord.File(BytesIO(hint_table_file), 'hints.txt'), ephemeral=True)
+        if len(hint_table_list) == 0:  
+            return await interaction.response.send_message(content="No hints available for your linked slots.")
+
+        hints_list = "## To Find:"
+        for hint in hint_table_list:
+            if hint["Sender"] not in linked_slots: continue
+            hints_list += f"\n**{hint['Receiver']}'s {hint['Item']}** is on {hint['Location']}{f" at {hint['Entrance']}" if hint['Entrance'] else ""}."
+
+        hints_list += "\n\n## To Be Found:"
+        for hint in hint_table_list:
+            if hint["Receiver"] not in linked_slots: continue
+            hints_list += f"\n**Your {hint['Item']}** is on {hint['Sender']}'s {hint['Location']}{f" at {hint['Entrance']}" if hint['Entrance'] else ""}."
+
+
+        if len(hints_list) > 2000:
+            # List is too long, may as well make it pretty and send it as a file
+            logger.info(f"Hint table too long ({len(hints_list)} characters). Sending as a file.")
+            hints_formatted = tabulate(hint_table_list, headers="keys", tablefmt="grid")
+            hint_table_file = bytes(hints_formatted, encoding='UTF-8')
+            hints_formatted = "Here's the hint table, as a file:"
+            await interaction.response.send_message(content=hints_formatted, file=discord.File(BytesIO(hint_table_file), 'hints.txt'), ephemeral=not public)
         else:
-            await interaction.response.send_message(content=hint_table_str, ephemeral=True)
+            await interaction.response.send_message(content=hints_list, ephemeral=not public)
 
     itemlogging = app_commands.Group(name="itemlog",description="Manage an item logging webhook")
 
