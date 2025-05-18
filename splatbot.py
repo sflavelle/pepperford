@@ -71,7 +71,7 @@ async def ext_autocomplete(ctx: discord.Interaction, current: str) -> typing.Lis
 @app_commands.command(name="reload_ext")
 async def extension_reload(interaction: discord.Interaction, extension: str):
     try:
-        await interaction.client.reload_extension(f"cmds.{extension}")
+        await interaction.client.reload_extension(extension)
         return await interaction.response.send_message(f"All done! Reloaded `{extension}` for ya.",ephemeral=True)
     finally:
         pass
