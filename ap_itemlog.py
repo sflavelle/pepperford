@@ -50,7 +50,7 @@ api_url = f"https://{hostname}/api/room_status/{room_id}"
 seed_address = None
 
 # Time interval between checks (in seconds)
-INTERVAL = 30
+INTERVAL = 60
 # Maximum Discord message length in characters
 MAX_MSG_LENGTH = 2000
 
@@ -418,7 +418,7 @@ def send_release_messages():
 def fetch_log(url):
     try:
         cookies = {'session': session_cookie}
-        response = requests.get(url, cookies=cookies,timeout=5)
+        response = requests.get(url, cookies=cookies,timeout=10)
         response.raise_for_status()
         return response.text.splitlines()
     except requests.RequestException as e:
