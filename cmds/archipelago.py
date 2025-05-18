@@ -425,7 +425,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
 
         hint_table_str = tabulate(hint_table_list, headers="keys", tablefmt="grid")
         if len(hint_table_str) > 2000:
-            hint_table_str = f"Hint table too long ({len(hint_table_str)} characters). Sending as a file."
+            logger.info(f"Hint table too long ({len(hint_table_str)} characters). Sending as a file.")
             hint_table_file = bytes(hint_table_str, encoding='UTF-8')
             hint_table_str = "Here's the hint table, as a file:"
             await interaction.response.send_message(content=hint_table_str, file=discord.File(BytesIO(hint_table_file), 'hints.txt'), ephemeral=True)
