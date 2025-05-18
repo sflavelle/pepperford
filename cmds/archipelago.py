@@ -368,9 +368,6 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
     async def get_hints(self, interaction: discord.Interaction):
         """Get hints for the current room."""
 
-        deferpost = await interaction.response.defer(ephemeral=True, thinking=True,)
-        newpost = await interaction.original_response()
-
         if not self.ctx.extras.get('ap_rooms'):
             return await newpost.edit(content="No Archipelago room is currently set for this server.")
 
@@ -431,9 +428,9 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
             hint_table_str = f"Hint table too long ({len(hint_table_str)} characters). Sending as a file."
             hint_table_file = bytes(hint_table_str, encoding='UTF-8')
             hint_table_str = "Here's the hint table, as a file:"
-            await newpost.edit(content=hint_table_str, file=discord.File(BytesIO(hint_table_file), 'hints.txt'))
+            await interaction.response.send_message(content=hint_table_str, file=discord.File(BytesIO(hint_table_file), 'hints.txt'), ephemeral=True)
         else:
-            await newpost.edit(content=hint_table_str)
+            await interaction.response.send_message(content=hint_table_str, ephemeral=True)
 
     itemlogging = app_commands.Group(name="itemlog",description="Manage an item logging webhook")
 
