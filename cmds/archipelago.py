@@ -311,7 +311,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                 '{interaction.guild_id}',
                 'true',
                 '{hostname}',
-                '{player_count}');''',
+                '{players}');''',
                 f'''UPDATE games.all_rooms
                 SET active = 'false'
                 WHERE room_id != '{room_id}' AND guild = '{interaction.guild_id}';''',
