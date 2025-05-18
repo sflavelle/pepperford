@@ -5,7 +5,7 @@ import psycopg2 as psql
 import logging
 import yaml
 
-from emitter import event_emitter
+from cmds.ap_scripts.emitter import event_emitter
 from zoneinfo import ZoneInfo
 
 # setup logging
