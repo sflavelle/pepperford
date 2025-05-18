@@ -43,9 +43,15 @@ if not (bool(log_url) or bool(webhook_url) or bool(session_cookie)):
 
 room_id = log_url.split('/')[-1]
 hostname = log_url.split('/')[2]
-seed_id = seed_url.split('/')[-1] if bool(seed_url) else None
+seed_id = None
 
+log_url = f"https://{hostname}/log/{room_id}"
 api_url = f"https://{hostname}/api/room_status/{room_id}"
+spoiler_url = None
+
+if bool(seed_url):
+    seed_id = seed_url.split('/')[-1]
+    spoiler_url = f"https://{hostname}/dl_spoiler/{seed_id}"
 
 seed_address = None
 
