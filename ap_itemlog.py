@@ -487,7 +487,7 @@ def watch_log(url, interval):
     logger.info(f"Checks Collected: {game.collected_locations}")
     logger.info(f"Completion Percentage: {game.collection_percentage}%")
     logger.info(f"Total Players: {len(game.players)}")
-    if previous_lines < 8: # If the seed has just started, post some info
+    if len(previous_lines) < 8: # If the seed has just started, post some info
         message = f'''
         **So begins another Archipelago...**
         **Seed ID:** `{game.seed}`
