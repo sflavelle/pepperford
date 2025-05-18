@@ -330,7 +330,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                     '''INSERT INTO games.players
                     (player_name)
                     VALUES (%s);''',
-                    (str(p))
+                    (p,)
                 ))
 
             # When we're ready
