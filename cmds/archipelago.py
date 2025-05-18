@@ -592,7 +592,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
         if os.path.exists('ap_rooms.json'):
             try:
                 with open('ap_rooms.json', 'r', encoding='UTF-8') as file:
-                    self.ctx.extras['ap_rooms'] = json.loads(file)
+                    self.ctx.extras['ap_rooms'] = json.load(file)
                 logger.info("Loaded persisted ap_rooms.json successfully.")
             except (json.JSONDecodeError, IOError) as e:
                 logger.error(f"Error loading ap_rooms.json: {e}")
