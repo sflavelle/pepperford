@@ -227,6 +227,8 @@ class Item(dict):
         return 1
     
     def location_is_checkable(self) -> bool:
+        if self.game is None:
+            return False # Archipelago starting items, etc
         cursor = sqlcon.cursor()
         cursor.execute("SELECT is_checkable FROM game_locations WHERE game = %s AND location = %s;", (self.sender.game, self.location))
         response = cursor.fetchone()
