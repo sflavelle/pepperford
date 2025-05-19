@@ -55,6 +55,7 @@ class Splatbot(commands.Bot):
 async def load_extensions(bot: commands.Bot):
     for ext in [
         "cmds.archipelago"
+        "cmds.raocow",
     ]:
         await bot.load_extension(ext,package=ext)
         
