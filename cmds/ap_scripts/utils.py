@@ -787,7 +787,6 @@ def handle_location_hinting(player: Player, item: Item) -> tuple[list[str], str]
     If an item that's hinted is on this location, go through similar steps to 
     the tracking functions to provide info on costs etc."""
 
-    ItemObject = item
     location = item.location
 
     requirements = []
@@ -795,7 +794,7 @@ def handle_location_hinting(player: Player, item: Item) -> tuple[list[str], str]
 
     if bool(player.settings):
         settings = player.settings
-        game = player.game
+        game = item.game
 
         match game:
             case "Here Comes Niko!":
