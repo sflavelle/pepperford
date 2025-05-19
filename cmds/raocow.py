@@ -87,6 +87,8 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
                     date = video1['items'][0]['snippet']['publishedAt'] if video1 and 'items' in video1 and video1['items'] else None
 
                     cursor.execute("INSERT INTO playlists (playlist_id, title, datestamp) VALUES (%s, %s, %s)", (playlist_id, title, date))
+                    sqlcon.commit()
+                    logger.info(f"Inserted playlist {playlist_id} into database.")
 
             await interaction.followup.send("Playlists fetched and stored successfully.",ephemeral=True)
         except Exception as e:
