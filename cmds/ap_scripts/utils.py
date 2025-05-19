@@ -195,6 +195,8 @@ class Item(dict):
     name = None
     game = None
     location = None
+    location_costs: list[str] = []
+    location_info: str = None
     location_entrance = None
     is_location_checkable = None
     classification = None
@@ -211,6 +213,7 @@ class Item(dict):
         self.location = location
         self.is_location_checkable = self.location_is_checkable()
         self.location_entrance = entrance
+        self.location_costs, self.location_info = handle_location_hinting(self.receiver, self)
         self.classification = self.set_item_classification(self)
         self.count: int = 1
         self.found = False
@@ -236,6 +239,8 @@ class Item(dict):
             "game": self.game,
             "location": self.location,
             "location_entrance": self.location_entrance,
+            "location_costs": self.location_costs,
+            "location_info": self.location_info,
             "is_location_checkable": self.is_location_checkable,
             "classification": self.classification,
             "count": self.count,
@@ -777,7 +782,7 @@ def handle_location_tracking(game: Game, player: Player, item: Item):
                 return location
     return location
 
-def handle_location_hinting(game: Game, player: Player, item: Item) -> str:
+def handle_location_hinting(player: Player, item: Item) -> tuple[list[str], str]:
     """Some locations have a cost or extra info associated with it.
     If an item that's hinted is on this location, go through similar steps to 
     the tracking functions to provide info on costs etc."""
@@ -787,16 +792,6 @@ def handle_location_hinting(game: Game, player: Player, item: Item) -> str:
 
     requirements = []
     extra_info = ""
-
-    final_extra = ""
-
-    def join_words(words):
-        if len(words) > 2:
-            return '%s, and %s' % ( ', '.join(words[:-1]), words[-1] )
-        elif len(words) == 2:
-            return ' and '.join(words)
-        else:
-            return words[0]
 
     if bool(player.settings):
         settings = player.settings
@@ -847,13 +842,4 @@ def handle_location_hinting(game: Game, player: Player, item: Item) -> str:
                     requirements.append("Contact List 2")
 
 
-    if bool(requirements):
-        # bold costs
-        required = [f"**{req}**" for req in requirements]
-        final_extra += f"This location requires {join_words(required)}."
-    if bool(extra_info):
-        final_extra += f"\n{extra_info}"
-    
-    if bool(final_extra):
-        return final_extra
-    else: return None
+    return requirements, extra_info

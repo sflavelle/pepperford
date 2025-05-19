@@ -75,6 +75,16 @@ goaled = lambda player : game.players[player].is_finished()
 dim_if_goaled = lambda p : "-# " if goaled(p) else ""
 to_epoch = lambda timestamp : time.mktime(datetime.datetime.strptime(timestamp, "%Y-%m-%d %H:%M:%S,%f").timetuple())
 
+def join_words(words):
+    if len(words) > 2:
+        return '%s, and %s' % ( ', '.join(words[:-1]), words[-1] )
+    elif len(words) == 2:
+        return ' and '.join(words)
+    else:
+        return words[0]
+        
+# Spoiler Log Processing
+
 def process_spoiler_log(seed_url):
     global game
 
@@ -275,9 +285,10 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
                 case _:
                     pass
 
-            extra = handle_location_hinting(game, game.players[receiver], SentItemObject)
-            if bool(extra):
-                message += "\n" + extra
+            if bool(SentItemObject.location_costs):
+                message += f"\n> This will cost {join_words(SentItemObject.location_costs)} to obtain."
+            if bool(SentItemObject.location_info):
+                message += f"\n> {SentItemObject.location_info}"
 
             game.spoiler_log[sender][item_location].hint()
 
