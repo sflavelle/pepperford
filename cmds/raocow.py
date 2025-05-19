@@ -1,0 +1,96 @@
+import json
+import os
+import sys
+import subprocess
+import requests
+import logging
+import signal
+import yaml
+import traceback
+import typing
+from io import BytesIO
+import psycopg2 as psql
+from psycopg2.extras import Json as psql_json
+import asyncio
+from concurrent.futures import ThreadPoolExecutor
+from tabulate import tabulate
+from pyyoutube import Api
+import discord
+from discord import app_commands
+from discord.ext import commands
+from discord.ext.commands import Context
+from discord.ext.commands._types import BotT
+
+cfg = None
+
+logger = logging.getLogger('discord.ap')
+
+with open('config.yaml', 'r', encoding='UTF-8') as file:
+    cfg = yaml.safe_load(file)
+
+sqlcfg = cfg['bot']['archipelago']['psql']
+try: 
+    sqlcon = psql.connect(
+        dbname=sqlcfg['database']['raocow'],
+        user=sqlcfg['user'],
+        password=sqlcfg['password'] if 'password' in sqlcfg else None,
+        host=sqlcfg['host'],
+    )
+    sqlcon.set_session(autocommit=True)
+except psql.OperationalError:
+    # TODO Disable commands that need SQL connectivity
+    sqlcon = False
+
+def join_words(words):
+    if len(words) > 2:
+        return '%s, and %s' % ( ', '.join(words[:-1]), words[-1] )
+    elif len(words) == 2:
+        return ' and '.join(words)
+    else:
+        return words[0]
+
+class Raocmds(commands.GroupCog, group_name="raocow"):
+    """Commands relating to the YouTuber raocow and his content."""
+
+    def __init__(self, bot):
+        self.ctx = bot
+
+    async def cog_command_error(self, ctx: Context[BotT], error: Exception) -> None:
+        await ctx.reply(f"Command error: {error}",ephemeral=True)
+
+    @commands.is_owner()
+    @app_commands.command()
+    async def fetch_playlists(self, interaction: discord.Interaction):
+        """Fetches the playlists from raocow's channel and stores them in the database."""
+        await interaction.response.defer(thinking=True)
+
+        api_key = cfg['bot']['raocow']['yt_api_key']
+        channel_id = "UCjM-Wd2651MWgo0s5yNQRJA"
+
+        ytc = Api(api_key=api_key)
+
+        try:
+            # Fetch the playlists from raocow's channel
+            playlists = ytc.get_playlists(channel_id=channel_id, count=None, return_json=True)
+
+            # Store the playlists in the database
+            with sqlcon.cursor() as cursor:
+                for item in playlists['items']:
+                    video1 = ytc.get_playlist_items(playlist_id=playlist_id, count=1, return_json=True)
+                    playlist_id = item['id']
+                    title = item['snippet']['title']
+                    date = video1['items'][0]['snippet']['publishedAt'] if video1 and 'items' in video1 and video1['items'] else None
+                    cursor.execute("INSERT INTO playlists (playlist_id, title, datestamp) VALUES (%s, %s, %s, %s)", (playlist_id, title, date))
+
+            await interaction.followup.send("Playlists fetched and stored successfully.")
+        except Exception as e:
+            await interaction.followup.send(f"An error occurred: {e}")
+
+
+    @commands.Cog.listener()
+    async def on_ready(self):
+        pass
+
+async def setup(bot):
+    logger.info("Loading Raocow cog extension.")
+    await bot.add_cog(Raocmds(bot))

@@ -33,7 +33,7 @@ with open('config.yaml', 'r', encoding='UTF-8') as file:
 sqlcfg = cfg['bot']['archipelago']['psql']
 try: 
     sqlcon = psql.connect(
-        dbname=sqlcfg['database'],
+        dbname=sqlcfg['database']['archipelago'],
         user=sqlcfg['user'],
         password=sqlcfg['password'] if 'password' in sqlcfg else None,
         host=sqlcfg['host'],
