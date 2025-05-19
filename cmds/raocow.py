@@ -86,7 +86,7 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
                     video1 = ytc.get_playlist_items(playlist_id=playlist_id, count=1, return_json=True)
                     date = video1['items'][0]['snippet']['publishedAt'] if video1 and 'items' in video1 and video1['items'] else None
 
-                    cursor.execute("INSERT INTO playlists (playlist_id, title, datestamp) VALUES (%s, %s, %s, %s)", (playlist_id, title, date))
+                    cursor.execute("INSERT INTO playlists (playlist_id, title, datestamp) VALUES (%s, %s, %s)", (playlist_id, title, date))
 
             await interaction.followup.send("Playlists fetched and stored successfully.",ephemeral=True)
         except Exception as e:
