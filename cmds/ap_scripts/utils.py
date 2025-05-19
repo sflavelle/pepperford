@@ -841,7 +841,7 @@ def handle_location_hinting(player: Player, item: Item) -> tuple[list[str], str]
                     else:
                         requirements.append(f"{cost} Cassettes")
 
-                if f"Kiosk {level} Cost" in settings:
+                if f"Kiosk {level} Cost" in settings and location == f"{level} - Kiosk":
                     # Get the kiosk cost
                     cost = settings[f"Kiosk {level} Cost"]
 
