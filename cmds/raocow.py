@@ -58,6 +58,39 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
     async def cog_command_error(self, ctx: Context[BotT], error: Exception) -> None:
         await ctx.reply(f"Command error: {error}",ephemeral=True)
 
+    @app_commands.command()
+    async def playlist(self, interaction: discord.Interaction, search: str = None):
+        """Fetches a playlist from raocow's channel."""
+        await interaction.response.defer(thinking=True,ephemeral=True)
+
+        if not sqlcon:
+            await interaction.followup.send("Database connection is not available.",ephemeral=True)
+            return
+
+        if search is None:
+            with sqlcon.cursor() as cursor:
+                cursor.execute("SELECT * FROM playlists ORDER BY RANDOM() LIMIT 1")
+                result = cursor.fetchone()
+
+                if not result:
+                    await interaction.followup.send("No playlists found in the database.", ephemeral=True)
+                    return
+
+                await interaction.followup.send(f"Random Playlist:\n{result[1]}: {result[0]}", ephemeral=True)
+            return
+
+        with sqlcon.cursor() as cursor:
+            cursor.execute("SELECT * FROM playlists WHERE title ILIKE %s", (f"%{search}%",))
+            results = cursor.fetchall()
+
+            if not results:
+                await interaction.followup.send("No playlists found.",ephemeral=True)
+                return
+
+            # Format the results
+            formatted_results = "\n".join([f"{row[1]}: {row[0]}" for row in results])
+            await interaction.followup.send(f"Playlists found:\n{formatted_results}",ephemeral=True)
+
     @commands.is_owner()
     @app_commands.command()
     async def fetch_playlists(self, interaction: discord.Interaction):
