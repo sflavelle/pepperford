@@ -71,7 +71,7 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
 
         try:
             # Fetch the playlists from raocow's channel
-            playlists = ytc.get_playlists(channel_id=channel_id, count=None, return_json=True)
+            playlists = ytc.get_playlists(channel_id=channel_id, count=20, return_json=True)
 
             # Store the playlists in the database
             with sqlcon.cursor() as cursor:
@@ -86,7 +86,7 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
                     video1 = ytc.get_playlist_items(playlist_id=playlist_id, count=1, return_json=True)
                     date = video1['items'][0]['snippet']['publishedAt'] if video1 and 'items' in video1 and video1['items'] else None
 
-                    cursor.execute("INSERT INTO playlists (playlist_id, title, datestamp) VALUES (%s, %s, %s)", (playlist_id, title, date))
+                    cursor.execute("INSERT INTO playlists (playlist_id, title, datestamp) VALUES (%s, %s, %s) ON CONFLICT (playlist_id) DO NOTHING", (playlist_id, title, date))
                     sqlcon.commit()
                     logger.info(f"Inserted playlist {playlist_id} into database.")
 
