@@ -555,7 +555,7 @@ def get_checkable_locations():
         if player.game not in locationtable:
             locationtable[player.game] = {}
         for location_name, location in player.locations.items():
-            locationtable[player.game][location_name] = location.is_location_checkable()
+            locationtable[player.game][location_name] = location.is_location_checkable
     return jsonify(locationtable)
 
 def run_flask():
