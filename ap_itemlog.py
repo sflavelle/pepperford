@@ -549,13 +549,16 @@ def get_game():
     return jsonify(game.to_dict())
 
 @webview.route('/locations/checkable', methods=['GET'])
-def get_checkable_locations():
+def get_checkable_locations(found: bool = False):
     locationtable = {}
     for player_name, player in game.players.items():
         if player.game not in locationtable:
             locationtable[player.game] = {}
         for location_name, location in player.locations.items():
-            locationtable[player.game][location_name] = location.is_location_checkable
+            if found: 
+                locationtable[player.game][location_name] = [location.found, location.is_location_checkable]
+            else:
+                locationtable[player.game][location_name] = location.is_location_checkable
     return jsonify(locationtable)
 
 def run_flask():
