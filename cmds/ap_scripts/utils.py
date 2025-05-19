@@ -44,6 +44,7 @@ class Game(dict):
     collected_locations: int = 0
     total_locations: int = 0
     collection_percentage: float = 0.0
+    milestones = set()
 
     def init_db(self):
         cursor = sqlcon.cursor()
