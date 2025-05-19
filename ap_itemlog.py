@@ -548,7 +548,8 @@ def inspect():
 def get_game():
     return jsonify(game.to_dict())
 
-@webview.route('/locations/checkable', methods=['GET'])
+@webview.route('/locations/checkable/', methods=['GET'], defaults={'found': False})
+@webview.route('/locations/checkable/found', methods=['GET'], defaults={'found': True})
 def get_checkable_locations(found: bool = False):
     locationtable = {}
     for player_name, player in game.players.items():
