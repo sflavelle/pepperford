@@ -823,7 +823,13 @@ def handle_location_hinting(player: Player, item: Item) -> tuple[list[str], str]
                     ]
                 }
 
-                level, npc = location.split(" - ")
+                level = None
+                npc = None
+                try:
+                    level, npc = location.split(" - ")
+                except ValueError:
+                    level = location
+                    npc = None
 
                 if f"{location} Cassette Cost" in settings:
                     # Get the cassette cost
@@ -835,9 +841,9 @@ def handle_location_hinting(player: Player, item: Item) -> tuple[list[str], str]
                     else:
                         requirements.append(f"{cost} Cassettes")
 
-                if f"Kiosk {location} Cost" in settings:
+                if f"Kiosk {level} Cost" in settings:
                     # Get the kiosk cost
-                    cost = settings[f"Kiosk {location} Cost"]
+                    cost = settings[f"Kiosk {level} Cost"]
 
                     requirements.append(f"{cost} Coins")
                     
