@@ -42,6 +42,14 @@ except psql.OperationalError:
     # TODO Disable commands that need SQL connectivity
     sqlcon = False
 
+def join_words(words):
+    if len(words) > 2:
+        return '%s, and %s' % ( ', '.join(words[:-1]), words[-1] )
+    elif len(words) == 2:
+        return ' and '.join(words)
+    else:
+        return words[0]
+
 class Archipelago(commands.GroupCog, group_name="archipelago"):
     """Commands relating to the Archipelago randomizer"""
 
@@ -404,6 +412,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                                  "receiver": h['receiver'],
                                  "classification": h['classification'],
                                  "entrance": h['location_entrance'],
+                                 "costs": h['location_costs'],
                                 } for h in game_table['players'][slot]['hints']['sending'] if h['found'] is False and h['classification'] not in ["trap", "filler"]}
                 hint_table[slot].update({
                     h['location']: {"item": h['name'],
@@ -411,6 +420,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                                  "receiver": h['receiver'],
                                  "classification": h['classification'],
                                  "entrance": h['location_entrance'],
+                                 "costs": h['location_costs'],
                                 } for h in game_table['players'][slot]['hints']['receiving'] if h['found'] is False and h['classification'] not in ["trap", "filler"]})
 
         # Format the hint table
@@ -422,6 +432,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                     "Item": details["item"],
                     "Location": location,
                     "Entrance": details["entrance"],
+                    "Costs": details["costs"],
                     "Sender": details["sender"],
                     "Receiver": details["receiver"],
                     "Classification": details["classification"],
@@ -433,16 +444,23 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
         hints_list = "## To Find:"
         for hint in hint_table_list:
             if hint["Sender"] not in linked_slots: continue
+            if game_table['players'][hint["Receiver"]]['goaled'] is True or game_table['players'][hint["Receiver"]]['released'] is True: continue
             if hint["Sender"] == hint["Receiver"]:
                 hints_list += f"\n**Your {hint['Item']}** is on {hint['Location']}{f" at {hint['Entrance']}" if hint['Entrance'] else ""}."
+                if bool(hint['Costs']):
+                    hints_list += f"\n> This will cost {join_words(hint['Costs'])} to obtain."
             else:
                 hints_list += f"\n**{hint['Receiver']}'s {hint['Item']}** is on {hint['Location']}{f" at {hint['Entrance']}" if hint['Entrance'] else ""}."
+                if bool(hint['Costs']):
+                    hints_list += f"\n> This will cost {join_words(hint['Costs'])} to obtain."
 
         hints_list += "\n\n## To Be Found:"
         for hint in hint_table_list:
             if hint["Receiver"] not in linked_slots: continue
             if hint["Sender"] == hint["Receiver"]: continue
             hints_list += f"\n**Your {hint['Item']}** is on {hint['Sender']}'s {hint['Location']}{f" at {hint['Entrance']}" if hint['Entrance'] else ""}."
+            if bool(hint['Costs']):
+                hints_list += f"\n> This will cost {join_words(hint['Costs'])} to obtain."
 
 
         await newpost.edit(content=hints_list)

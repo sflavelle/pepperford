@@ -823,16 +823,23 @@ def handle_location_hinting(player: Player, item: Item) -> tuple[list[str], str]
                     ]
                 }
 
-                if location.endswith("Mitch") or location.endswith("Mai"):
+                level, npc = location.split(" - ")
+
+                if f"{location} Cassette Cost" in settings:
                     # Get the cassette cost
                     cost = settings[f"{location} Cassette Cost"]
-                    level, npc = location.split(" - ")
 
                     # Cassette Requirements
                     if settings['Cassette Logic'] == "Level Based":
                         requirements.append(f"{cost} {level} Cassettes")
                     else:
                         requirements.append(f"{cost} Cassettes")
+
+                if f"Kiosk {location} Cost" in settings:
+                    # Get the kiosk cost
+                    cost = settings[f"Kiosk {location} Cost"]
+
+                    requirements.append(f"{cost} Coins")
                     
                 # Contact List Requirements
                 if location in contact_lists["1"]:
@@ -840,5 +847,6 @@ def handle_location_hinting(player: Player, item: Item) -> tuple[list[str], str]
                 if location in contact_lists["2"]:
                     requirements.append("Contact List 2")
 
-
-    return requirements, extra_info
+    if bool(requirements):
+        logger.info(f"Updating item's location {item.location} with requirements: {requirements}")
+    return (requirements, extra_info)
