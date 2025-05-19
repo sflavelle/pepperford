@@ -90,6 +90,7 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
 
             await interaction.followup.send("Playlists fetched and stored successfully.",ephemeral=True)
         except Exception as e:
+            logger.error(f"Error fetching playlists: {e}",e,exc_info=True)
             await interaction.followup.send(f"An error occurred: {e}",ephemeral=True)
 
 
