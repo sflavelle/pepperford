@@ -286,9 +286,9 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
                     pass
 
             if bool(SentItemObject.location_costs):
-                message += f"\n> This will cost {join_words(SentItemObject.location_costs)} to obtain."
+                message += f"\n> -# This will cost {join_words(SentItemObject.location_costs)} to obtain."
             if bool(SentItemObject.location_info):
-                message += f"\n> {SentItemObject.location_info}"
+                message += f"\n> -# {SentItemObject.location_info}"
 
             game.spoiler_log[sender][item_location].hint()
 

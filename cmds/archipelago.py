@@ -4,6 +4,7 @@ import sys
 import subprocess
 import requests
 import logging
+import signal
 import yaml
 import traceback
 import typing
@@ -448,11 +449,11 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
             if hint["Sender"] == hint["Receiver"]:
                 hints_list += f"\n**Your {hint['Item']}** is on {hint['Location']}{f" at {hint['Entrance']}" if hint['Entrance'] else ""}."
                 if bool(hint['Costs']):
-                    hints_list += f"\n> This will cost {join_words(hint['Costs'])} to obtain."
+                    hints_list += f"\n> -# This will cost {join_words(hint['Costs'])} to obtain."
             else:
                 hints_list += f"\n**{hint['Receiver']}'s {hint['Item']}** is on {hint['Location']}{f" at {hint['Entrance']}" if hint['Entrance'] else ""}."
                 if bool(hint['Costs']):
-                    hints_list += f"\n> This will cost {join_words(hint['Costs'])} to obtain."
+                    hints_list += f"\n> -# This will cost {join_words(hint['Costs'])} to obtain."
 
         hints_list += "\n\n## To Be Found:"
         for hint in hint_table_list:
@@ -460,7 +461,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
             if hint["Sender"] == hint["Receiver"]: continue
             hints_list += f"\n**Your {hint['Item']}** is on {hint['Sender']}'s {hint['Location']}{f" at {hint['Entrance']}" if hint['Entrance'] else ""}."
             if bool(hint['Costs']):
-                hints_list += f"\n> This will cost {join_words(hint['Costs'])} to obtain."
+                hints_list += f"\n> -# This will cost {join_words(hint['Costs'])} to obtain."
 
 
         await newpost.edit(content=hints_list)
@@ -582,6 +583,61 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
             await interaction.response.send_message("No log monitoring script is currently configured in this guild.", ephemeral=True)
 
     @itemlogging.command()
+    @commands.is_owner()
+    async def restart(self, interaction: discord.Interaction):
+        """Restarts the log monitoring script for this guild."""
+        guild_id = interaction.guild_id
+        itemlog_proc = self.ctx.procs['archipelago'].get(guild_id)
+
+        await interaction.response.defer(ephemeral=True, thinking=True)
+        newpost = await interaction.original_response()
+
+        if not itemlog_proc:
+            return await newpost.edit(content="No log monitoring script is currently configured or running for this guild.")
+
+        # If you stored a Popen object:
+        try:
+            # Try to terminate the process gracefully
+            if hasattr(itemlog_proc, "terminate"):
+                itemlog_proc.terminate()
+                itemlog_proc.wait(timeout=10)
+            else:
+                # If you only stored the PID:
+                os.kill(itemlog_proc, signal.SIGTERM)
+        except Exception as e:
+            await newpost.edit(content=f"Failed to stop the existing process: {e}")
+            return
+
+        # Remove the record temporarily
+        del self.ctx.procs['archipelago'][guild_id]
+
+        # Find this guild's log info in config.yaml
+        log_cfg = None
+        for log in cfg['bot']['archipelago'].get('itemlogs', []):
+            if log['guild'] == guild_id:
+                log_cfg = log
+                break
+
+        if not log_cfg:
+            return await newpost.edit(content="No configuration found for this guild's item log in the config file.")
+
+        # Re-create the process
+        env = os.environ.copy()
+        env['LOG_URL'] = log_cfg['log_url']
+        env['WEBHOOK_URL'] = log_cfg['webhook']     # You might need to update this if you used a different key
+        env['SESSION_COOKIE'] = cfg['bot']['archipelago']['session_cookie']
+        env['SPOILER_URL'] = log_cfg.get('spoiler_url') or ''
+        env['MSGHOOK_URL'] = log_cfg.get('msghook') or ''
+
+        try:
+            script_path = os.path.join(os.path.dirname(__file__), '..', 'ap_itemlog.py')
+            process = subprocess.Popen([sys.executable, script_path], env=env)
+            self.ctx.procs['archipelago'][guild_id] = process  # Or process.pid if you only want the PID
+            await newpost.edit(content="Item log monitoring script was restarted successfully.")
+        except Exception as e:
+            await newpost.edit(content=f"Failed to start the new process: {e}")
+
+    @itemlogging.command()
     async def stop(self, interaction: discord.Interaction):
         """Stops the log monitoring script."""
         itemlog = self.ctx.procs['archipelago'].get(interaction.guild_id)
@@ -638,7 +694,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                 try: 
                     script_path = os.path.join(os.path.dirname(__file__), '..', 'ap_itemlog.py')
                     process = subprocess.Popen([sys.executable, script_path], env=env)
-                    self.ctx.procs['archipelago'][log['guild']] = process.pid
+                    self.ctx.procs['archipelago'][log['guild']] = process
                 except:
                     logger.error("Error starting log:",exc_info=True)
 
