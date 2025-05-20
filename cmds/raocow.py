@@ -104,7 +104,7 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
 
         ytc = Api(api_key=api_key)
 
-        async def process():
+        def process():
             try:
                 # Fetch the playlists from raocow's channel
                 playlists = ytc.get_playlists(channel_id=channel_id, count=playlist_count, return_json=True)
