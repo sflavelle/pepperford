@@ -130,7 +130,7 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
         )
         pl_embed.add_field(name="Videos", value=length, inline=True)
         pl_embed.add_field(name="Date", value=datestamp, inline=True)
-        pl_embed.add_field(name="Duration", value=duration, inline=True)
+        pl_embed.add_field(name="Duration", value=duration if duration else "N/A", inline=True)
         if thumbnail: 
             pl_embed.set_thumbnail(url=thumbnail)
         pl_embed.set_footer(text="raocow's channel")
