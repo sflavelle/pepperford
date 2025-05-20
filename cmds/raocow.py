@@ -93,7 +93,7 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
 
     @commands.is_owner()
     @app_commands.command()
-    async def fetch_playlists(self, interaction: discord.Interaction):
+    async def fetch_playlists(self, interaction: discord.Interaction, playlist_count: int = None, calculate_duration: bool = False):
         """Fetches the playlists from raocow's channel and stores them in the database."""
         await interaction.response.defer(thinking=True,ephemeral=True)
 
@@ -104,7 +104,7 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
 
         try:
             # Fetch the playlists from raocow's channel
-            playlists = ytc.get_playlists(channel_id=channel_id, count=20, return_json=True)
+            playlists = ytc.get_playlists(channel_id=channel_id, count=playlist_count, return_json=True)
 
             # Store the playlists in the database
             with sqlcon.cursor() as cursor:
@@ -116,10 +116,29 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
 
                     # Get the date of the first video in the playlist
                     # And use as the playlist date
-                    video1 = ytc.get_playlist_items(playlist_id=playlist_id, count=1, return_json=True)
-                    date = video1['items'][0]['snippet']['publishedAt'] if video1 and 'items' in video1 and video1['items'] else None
+                    video1 = ytc.get_playlist_items(playlist_id=playlist_id, count=None, return_json=True)
+                    date = video1['items'][0]['snippet']['contentDetails']['videoPublishedAt'] if video1 and 'items' in video1 and video1['items'] else None
+                    playlist_length = item['contentDetails']['itemCount']
+                    duration: str = None
 
-                    cursor.execute("INSERT INTO playlists (playlist_id, title, datestamp) VALUES (%s, %s, %s) ON CONFLICT (playlist_id) DO NOTHING", (playlist_id, title, date))
+                    if calculate_duration:
+                        # Calculate the total duration of the playlist
+                        total_duration = 0
+                        for video in video1['items']:
+                            video_id = video['snippet']['resourceId']['videoId']
+                            video_details = ytc.get_video_by_id(video_id=video_id, return_json=True)
+                            if 'items' in video_details and len(video_details['items']) > 0:
+                                duration_str = video_details['items'][0]['contentDetails']['duration']
+                                duration_seconds = sum(int(x) * 60 ** i for i, x in enumerate(reversed(duration_str[2:].split(':'))))
+                                total_duration += duration_seconds
+
+                        duration = total_duration
+
+                    cursor.execute('''
+                                    INSERT INTO playlists (playlist_id, title, datestamp, length, duration) VALUES (%s, %s, %s, %s, %s) ON CONFLICT (playlist_id) DO UPDATE
+                                    SET datestamp = EXCLUDED.datestamp, length = EXCLUDED.length, duration = EXCLUDED.duration''',
+                                    (playlist_id, title, date, playlist_length, duration)
+                                    )
                     sqlcon.commit()
                     logger.info(f"Inserted playlist {playlist_id} into database.")
 
