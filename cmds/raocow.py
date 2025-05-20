@@ -101,7 +101,12 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
             return
 
         with sqlcon.cursor() as cursor:
-            cursor.execute("SELECT * FROM playlists WHERE title ILIKE %s", (f"%{search}%",))
+            if isinstance(search, app_commands.Choice):
+                # Choice returns the playlist ID
+                cursor.execute("SELECT * FROM playlists WHERE playlist_id = %s", (f"%{search}%",))
+            else:
+                # Search for the playlist title
+                cursor.execute("SELECT * FROM playlists WHERE title ILIKE %s", (f"%{search}%",))
             results = cursor.fetchall()
 
             if not results:
