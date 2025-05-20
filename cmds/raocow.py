@@ -80,7 +80,7 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
     @app_commands.command()
     @app_commands.autocomplete(search=playlist_autocomplete)
     @app_commands.describe(search="Search for a playlist (leave blank for a random one)")
-    async def playlist(self, interaction: discord.Interaction, search: str = None):
+    async def playlist(self, interaction: discord.Interaction, search: str = None, public: bool = False):
         """Fetches a playlist from raocow's channel."""
         await interaction.response.defer(thinking=True,ephemeral=True)
 
@@ -101,7 +101,7 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
                     await interaction.followup.send("No playlists found in the database.", ephemeral=True)
                     return
 
-                await interaction.followup.send(f"Random Playlist:\n{result[1]}: {result[0]}", ephemeral=True)
+                logger.info(f"Playlist: Found random playlist {result[1]} ({result[0]})")
         else:
             with sqlcon.cursor() as cursor:
                 if search.startswith("PL") and " " not in search:
@@ -133,7 +133,7 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
             pl_embed.set_footer(text="raocow's channel")
 
             logger.info(f"Playlist: Found playlist {title} ({id}), sending")
-            await interaction.followup.send(embed=pl_embed,ephemeral=True)
+            await interaction.followup.send(embed=pl_embed,ephemeral=not public)
 
     @commands.is_owner()
     @app_commands.autocomplete(search=playlist_autocomplete)
