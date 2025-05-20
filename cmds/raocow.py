@@ -75,7 +75,7 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
         if len(current) == 0:
             return [app_commands.Choice(name=opt[1],value=opt[0]) for opt in results[:25]]
         else:
-            return [app_commands.Choice(name=opt[1],value=opt[0]) for opt in results[:25] if current in opt[1].lower()]
+            return [app_commands.Choice(name=opt[1],value=opt[0]) for opt in results[:25] if current.lower() in opt[1].lower()]
 
     @app_commands.command()
     @app_commands.autocomplete(search=playlist_autocomplete)
@@ -83,6 +83,8 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
     async def playlist(self, interaction: discord.Interaction, search: str = None):
         """Fetches a playlist from raocow's channel."""
         await interaction.response.defer(thinking=True,ephemeral=True)
+
+        result = None
 
         if not sqlcon:
             await interaction.followup.send("Database connection is not available.",ephemeral=True)
@@ -98,24 +100,34 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
                     return
 
                 await interaction.followup.send(f"Random Playlist:\n{result[1]}: {result[0]}", ephemeral=True)
-            return
+        else:
+            with sqlcon.cursor() as cursor:
+                if isinstance(search, app_commands.Choice):
+                    # Choice returns the playlist ID
+                    cursor.execute("SELECT * FROM playlists WHERE playlist_id = %s", (f"%{search}%",))
+                else:
+                    # Search for the playlist title
+                    cursor.execute("SELECT * FROM playlists WHERE title ILIKE %s", (f"%{search}%",))
+                result = cursor.fetchone()
 
-        with sqlcon.cursor() as cursor:
-            if isinstance(search, app_commands.Choice):
-                # Choice returns the playlist ID
-                cursor.execute("SELECT * FROM playlists WHERE playlist_id = %s", (f"%{search}%",))
-            else:
-                # Search for the playlist title
-                cursor.execute("SELECT * FROM playlists WHERE title ILIKE %s", (f"%{search}%",))
-            results = cursor.fetchall()
-
-            if not results:
-                await interaction.followup.send("No playlists found.",ephemeral=True)
-                return
+                if not result:
+                    await interaction.followup.send("No playlists found.",ephemeral=True)
+                    return
 
             # Format the results
-            formatted_results = "\n".join([f"{row[1]}: {row[0]}" for row in results])
-            await interaction.followup.send(f"Playlists found:\n{formatted_results}",ephemeral=True)
+            id, title, datestamp, length, duration = result
+
+            pl_embed = discord.Embed(
+                title=title,
+                description=f"Playlist link: https://www.youtube.com/playlist?list={result[0]}",
+                color=discord.Color.red()
+            )
+            pl_embed.add_field(name="Num. Videos", value=length, inline=True)
+            pl_embed.add_field(name="Date", value=datestamp, inline=True)
+            pl_embed.add_field(name="Duration", value=duration, inline=True)
+            pl_embed.set_footer(text="raocow's channel")
+
+            await interaction.followup.send(embed=pl_embed,ephemeral=True)
 
     @commands.is_owner()
     @app_commands.autocomplete(search=playlist_autocomplete)
