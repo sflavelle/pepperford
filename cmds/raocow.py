@@ -79,10 +79,11 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
 
     @app_commands.command()
     @app_commands.autocomplete(search=playlist_autocomplete)
-    @app_commands.describe(search="Search for a playlist (leave blank for a random one)")
+    @app_commands.describe(search="Search for a playlist (leave blank for a random one)",
+                           public="Share the playlist with the class?")
     async def playlist(self, interaction: discord.Interaction, search: str = None, public: bool = False):
         """Fetches a playlist from raocow's channel."""
-        await interaction.response.defer(thinking=True,ephemeral=True)
+        await interaction.response.defer(thinking=True,ephemeral=not public)
 
         result = None
 
@@ -93,7 +94,7 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
         if search is None:
             logger.info("Playlist: Fetching a random playlist.")
             with sqlcon.cursor() as cursor:
-                cursor.execute("SELECT * FROM playlists ORDER BY RANDOM() LIMIT 1")
+                cursor.execute("SELECT * FROM playlists where visible = 'true' ORDER BY RANDOM() LIMIT 1")
                 result = cursor.fetchone()
 
                 if not result:
@@ -107,11 +108,11 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
                 if search.startswith("PL") and " " not in search:
                     # Choice returns the playlist ID
                     logger.info(f"Playlist: Searching for playlist ID {search}")
-                    cursor.execute("SELECT * FROM playlists WHERE playlist_id = %s", (search,))
+                    cursor.execute("SELECT * FROM playlists WHERE playlist_id = %s and visible = 'true'", (search,))
                 else:
                     # Search for the playlist title
                     logger.info(f"Playlist: Searching for playlist title matching {search}")
-                    cursor.execute("SELECT * FROM playlists WHERE title ILIKE %s order by datestamp desc", (search,))
+                    cursor.execute("SELECT * FROM playlists WHERE title ILIKE %s and visible = 'true' order by datestamp desc", (search,))
                 result = cursor.fetchone()
 
                 if not result:
@@ -137,8 +138,12 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
 
     @commands.is_owner()
     @app_commands.autocomplete(search=playlist_autocomplete)
+    @app_commands.describe(search="Search for a playlist",
+                           title="New title for the playlist",
+                           datestamp="New date for the playlist",
+                           visible="Make the playlist visible to users")
     @app_commands.command()
-    async def tweak_playlist(self, interaction: discord.Interaction, search: str, title: str = None, datestamp: str = None):
+    async def tweak_playlist(self, interaction: discord.Interaction, search: str, title: str = None, datestamp: str = None, visible: bool = None):
         """Tweak a playlist in the database."""
         await interaction.response.defer(thinking=True,ephemeral=True)
 
