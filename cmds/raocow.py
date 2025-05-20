@@ -121,7 +121,13 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
                 # Store the playlists in the database
                 with sqlcon.cursor() as cursor:
                     for item in playlists['items']:
-                        if skip_existing: continue # Skip existing playlists
+                        # Skip existing playlists
+                        if skip_existing: 
+                            cursor.execute("SELECT * FROM playlists WHERE playlist_id = %s", (item['id'],))
+                            result = cursor.fetchone()
+                            if result:
+                                logger.info(f"Skipping existing playlist {item['id']}")
+                                continue
                         logger.info(f"Fetching playlist {item['id']}")
                         logger.debug(f"Playlist item: {item}")
                         playlist_id = item['id']
