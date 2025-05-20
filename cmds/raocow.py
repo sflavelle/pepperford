@@ -107,52 +107,52 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
         ytc = Api(api_key=api_key)
 
         def process():
-            try:
-                # Fetch the playlists from raocow's channel
-                playlists = ytc.get_playlists(channel_id=channel_id, count=playlist_count, return_json=True)
+            # Fetch the playlists from raocow's channel
+            playlists = ytc.get_playlists(channel_id=channel_id, count=playlist_count, return_json=True)
 
-                # Store the playlists in the database
-                with sqlcon.cursor() as cursor:
-                    for item in playlists['items']:
-                        logger.info(f"Fetching playlist {item['id']}")
-                        logger.debug(f"Playlist item: {item}")
-                        playlist_id = item['id']
-                        title = item['snippet']['title']
+            # Store the playlists in the database
+            with sqlcon.cursor() as cursor:
+                for item in playlists['items']:
+                    logger.info(f"Fetching playlist {item['id']}")
+                    logger.debug(f"Playlist item: {item}")
+                    playlist_id = item['id']
+                    title = item['snippet']['title']
 
-                        # Get the date of the first video in the playlist
-                        # And use as the playlist date
-                        video1 = ytc.get_playlist_items(playlist_id=playlist_id, count=None, return_json=True)
-                        date = video1['items'][0]['contentDetails']['videoPublishedAt'] if video1 and 'items' in video1 and video1['items'] else None
-                        playlist_length = item['contentDetails']['itemCount']
-                        duration: str = None
+                    # Get the date of the first video in the playlist
+                    # And use as the playlist date
+                    video1 = ytc.get_playlist_items(playlist_id=playlist_id, count=None, return_json=True)
+                    date = video1['items'][0]['contentDetails']['videoPublishedAt'] if video1 and 'items' in video1 and video1['items'] else None
+                    playlist_length = item['contentDetails']['itemCount']
+                    duration: str = None
 
-                        if calculate_duration:
-                            # Calculate the total duration of the playlist
-                            total_duration = timedelta()
-                            for video in video1['items']:
-                                video_id = video['snippet']['resourceId']['videoId']
-                                video_details = ytc.get_video_by_id(video_id=video_id, return_json=True)
-                                if 'items' in video_details and len(video_details['items']) > 0:
-                                    duration = video_details['items'][0]['contentDetails']['duration']
-                                    total_duration += isodate.parse_duration(duration)
+                    if calculate_duration:
+                        # Calculate the total duration of the playlist
+                        total_duration = timedelta()
+                        for video in video1['items']:
+                            video_id = video['snippet']['resourceId']['videoId']
+                            video_details = ytc.get_video_by_id(video_id=video_id, return_json=True)
+                            if 'items' in video_details and len(video_details['items']) > 0:
+                                duration = video_details['items'][0]['contentDetails']['duration']
+                                total_duration += isodate.parse_duration(duration)
 
-                                # Convert total duration to a readable format (e.g., HH:MM:SS)
-                                total_duration_str = str(total_duration)
+                            # Convert total duration to a readable format (e.g., HH:MM:SS)
+                            total_duration_str = str(total_duration)
 
-                        cursor.execute('''
-                                        INSERT INTO playlists (playlist_id, title, datestamp, length, duration) VALUES (%s, %s, %s, %s, %s) ON CONFLICT (playlist_id) DO UPDATE
-                                        SET datestamp = EXCLUDED.datestamp, length = EXCLUDED.length, duration = EXCLUDED.duration''',
-                                        (playlist_id, title, date, playlist_length, duration)
-                                        )
-                        sqlcon.commit()
-                        logger.info(f"Inserted playlist {playlist_id} into database.")
-            except Exception as e:
-                logger.error(f"Error fetching playlists: {e}",e,exc_info=True)
-                interaction.followup.send(f"An error occurred: {e}",ephemeral=True)
+                    cursor.execute('''
+                                    INSERT INTO playlists (playlist_id, title, datestamp, length, duration) VALUES (%s, %s, %s, %s, %s) ON CONFLICT (playlist_id) DO UPDATE
+                                    SET datestamp = EXCLUDED.datestamp, length = EXCLUDED.length, duration = EXCLUDED.duration''',
+                                    (playlist_id, title, date, playlist_length, duration)
+                                    )
+                    sqlcon.commit()
+                    logger.info(f"Inserted playlist {playlist_id} into database.")
 
-        loop = asyncio.get_event_loop()
-        result = await loop.run_in_executor(executor, process)
-        await interaction.followup.send("Playlists fetched and stored successfully.",ephemeral=True)
+        try:
+            loop = asyncio.get_event_loop()
+            result = await loop.run_in_executor(executor, process)
+            await interaction.followup.send("Playlists fetched and stored successfully.",ephemeral=True)
+        except Exception as e:
+            logger.error(f"Error fetching playlists: {e}",e,exc_info=True)
+            interaction.followup.send(f"An error occurred: {e}",ephemeral=True)
 
 
     @commands.Cog.listener()
