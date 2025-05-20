@@ -73,9 +73,9 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
             # Extract the titles from the results
 
         if len(current) == 0:
-            return [app_commands.Choice(name=opt[1],value=opt[0]) for opt in results[:25]]
+            return [app_commands.Choice(name=opt[1],value=opt[0]) for opt in results][:25]
         else:
-            return [app_commands.Choice(name=opt[1],value=opt[0]) for opt in results[:25] if current.lower() in opt[1].lower()]
+            return [app_commands.Choice(name=opt[1],value=opt[0]) for opt in results if current.lower() in opt[1].lower()][:25]
 
     @app_commands.command()
     @app_commands.autocomplete(search=playlist_autocomplete)
