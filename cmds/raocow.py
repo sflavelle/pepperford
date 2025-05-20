@@ -121,7 +121,7 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
                     return
 
         # Format the results
-        id, title, datestamp, length, duration, visibility = result
+        id, title, datestamp, length, duration, visibility, thumbnail = result
 
         pl_embed = discord.Embed(
             title=title,
@@ -131,6 +131,8 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
         pl_embed.add_field(name="Videos", value=length, inline=True)
         pl_embed.add_field(name="Date", value=datestamp, inline=True)
         pl_embed.add_field(name="Duration", value=duration, inline=True)
+        if thumbnail: 
+            pl_embed.set_thumbnail(url=thumbnail)
         pl_embed.set_footer(text="raocow's channel")
 
         logger.info(f"Playlist: Found playlist {title} ({id}), sending")
@@ -208,6 +210,7 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
                         video1 = ytc.get_playlist_items(playlist_id=playlist_id, count=None, return_json=True)
                         date = video1['items'][0]['contentDetails']['videoPublishedAt'] if video1 and 'items' in video1 and video1['items'] else None
                         playlist_length = item['contentDetails']['itemCount']
+                        thumbnail = item['snippet']['thumbnails']['high']['url'] if 'thumbnails' in item['snippet'] else None
                         duration: str = None
 
                         if calculate_duration:
@@ -224,9 +227,10 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
                                 duration = str(total_duration)
 
                         cursor.execute('''
-                                        INSERT INTO playlists (playlist_id, title, datestamp, length, duration) VALUES (%s, %s, %s, %s, %s) ON CONFLICT (playlist_id) DO UPDATE
-                                        SET datestamp = EXCLUDED.datestamp, length = EXCLUDED.length, duration = EXCLUDED.duration''',
-                                        (playlist_id, title, date, playlist_length, duration)
+                                        INSERT INTO playlists (playlist_id, title, datestamp, length, duration, thumbnail) VALUES (%s, %s, %s, %s, %s, %s) ON CONFLICT (playlist_id) DO UPDATE
+                                        SET datestamp = EXCLUDED.datestamp, length = EXCLUDED.length, duration = EXCLUDED.duration,
+                                        thumbnail = EXCLUDED.thumbnail''',
+                                        (playlist_id, title, date, playlist_length, duration, thumbnail)
                                         )
                         sqlcon.commit()
                         logger.info(f"Inserted playlist {playlist_id} into database.")
