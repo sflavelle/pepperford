@@ -120,21 +120,21 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
                     await interaction.followup.send("No playlists found.",ephemeral=True)
                     return
 
-            # Format the results
-            id, title, datestamp, length, duration = result
+        # Format the results
+        id, title, datestamp, length, duration = result
 
-            pl_embed = discord.Embed(
-                title=title,
-                description=f"Playlist link: https://www.youtube.com/playlist?list={result[0]}",
-                color=discord.Color.red()
-            )
-            pl_embed.add_field(name="Videos", value=length, inline=True)
-            pl_embed.add_field(name="Date", value=datestamp, inline=True)
-            pl_embed.add_field(name="Duration", value=duration, inline=True)
-            pl_embed.set_footer(text="raocow's channel")
+        pl_embed = discord.Embed(
+            title=title,
+            description=f"Playlist link: https://www.youtube.com/playlist?list={result[0]}",
+            color=discord.Color.red()
+        )
+        pl_embed.add_field(name="Videos", value=length, inline=True)
+        pl_embed.add_field(name="Date", value=datestamp, inline=True)
+        pl_embed.add_field(name="Duration", value=duration, inline=True)
+        pl_embed.set_footer(text="raocow's channel")
 
-            logger.info(f"Playlist: Found playlist {title} ({id}), sending")
-            await interaction.followup.send(embed=pl_embed,ephemeral=not public)
+        logger.info(f"Playlist: Found playlist {title} ({id}), sending")
+        await interaction.followup.send(embed=pl_embed,ephemeral=not public)
 
     @commands.is_owner()
     @app_commands.autocomplete(search=playlist_autocomplete)
