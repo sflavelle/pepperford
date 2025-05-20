@@ -25,6 +25,8 @@ cfg = None
 
 logger = logging.getLogger('discord.raocow')
 
+executor = ThreadPoolExecutor(max_workers=5)
+
 with open('config.yaml', 'r', encoding='UTF-8') as file:
     cfg = yaml.safe_load(file)
 
@@ -146,7 +148,8 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
                 logger.error(f"Error fetching playlists: {e}",e,exc_info=True)
                 await interaction.followup.send(f"An error occurred: {e}",ephemeral=True)
 
-        result = await asyncio.to_thread(process)
+        loop = asyncio.get_event_loop()
+        result = await loop.run_in_executor(executor, process)
         await interaction.followup.send("Playlists fetched and stored successfully.",ephemeral=True)
 
 
