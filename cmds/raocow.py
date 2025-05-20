@@ -228,7 +228,7 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
 
                         cursor.execute('''
                                         INSERT INTO playlists (playlist_id, title, datestamp, length, duration, thumbnail) VALUES (%s, %s, %s, %s, %s, %s) ON CONFLICT (playlist_id) DO UPDATE
-                                        SET datestamp = EXCLUDED.datestamp, length = EXCLUDED.length, duration = EXCLUDED.duration,
+                                        SET datestamp = EXCLUDED.datestamp, length = EXCLUDED.length, duration = COALESCE(playlists.duration, EXCLUDED.duration),
                                         thumbnail = EXCLUDED.thumbnail''',
                                         (playlist_id, title, date, playlist_length, duration, thumbnail)
                                         )
