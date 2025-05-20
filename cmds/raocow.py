@@ -62,7 +62,7 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
     async def cog_command_error(self, ctx: Context[BotT], error: Exception) -> None:
         await ctx.reply(f"Command error: {error}",ephemeral=True)
 
-    async def playlist_autocomplete(ctx: discord.Interaction, current: str) -> typing.List[app_commands.Choice[str]]:
+    async def playlist_autocomplete(self, ctx: discord.Interaction, current: str) -> typing.List[app_commands.Choice[str]]:
         """Autocomplete for the playlist command."""
 
         if not sqlcon:
