@@ -121,7 +121,7 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
                     return
 
         # Format the results
-        id, title, datestamp, length, duration = result
+        id, title, datestamp, length, duration, visibility = result
 
         pl_embed = discord.Embed(
             title=title,
