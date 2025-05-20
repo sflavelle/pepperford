@@ -146,7 +146,7 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
                         logger.info(f"Inserted playlist {playlist_id} into database.")
             except Exception as e:
                 logger.error(f"Error fetching playlists: {e}",e,exc_info=True)
-                await interaction.followup.send(f"An error occurred: {e}",ephemeral=True)
+                interaction.followup.send(f"An error occurred: {e}",ephemeral=True)
 
         loop = asyncio.get_event_loop()
         result = await loop.run_in_executor(executor, process)
