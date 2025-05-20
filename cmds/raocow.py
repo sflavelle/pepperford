@@ -120,7 +120,7 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
                         # Get the date of the first video in the playlist
                         # And use as the playlist date
                         video1 = ytc.get_playlist_items(playlist_id=playlist_id, count=None, return_json=True)
-                        date = video1['items'][0]['snippet']['contentDetails']['videoPublishedAt'] if video1 and 'items' in video1 and video1['items'] else None
+                        date = video1['items'][0]['contentDetails']['videoPublishedAt'] if video1 and 'items' in video1 and video1['items'] else None
                         playlist_length = item['contentDetails']['itemCount']
                         duration: str = None
 
