@@ -133,11 +133,11 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
                                 video_id = video['snippet']['resourceId']['videoId']
                                 video_details = ytc.get_video_by_id(video_id=video_id, return_json=True)
                                 if 'items' in video_details and len(video_details['items']) > 0:
-                                    duration_str = video_details['items'][0]['contentDetails']['duration']
-                                    duration_seconds = sum(int(x) * 60 ** i for i, x in enumerate(reversed(duration_str[2:].split(':'))))
-                                    total_duration += duration_seconds
+                                    duration = video_details['items'][0]['contentDetails']['duration']
+                                    total_duration += isodate.parse_duration(duration)
 
-                            duration = total_duration
+                                # Convert total duration to a readable format (e.g., HH:MM:SS)
+                                total_duration_str = str(total_duration)
 
                         cursor.execute('''
                                         INSERT INTO playlists (playlist_id, title, datestamp, length, duration) VALUES (%s, %s, %s, %s, %s) ON CONFLICT (playlist_id) DO UPDATE
