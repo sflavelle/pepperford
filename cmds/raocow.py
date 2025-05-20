@@ -62,7 +62,24 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
     async def cog_command_error(self, ctx: Context[BotT], error: Exception) -> None:
         await ctx.reply(f"Command error: {error}",ephemeral=True)
 
+    async def playlist_autocomplete(ctx: discord.Interaction, current: str) -> typing.List[app_commands.Choice[str]]:
+        """Autocomplete for the playlist command."""
+
+        if not sqlcon:
+            return []
+        with sqlcon.cursor() as cursor:
+            cursor.execute("SELECT playlist_id, title FROM playlists")
+            results = cursor.fetchall()
+            # Extract the titles from the results
+
+        if len(current) == 0:
+            return [app_commands.Choice(name=opt[1],value=opt[0]) for opt in results[:25]]
+        else:
+            return [app_commands.Choice(name=opt[1],value=opt[0]) for opt in results[:25] if current in opt[1].lower()]
+
     @app_commands.command()
+    @app_commands.autocomplete(search=playlist_autocomplete)
+    @app_commands.describe(search="Search for a playlist (leave blank for a random one)")
     async def playlist(self, interaction: discord.Interaction, search: str = None):
         """Fetches a playlist from raocow's channel."""
         await interaction.response.defer(thinking=True,ephemeral=True)
@@ -94,6 +111,29 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
             # Format the results
             formatted_results = "\n".join([f"{row[1]}: {row[0]}" for row in results])
             await interaction.followup.send(f"Playlists found:\n{formatted_results}",ephemeral=True)
+
+    @commands.is_owner()
+    @app_commands.autocomplete(search=playlist_autocomplete)
+    @app_commands.command()
+    async def tweak_playlist(self, interaction: discord.Interaction, search: str, title: str = None, datestamp: str = None):
+        """Tweak a playlist in the database."""
+        await interaction.response.defer(thinking=True,ephemeral=True)
+
+        if not sqlcon:
+            await interaction.followup.send("Database connection is not available.",ephemeral=True)
+            return
+
+        with sqlcon.cursor() as cursor:
+            # Update the playlist in the database
+            cursor.execute('''
+                UPDATE playlists
+                SET title = COALESCE(%s, title),
+                    datestamp = COALESCE(%s, datestamp)
+                WHERE title = %s
+            ''', (title, datestamp, title))
+            sqlcon.commit()
+
+        await interaction.followup.send(f"Playlist {title} updated successfully.",ephemeral=True)
 
     @commands.is_owner()
     @app_commands.command()
@@ -128,6 +168,8 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
                             if result:
                                 logger.info(f"Skipping existing playlist {item['id']}")
                                 continue
+                        # Skip Favorites playlist
+                        if item['id'].startswith("FL"): continue
                         logger.info(f"Fetching playlist {item['id']}")
                         logger.debug(f"Playlist item: {item}")
                         playlist_id = item['id']
