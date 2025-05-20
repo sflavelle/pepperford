@@ -91,11 +91,13 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
             return
 
         if search is None:
+            logger.info("Playlist: Fetching a random playlist.")
             with sqlcon.cursor() as cursor:
                 cursor.execute("SELECT * FROM playlists ORDER BY RANDOM() LIMIT 1")
                 result = cursor.fetchone()
 
                 if not result:
+                    logger.error("No playlists found in the database.")
                     await interaction.followup.send("No playlists found in the database.", ephemeral=True)
                     return
 
@@ -104,13 +106,16 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
             with sqlcon.cursor() as cursor:
                 if isinstance(search, app_commands.Choice):
                     # Choice returns the playlist ID
-                    cursor.execute("SELECT * FROM playlists WHERE playlist_id = %s", (f"%{search}%",))
+                    logger.info(f"Playlist: Searching for playlist ID {search.value}")
+                    cursor.execute("SELECT * FROM playlists WHERE playlist_id = %s", (search.value,))
                 else:
                     # Search for the playlist title
-                    cursor.execute("SELECT * FROM playlists WHERE title ILIKE %s", (f"%{search}%",))
+                    logger.info(f"Playlist: Searching for playlist title matching {search}")
+                    cursor.execute("SELECT * FROM playlists WHERE title ILIKE %s", (search,))
                 result = cursor.fetchone()
 
                 if not result:
+                    logger.error(f"No playlists found matching {search}")
                     await interaction.followup.send("No playlists found.",ephemeral=True)
                     return
 
@@ -122,11 +127,12 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
                 description=f"Playlist link: https://www.youtube.com/playlist?list={result[0]}",
                 color=discord.Color.red()
             )
-            pl_embed.add_field(name="Num. Videos", value=length, inline=True)
+            pl_embed.add_field(name="Videos", value=length, inline=True)
             pl_embed.add_field(name="Date", value=datestamp, inline=True)
             pl_embed.add_field(name="Duration", value=duration, inline=True)
             pl_embed.set_footer(text="raocow's channel")
 
+            logger.info(f"Playlist: Found playlist {title} ({id}), sending")
             await interaction.followup.send(embed=pl_embed,ephemeral=True)
 
     @commands.is_owner()
@@ -146,8 +152,8 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
                 UPDATE playlists
                 SET title = COALESCE(%s, title),
                     datestamp = COALESCE(%s, datestamp)
-                WHERE title = %s
-            ''', (title, datestamp, title))
+                WHERE playlist_id = %s
+            ''', (title, datestamp, search))
             sqlcon.commit()
 
         await interaction.followup.send(f"Playlist {title} updated successfully.",ephemeral=True)
