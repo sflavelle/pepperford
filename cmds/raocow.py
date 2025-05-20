@@ -136,7 +136,7 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
                                 total_duration += isodate.parse_duration(duration)
 
                             # Convert total duration to a readable format (e.g., HH:MM:SS)
-                            total_duration_str = str(total_duration)
+                            duration = str(total_duration)
 
                     cursor.execute('''
                                     INSERT INTO playlists (playlist_id, title, datestamp, length, duration) VALUES (%s, %s, %s, %s, %s) ON CONFLICT (playlist_id) DO UPDATE
