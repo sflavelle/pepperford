@@ -104,14 +104,14 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
                 await interaction.followup.send(f"Random Playlist:\n{result[1]}: {result[0]}", ephemeral=True)
         else:
             with sqlcon.cursor() as cursor:
-                if isinstance(search, app_commands.Choice):
+                if search.startswith("PL") and " " not in search:
                     # Choice returns the playlist ID
-                    logger.info(f"Playlist: Searching for playlist ID {search.value}")
-                    cursor.execute("SELECT * FROM playlists WHERE playlist_id = %s", (search.value,))
+                    logger.info(f"Playlist: Searching for playlist ID {search}")
+                    cursor.execute("SELECT * FROM playlists WHERE playlist_id = %s", (search,))
                 else:
                     # Search for the playlist title
                     logger.info(f"Playlist: Searching for playlist title matching {search}")
-                    cursor.execute("SELECT * FROM playlists WHERE title ILIKE %s", (search,))
+                    cursor.execute("SELECT * FROM playlists WHERE title ILIKE %s order by datestamp desc", (search,))
                 result = cursor.fetchone()
 
                 if not result:
