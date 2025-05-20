@@ -128,7 +128,7 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
 
                         if calculate_duration:
                             # Calculate the total duration of the playlist
-                            total_duration = 0
+                            total_duration = timedelta()
                             for video in video1['items']:
                                 video_id = video['snippet']['resourceId']['videoId']
                                 video_details = ytc.get_video_by_id(video_id=video_id, return_json=True)
