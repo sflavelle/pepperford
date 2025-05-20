@@ -68,7 +68,7 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
         if not sqlcon:
             return []
         with sqlcon.cursor() as cursor:
-            cursor.execute("SELECT playlist_id, title FROM playlists order by datestamp desc")
+            cursor.execute("SELECT playlist_id, title FROM playlists where visible = 'true' order by datestamp desc")
             results = cursor.fetchall()
             # Extract the titles from the results
 
