@@ -22,6 +22,7 @@ from discord import app_commands
 from discord.ext import commands
 from discord.ext.commands import Context
 from discord.ext.commands._types import BotT
+from datetime import datetime, timezone, timedelta as td
 
 cfg = None
 
@@ -136,9 +137,25 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
                     return
 
         # Format the results
-        id, title, datestamp, length, duration, visibility, thumbnail, game_link = result
+        id, title, datestamp, length, duration, visibility, thumbnail, game_link, latest_video = result
 
         description = f"***Playlist Link:*** https://www.youtube.com/playlist?list={id}"
+
+        if latest_video:
+            try:
+                ONGOING_SERIES_THRESHOLD = td(days=3)
+
+                # Parse the latest_video and datestamp as datetime objects
+                latest_dt = datetime.fromisoformat(latest_video.replace('Z', '+00:00'))
+                first_dt = datetime.fromisoformat(datestamp.replace('Z', '+00:00'))
+                now = datetime.now(timezone.utc)
+
+                if now - latest_dt <= ONGOING_SERIES_THRESHOLD:
+                    description += f"\n**Dates:** {first_dt.date()} - Ongoing"
+                else:
+                    description += f"\n**Dates:** {first_dt.date()} - {latest_dt.date()}"
+            except Exception as e:
+                logger.error(f"Error parsing playlist dates: {e}")
 
         pl_embed = discord.Embed(
             title=title,
@@ -191,7 +208,7 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
             sqlcon.commit()
             search_result = cursor.fetchone()
 
-        playlist_id, title, datestamp, length, duration, visibility, thumbnail, game_link = search_result
+        playlist_id, title, datestamp, length, duration, visibility, thumbnail, game_link, latest_video = search_result
 
         message = f"Playlist {title} updated successfully.\n"
         for param in ["new_title", "new_datestamp", "visible", "new_game_link"]:
@@ -251,7 +268,8 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
                         # Get the date of the first video in the playlist
                         # And use as the playlist date
                         video1 = ytc.get_playlist_items(playlist_id=playlist_id, count=None, return_json=True)
-                        date = video1['items'][0]['contentDetails']['videoPublishedAt'] if video1 and 'items' in video1 and video1['items'] else None
+                        date = video1['items'][0]['contentDetails']['videoPublishedAt'] if video1 else None
+                        latest_date = video1['items'][-1]['contentDetails']['videoPublishedAt'] if video1 else None
                         playlist_length = item['contentDetails']['itemCount']
                         thumbnail = item['snippet']['thumbnails']['high']['url'] if 'thumbnails' in item['snippet'] else None
                         duration: str = None
@@ -270,10 +288,10 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
                                 duration = str(total_duration)
 
                         cursor.execute('''
-                                        INSERT INTO playlists (playlist_id, title, datestamp, length, duration, thumbnail) VALUES (%s, %s, %s, %s, %s, %s) ON CONFLICT (playlist_id) DO UPDATE
+                                        INSERT INTO playlists (playlist_id, title, datestamp, length, duration, thumbnail, latest_video) VALUES (%s, %s, %s, %s, %s, %s, %s) ON CONFLICT (playlist_id) DO UPDATE
                                         SET datestamp = EXCLUDED.datestamp, length = EXCLUDED.length, duration = COALESCE(playlists.duration, EXCLUDED.duration),
-                                        thumbnail = EXCLUDED.thumbnail''',
-                                        (playlist_id, title, date, playlist_length, duration, thumbnail)
+                                        thumbnail = EXCLUDED.thumbnail, latest_video = EXCLUDED.latest_video''',
+                                        (playlist_id, title, date, playlist_length, duration, thumbnail, latest_date)
                                         )
                         sqlcon.commit()
                         logger.info(f"Inserted playlist {playlist_id} into database.")
