@@ -189,8 +189,9 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
                 RETURNING *
             ''', (new_title, new_datestamp, visible, new_game_link, search))
             sqlcon.commit()
+            search_result = cursor.fetchone()
 
-        playlist_id, title, datestamp, length, duration, visibility, thumbnail, game_link = cursor.fetchone()
+        playlist_id, title, datestamp, length, duration, visibility, thumbnail, game_link = search_result
 
         message = f"Playlist {title} updated successfully.\n"
         for param in ["new_title", "new_datestamp", "visible", "new_game_link"]:
