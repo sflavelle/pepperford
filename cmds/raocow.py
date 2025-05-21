@@ -203,9 +203,10 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
     @commands.is_owner()
     @app_commands.command()
     @app_commands.describe(playlist_count="Number of playlists to fetch (omit for all)",
-                           calculate_duration="Calculate the total duration of the playlist",
+                           calculate_duration="Calculate the total duration of the playlist (EXPENSIVE API USE)",
+                           skip_calculated="Skip playlists that already have their duration calculated",
                            skip_existing="Skip fetching existing playlists")
-    async def fetch_playlists(self, interaction: discord.Interaction, playlist_count: int = None, calculate_duration: bool = False, skip_existing: bool = False):
+    async def fetch_playlists(self, interaction: discord.Interaction, playlist_count: int = None, calculate_duration: bool = False, skip_calculated: bool = False, skip_existing: bool = False):
         """Fetches the playlists from raocow's channel and stores them in the database."""
         await interaction.response.defer(thinking=True,ephemeral=True)
 
@@ -232,6 +233,13 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
                             result = cursor.fetchone()
                             if result:
                                 logger.info(f"Skipping existing playlist {item['id']}")
+                                continue
+                        # Skip playlists that already have their duration calculated
+                        if skip_calculated:
+                            cursor.execute("SELECT * FROM playlists WHERE playlist_id = %s and duration is null", (item['id'],))
+                            result = cursor.fetchone()
+                            if result:
+                                logger.info(f"Skipping playlist {item['id']} (duration already calculated)")
                                 continue
                         # Skip Favorites playlist
                         if item['id'].startswith("FL"): continue
