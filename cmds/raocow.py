@@ -160,8 +160,9 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
     @commands.is_owner()
     @app_commands.autocomplete(search=playlist_autocomplete_all)
     @app_commands.describe(search="Search for a playlist",
-                           title="New title for the playlist",
-                           datestamp="New date for the playlist",
+                           new_title="New title for the playlist",
+                           new_datestamp="New date for the playlist",
+                           new_game_link="New game link(s) (\\n separated)",
                            visible="Make the playlist visible to users")
     @app_commands.command()
     async def tweak_playlist(self, interaction: discord.Interaction,
