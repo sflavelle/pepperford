@@ -139,14 +139,14 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
         id, title, datestamp, length, duration, visibility, thumbnail, game_link = result
 
         description = f"***Playlist Link:*** https://www.youtube.com/playlist?list={id}"
-        if game_link:
-            description += f"\n***Game Link:*** {game_link}"
 
         pl_embed = discord.Embed(
             title=title,
             description=description,
             color=discord.Color.red()
         )
+        if game_link:
+            pl_embed.add_field(name="Game Link(s)", value=game_link, inline=False)
         pl_embed.add_field(name="Videos", value=length, inline=True)
         pl_embed.add_field(name="Date", value=datestamp, inline=True)
         pl_embed.add_field(name="Duration", value=duration if duration else "N/A", inline=True)
@@ -165,14 +165,16 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
                            visible="Make the playlist visible to users")
     @app_commands.command()
     async def tweak_playlist(self, interaction: discord.Interaction,
-                             search: str, title: str = None, datestamp: str = None,
-                             visible: bool = None, game_link: str = None):
+                             search: str, new_title: str = None, new_datestamp: str = None,
+                             visible: bool = None, new_game_link: str = None):
         """Tweak a playlist in the database."""
         await interaction.response.defer(thinking=True,ephemeral=True)
 
         if not sqlcon:
             await interaction.followup.send("Database connection is not available.",ephemeral=True)
             return
+        
+        search_result = None
 
         with sqlcon.cursor() as cursor:
             # Update the playlist in the database
@@ -183,8 +185,16 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
                     visible = COALESCE(%s, visible),
                     game_link = COALESCE(%s, game_link)
                 WHERE playlist_id = %s
-            ''', (title, datestamp, visible, game_link, search))
+                RETURNING *
+            ''', (new_title, new_datestamp, visible, new_game_link, search))
             sqlcon.commit()
+
+        playlist_id, title, datestamp, length, duration, visibility, thumbnail, game_link = cursor.fetchone()
+
+        message = f"Playlist {title} updated successfully.\n"
+        for param in ["new_title", "new_datestamp", "visible", "new_game_link"]:
+            if param is not None:
+                message += f"\n{param.replace('_', ' ').capitalize()}: {param}"
 
         await interaction.followup.send(f"Playlist {title} updated successfully.",ephemeral=True)
 
