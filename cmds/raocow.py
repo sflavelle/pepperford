@@ -76,6 +76,21 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
             return [app_commands.Choice(name=opt[1],value=opt[0]) for opt in results][:25]
         else:
             return [app_commands.Choice(name=opt[1],value=opt[0]) for opt in results if current.lower() in opt[1].lower()][:25]
+        
+    async def playlist_autocomplete_all(self, ctx: discord.Interaction, current: str) -> typing.List[app_commands.Choice[str]]:
+        """Autocomplete for the playlist command (all videos, including non-visible)."""
+
+        if not sqlcon:
+            return []
+        with sqlcon.cursor() as cursor:
+            cursor.execute("SELECT playlist_id, title FROM playlists order by datestamp desc")
+            results = cursor.fetchall()
+            # Extract the titles from the results
+
+        if len(current) == 0:
+            return [app_commands.Choice(name=opt[1],value=opt[0]) for opt in results][:25]
+        else:
+            return [app_commands.Choice(name=opt[1],value=opt[0]) for opt in results if current.lower() in opt[1].lower()][:25]
 
     @app_commands.command()
     @app_commands.autocomplete(search=playlist_autocomplete)
@@ -143,7 +158,7 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
         await interaction.followup.send(embed=pl_embed,ephemeral=not public)
 
     @commands.is_owner()
-    @app_commands.autocomplete(search=playlist_autocomplete)
+    @app_commands.autocomplete(search=playlist_autocomplete_all)
     @app_commands.describe(search="Search for a playlist",
                            title="New title for the playlist",
                            datestamp="New date for the playlist",
