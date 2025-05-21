@@ -169,11 +169,11 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
         if game_link:
             pl_embed.add_field(name="Game Link(s)", value=game_link, inline=False)
         pl_embed.add_field(name="Videos", value=length, inline=True)
-        pl_embed.add_field(name="Date", value=date_string, inline=True)
+        pl_embed.add_field(name="Date(s)", value=date_string, inline=True)
         pl_embed.add_field(name="Duration", value=duration if duration else "N/A", inline=True)
         if thumbnail: 
             pl_embed.set_thumbnail(url=thumbnail)
-        pl_embed.set_footer(text="raocow's channel")
+        pl_embed.set_footer(text="Source: [raocow's channel](https://www.youtube.com/@raocow)")
 
         logger.info(f"Playlist: Found playlist {title} ({id}), sending")
         await interaction.followup.send(embed=pl_embed,ephemeral=not public)
