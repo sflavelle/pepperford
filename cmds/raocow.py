@@ -141,6 +141,8 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
 
         description = f"***Playlist Link:*** https://www.youtube.com/playlist?list={id}"
 
+        date_string: str = None
+
         if latest_video:
             try:
                 ONGOING_SERIES_THRESHOLD = td(days=3)
@@ -151,11 +153,13 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
                 now = datetime.now(timezone.utc)
 
                 if now - latest_dt <= ONGOING_SERIES_THRESHOLD:
-                    description += f"\n**Dates:** {first_dt.date()} - Ongoing"
+                    date_string += f"{first_dt.date()} - Ongoing"
                 else:
-                    description += f"\n**Dates:** {first_dt.date()} - {latest_dt.date()}"
+                    date_string += f"{first_dt.date()} - {latest_dt.date()}"
             except Exception as e:
                 logger.error(f"Error parsing playlist dates: {e}")
+        else:
+            date_string = str(datestamp)
 
         pl_embed = discord.Embed(
             title=title,
@@ -165,7 +169,7 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
         if game_link:
             pl_embed.add_field(name="Game Link(s)", value=game_link, inline=False)
         pl_embed.add_field(name="Videos", value=length, inline=True)
-        pl_embed.add_field(name="Date", value=datestamp, inline=True)
+        pl_embed.add_field(name="Date", value=date_string, inline=True)
         pl_embed.add_field(name="Duration", value=duration if duration else "N/A", inline=True)
         if thumbnail: 
             pl_embed.set_thumbnail(url=thumbnail)
