@@ -205,7 +205,7 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
                 SET title = COALESCE(%s, title),
                     datestamp = COALESCE(%s, datestamp),
                     visible = COALESCE(%s, visible),
-                    game_link = COALESCE({"E%s" if game_link else "%s"}, game_link)
+                    game_link = COALESCE({"E%s" if new_game_link else "%s"}, game_link)
                 WHERE playlist_id = %s
                 RETURNING *
             ''', (new_title, new_datestamp, visible, new_game_link, search))
