@@ -121,11 +121,15 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
                     return
 
         # Format the results
-        id, title, datestamp, length, duration, visibility, thumbnail = result
+        id, title, datestamp, length, duration, visibility, thumbnail, game_link = result
+
+        description = f"***Playlist Link:*** https://www.youtube.com/playlist?list={id}"
+        if game_link:
+            description += f"\n***Game Link:*** {game_link}"
 
         pl_embed = discord.Embed(
             title=title,
-            description=f"Playlist link: https://www.youtube.com/playlist?list={result[0]}",
+            description=description,
             color=discord.Color.red()
         )
         pl_embed.add_field(name="Videos", value=length, inline=True)
@@ -145,7 +149,9 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
                            datestamp="New date for the playlist",
                            visible="Make the playlist visible to users")
     @app_commands.command()
-    async def tweak_playlist(self, interaction: discord.Interaction, search: str, title: str = None, datestamp: str = None, visible: bool = None):
+    async def tweak_playlist(self, interaction: discord.Interaction,
+                             search: str, title: str = None, datestamp: str = None,
+                             visible: bool = None, game_link: str = None):
         """Tweak a playlist in the database."""
         await interaction.response.defer(thinking=True,ephemeral=True)
 
@@ -158,9 +164,11 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
             cursor.execute('''
                 UPDATE playlists
                 SET title = COALESCE(%s, title),
-                    datestamp = COALESCE(%s, datestamp)
+                    datestamp = COALESCE(%s, datestamp),
+                    visible = COALESCE(%s, visible),
+                    game_link = COALESCE(%s, game_link)
                 WHERE playlist_id = %s
-            ''', (title, datestamp, search))
+            ''', (title, datestamp, visible, game_link, search))
             sqlcon.commit()
 
         await interaction.followup.send(f"Playlist {title} updated successfully.",ephemeral=True)
