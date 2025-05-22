@@ -273,7 +273,14 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
                         # And use as the playlist date
                         video1 = ytc.get_playlist_items(playlist_id=playlist_id, count=None, return_json=True)
                         date = video1['items'][0]['contentDetails']['videoPublishedAt'] if video1 else None
-                        latest_date = video1['items'][-1]['contentDetails']['videoPublishedAt'] if video1 and video1['items'][-1]['contentDetails'] else None
+                        latest_date = None
+                        for item in video1.reverse():
+                            if item['status']['privacyStatus'] in ['private', 'unlisted']:
+                                continue
+
+                            if item['contentDetails']['videoPublishedAt']:
+                                latest_date = item['contentDetails']['videoPublishedAt']
+                                break
                         playlist_length = item['contentDetails']['itemCount']
                         thumbnail = item['snippet']['thumbnails']['high']['url'] if 'thumbnails' in item['snippet'] else None
                         duration: str = None
