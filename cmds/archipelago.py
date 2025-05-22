@@ -657,7 +657,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
             return self.ctx.extras['ap_rooms'].get(guild_id, {})
         else:
             with sqlcon.cursor() as cursor:
-                cursor.execute("SELECT * FROM games.all_rooms WHERE guild_id = %s and active = 'true' LIMIT 1", (guild_id,))
+                cursor.execute("SELECT * FROM games.all_rooms WHERE guild = %s and active = 'true' LIMIT 1", (guild_id,))
                 result = cursor.fetchone()
                 if result:
                     roomdict = {
