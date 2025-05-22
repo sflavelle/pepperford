@@ -151,9 +151,9 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
                 now = date.today()
 
                 if now - latest_video <= ONGOING_SERIES_THRESHOLD:
-                    date_string = f"{datestamp.date()} - Ongoing"
+                    date_string = f"{datestamp} - Ongoing"
                 else:
-                    date_string = f"{datestamp.date()} - {latest_video.date()}"
+                    date_string = f"{datestamp} - {latest_video}"
             except Exception as e:
                 logger.error(f"Error parsing playlist dates: {e}")
         else:
