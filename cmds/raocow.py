@@ -271,18 +271,18 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
 
                         # Get the date of the first video in the playlist
                         # And use as the playlist date
-                        video1 = ytc.get_playlist_items(playlist_id=playlist_id, count=None, return_json=True)
-                        logger.info(f"Playlist {playlist_id} first video: {video1['items'][0]['snippet']['title']}")
-                        date = video1['items'][0]['contentDetails']['videoPublishedAt'] if video1 else None
+                        pl_videos = ytc.get_playlist_items(playlist_id=playlist_id, count=None, return_json=True)
+                        logger.info(f"Playlist {playlist_id} first video: {pl_videos['items'][0]['snippet']['title']}")
+                        date = pl_videos['items'][0]['contentDetails']['videoPublishedAt'] if pl_videos else None
                         latest_date = None
                         playlist_length = item['contentDetails']['itemCount']
                         thumbnail = item['snippet']['thumbnails']['high']['url'] if 'thumbnails' in item['snippet'] else None
                         duration = None
 
-                        if 'videoPublishedAt' in video1['items'][-1]['contentDetails']:
-                            latest_date = video1['items'][-1]['contentDetails']['videoPublishedAt']
+                        if 'videoPublishedAt' in pl_videos['items'][-1]['contentDetails']:
+                            latest_date = pl_videos['items'][-1]['contentDetails']['videoPublishedAt']
                         else:
-                            for item in sorted(video1['items'], key=lambda x: x['snippet']['position'], reverse=True):
+                            for item in sorted(pl_videos['items'], key=lambda x: x['snippet']['position'], reverse=True):
                                 if item['status']['privacyStatus'] in ['private', 'unlisted']:
                                     continue
 
@@ -293,7 +293,7 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
                         if calculate_duration:
                             # Calculate the total duration of the playlist
                             total_duration = timedelta()
-                            for video in video1['items']:
+                            for video in pl_videos['items']:
                                 video_id = video['snippet']['resourceId']['videoId']
                                 video_details = ytc.get_video_by_id(video_id=video_id, return_json=True)
                                 if 'items' in video_details and len(video_details['items']) > 0:
