@@ -31,7 +31,7 @@ with open('config.yaml', 'r', encoding='UTF-8') as file:
     cfg = yaml.safe_load(file)
 
 sqlcfg = cfg['bot']['archipelago']['psql']
-try: 
+try:
     sqlcon = psql.connect(
         dbname=sqlcfg['database']['archipelago'],
         user=sqlcfg['user'],
@@ -181,7 +181,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
         headers = [desc[0].replace("_", " ").title() for desc in cursor.description]
 
         str_response = tabulate(response,headers=headers)
-        try: 
+        try:
             await interaction.response.send_message(str_response,ephemeral=not public)
         except discord.errors.HTTPException:
             responsefile = bytes(str_response,encoding='UTF-8')
@@ -197,12 +197,12 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
         """Update the classification of an item."""
         cursor = sqlcon.cursor()
 
-        if '%' in item:
+        if '%' in item or '?' in item:
             cursor.execute("UPDATE item_classification SET classification = %s where game = %s and item like %s", (classification.lower(), game, item))
             count = cursor.rowcount
             logger.info(f"Classified {str(count)} item(s) matching '{item}' in {game} to {classification}")
             return await interaction.response.send_message(f"Classification for {game}'s {str(count)} items matching '{item}' was successful.",ephemeral=True)
-        else: 
+        else:
             try:
                 cursor.execute("UPDATE item_classification SET classification = %s where game = %s and item = %s", (classification.lower(), game, item))
                 logger.info(f"Classified '{item}' in {game} to {classification}")
@@ -225,7 +225,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
             count = cursor.rowcount
             logger.info(f"Classified {str(count)} locations(s) matching '{location}' in {game} to {'not ' if is_checkable is False else ''}checkable")
             return await interaction.response.send_message(f"Classification for {game}'s {str(count)} locations matching '{location}' was successful.",ephemeral=True)
-        else: 
+        else:
             try:
                 cursor.execute("UPDATE game_locations SET is_checkable = %s where game = %s and location = %s", (is_checkable, game, location))
                 logger.info(f"Classified '{location}' in {game} to {'not ' if is_checkable is False else ''}checkable")
@@ -358,13 +358,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
 
         logger.info("SQL commands executed.")
         logger.info("Setting up room data...")
-        self.ctx.extras['ap_rooms'] = {}
-        self.ctx.extras['ap_rooms'][interaction.guild_id] = {
-            'room_id': room_id,
-            'hostname': hostname,
-            'room_port': room_port,
-            'players': players,
-        }
+        self.fetch_guild_room(interaction.guild_id)
 
         # Persist the room data to disk
         with open('ap_rooms.json', 'w', encoding='UTF-8') as file:
@@ -439,7 +433,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                     "Classification": details["classification"],
                 })
 
-        if len(hint_table_list) == 0:  
+        if len(hint_table_list) == 0:
             return await newpost.edit(content="No hints available for your linked slots.")
 
         hints_list = "## To Find:"
@@ -542,9 +536,9 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                         status += "\nParsed spoiler successfully!"
                         await newpost.edit(content=status)
 
-                await newpost.edit(content="Item log successfully initialised!\n-# Please note that when you start " 
-                                   "the item log for the time time, it may take a long time " 
-                                   "for the first messages to show up - depending on the size of the current log and " 
+                await newpost.edit(content="Item log successfully initialised!\n-# Please note that when you start "
+                                   "the item log for the time time, it may take a long time "
+                                   "for the first messages to show up - depending on the size of the current log and "
                                    "connection to the item classification database.")
 
                 # Save script to config
@@ -655,6 +649,31 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
     #         for choice in choices
     #     ]
 
+    def fetch_guild_room(self, guild_id: int) -> dict:
+        if self.ctx.extras['ap_rooms'].get(guild_id, {}):
+            return self.ctx.extras['ap_rooms'].get(guild_id, {})
+        else:
+            with sqlcon.cursor() as cursor:
+                cursor.execute("SELECT * FROM games.all_rooms WHERE guild_id = %s and active = 'true' LIMIT 1", (guild_id,))
+                result = cursor.fetchone()
+                if result:
+                    roomdict = {
+                        'room_id': result[0],
+                        'seed': result[1],
+                        'guild_id': result[2],
+                        'active': result[3],
+                        'host': result[4],
+                        'players': result[5],
+                        'version': result[6],
+                        'last_line': result[7],
+                        'last_activity': result[8],
+                        'port': result[9]
+                    }
+                    self.ctx.extras['ap_rooms'][guild_id] = roomdict
+                    return roomdict
+                else:
+                    return {}
+
     @commands.Cog.listener()
     async def on_ready(self):
         if not self.ctx.procs.get('archipelago'):
@@ -663,13 +682,10 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
         if not self.ctx.extras.get('ap_rooms'):
             self.ctx.extras['ap_rooms'] = {}
             # Load persisted ap_rooms.json if it exists
-        if os.path.exists('ap_rooms.json'):
-            try:
-                with open('ap_rooms.json', 'r', encoding='UTF-8') as file:
-                    self.ctx.extras['ap_rooms'] = json.load(file)
-                logger.info("Loaded persisted ap_rooms.json successfully.")
-            except (json.JSONDecodeError, IOError) as e:
-                logger.error(f"Error loading ap_rooms.json: {e}")
+            for guilds in self.ctx.guilds:
+                if not self.ctx.extras['ap_rooms'].get(guilds.id):
+                    self.ctx.extras['ap_rooms'][guilds.id] = {}
+                    self.fetch_guild_room(guilds.id)
 
         # self.ctx.extras['ap_channel'] = next((chan for chan in self.ctx.spotzone.text_channels if chan.id == 1163808574045167656))
         # while testing
@@ -691,7 +707,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                 env['SPOILER_URL'] = log['spoiler_url'] if log['spoiler_url'] else None
                 env['MSGHOOK_URL'] = log['msghook'] if log['msghook'] else None
 
-                try: 
+                try:
                     script_path = os.path.join(os.path.dirname(__file__), '..', 'ap_itemlog.py')
                     process = subprocess.Popen([sys.executable, script_path], env=env)
                     self.ctx.procs['archipelago'][log['guild']] = process

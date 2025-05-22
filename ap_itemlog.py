@@ -10,7 +10,7 @@ from collections import defaultdict
 import requests
 import threading
 import yaml
-from cmds.ap_scripts.utils import Game, Item, CollectedItem, Player, PlayerSettings, handle_item_tracking, handle_location_tracking, handle_location_hinting
+from cmds.ap_scripts.utils import Game, Item, CollectedItem, Player, PlayerSettings, handle_item_tracking, handle_location_tracking, handle_location_hinting, push_to_database
 from cmds.ap_scripts.emitter import event_emitter
 from word2number import w2n
 from flask import Flask, jsonify, Response
@@ -82,7 +82,7 @@ def join_words(words):
         return ' and '.join(words)
     else:
         return words[0]
-        
+
 # Spoiler Log Processing
 
 def process_spoiler_log(seed_url):
@@ -140,13 +140,15 @@ def process_spoiler_log(seed_url):
                     game.seed = parse_to_type(line.split(' ')[-1])
                     logger.info(f"Parsing seed {game.seed}")
                     logger.info(f"Generated on Archipelago version {game.version_generator}")
+                    push_to_database('games.all_rooms', 'seed', game.seed)
+                    push_to_database('games.all_rooms', 'version', game.version_generator)
                 else:
                     current_key, value = line.strip().split(':', 1)
                     game.world_settings[current_key.strip()] = parse_to_type(value.lstrip())
-                
+
             case "Players":
                 current_key, value = line.strip().split(':', 1)
-                if value.lstrip().startswith("[") or value.lstrip().startswith("{"): 
+                if value.lstrip().startswith("[") or value.lstrip().startswith("{"):
                     try:
                         game.players[working_player].settings[current_key.strip()] = json.loads(value.lstrip())
                     except ValueError:
@@ -196,8 +198,8 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
         if match := regex_patterns['sent_items'].match(line):
             timestamp, sender, item, receiver, item_location = match.groups()
 
-            # Mark item as collected 
-            try: 
+            # Mark item as collected
+            try:
                 SentItemObject = Item(game.players[sender],game.players[receiver],item,item_location)
                 SentItemObject.found = True
                 game.spoiler_log[sender].update({item_location: SentItemObject})
@@ -228,7 +230,7 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
                 # Update item name based on settings for special items
                 location = item_location
                 if bool(game.players[receiver].settings):
-                    try: 
+                    try:
                         item = handle_item_tracking(game, game.players[receiver], ReceivedItemObject)
                         location = handle_location_tracking(game, game.players[sender], ReceivedItemObject)
                     except KeyError as e:
@@ -326,6 +328,7 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
                 logger.info(f"Seed URI has changed: {address}")
                 message = f"**The seed address has changed.** Use this updated address: `{address}`"
                 if not skip_msg:
+                    push_to_database('games.all_rooms', 'port', seed_address.split(":")[1])
                     send_chat("Archipelago", message)
                     message_buffer.append(message)
         elif match := regex_patterns['messages'].match(line):
@@ -333,7 +336,7 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
             if msg_webhook:
                 if message.startswith("!"): continue # don't send commands
                 else:
-                    if not skip_msg and sender in game.players: 
+                    if not skip_msg and sender in game.players:
                         logger.info(f"{sender}: {message}")
                         send_chat(sender, message)
 
@@ -459,9 +462,9 @@ def fetch_log(url):
     except requests.RequestException as e:
         logger.error(f"Error fetching log file: {e}")
         return []
-    
+
 ### Emitter events
-    
+
 def handle_milestone_message(message):
     message_buffer.append(message)
 
@@ -497,6 +500,8 @@ def watch_log(url, interval):
     logger.info(f"Checks Collected: {game.collected_locations}")
     logger.info(f"Completion Percentage: {round(game.collection_percentage,2)}%")
     logger.info(f"Total Players: {len(game.players)}")
+    logger.info(f"Seed Address: {seed_address}")
+    push_to_database('games.all_rooms', 'port', seed_address.split(":")[1])
 
     message_buffer.clear() # Clear buffer in case we have any old messages
 
@@ -527,6 +532,7 @@ def watch_log(url, interval):
                 logger.info(f"sent {len(message_buffer)} messages to webhook")
                 message_buffer.clear()
             previous_lines = current_lines
+            push_to_database('games.all_rooms', 'last_line', len(current_lines))
 
 def process_releases():
     global release_buffer
@@ -567,7 +573,7 @@ def get_checkable_locations(found: bool = False):
         if player.game not in locationtable:
             locationtable[player.game] = {}
         for location_name, location in player.locations.items():
-            if found: 
+            if found:
                 locationtable[player.game][location_name] = [location.found, location.is_location_checkable]
             else:
                 locationtable[player.game][location_name] = location.is_location_checkable
