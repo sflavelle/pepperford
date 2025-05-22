@@ -16,7 +16,7 @@ with open('config.yaml', 'r', encoding='UTF-8') as file:
 
 
 sqlcfg = cfg['bot']['archipelago']['psql']
-try: 
+try:
     sqlcon = psql.connect(
         dbname=sqlcfg['database']['archipelago'],
         user=sqlcfg['user'],
@@ -32,6 +32,15 @@ classification_cache = {}
 cache_timeout = 1*60*60 # 1 hour(s)
 
 item_table = {}
+
+def push_to_database(database: str, column: str, payload):
+    try:
+        with sqlcon.cursor() as db:
+            db.execute(f"INSERT INTO {database} ({column}) VALUES (%s)", (payload,))
+            sqlcon.commit()
+    except Exception as e:
+        logger.error(f"Error pushing to database: {e}")
+
 
 class Game(dict):
     seed = None
@@ -146,10 +155,10 @@ class Player(dict):
 
     def is_finished(self) -> bool:
         return self.goaled or self.released
-    
+
     def is_goaled(self) -> bool:
         return self.goaled
-    
+
     def set_online(self, online: bool, timestamp: str):
         self.online = online
         self.last_online = time.mktime(datetime.datetime.strptime(timestamp, "%Y-%m-%d %H:%M:%S,%f").timetuple())
@@ -159,7 +168,7 @@ class Player(dict):
             return time.time()
         else:
             return self.last_online
-        
+
     def update_locations(self, game: Game):
         self.locations = {l.location: l for l in game.spoiler_log[self.name].values()}
         self.collected_locations = len([l for l in self.locations.values() if l.found is True])
@@ -175,7 +184,7 @@ class Player(dict):
                 self.milestones.add(milestone)
                 message = f"**{self.name} has reached {milestone}% completion!**"
                 event_emitter.emit("milestone", message)  # Emit the milestone message
-        
+
     def add_hint(self, hint_type: str, item):
         if hint_type not in self.hints:
             self.hints[hint_type] = list()
@@ -222,12 +231,12 @@ class Item(dict):
 
         if self.game is None:
             logger.warning(f"Item object for {self.name} has no game associated with it?")
-        
+
         if self.game not in item_table:
             item_table[self.game] = {}
         if self.name not in item_table[self.game]:
             item_table[self.game][self.name] = self
-    
+
     def __str__(self):
         return self.name
 
@@ -260,7 +269,7 @@ class Item(dict):
 
     def get_count(self) -> int:
         return 1
-    
+
     def location_is_checkable(self) -> bool:
         if not isinstance(self.sender, Player):
             return False # Archipelago starting items, etc
@@ -277,7 +286,7 @@ class Item(dict):
 
         If the location already exists, but the 'checkable' value is wrong,
         this function will update the value in the database.
-        
+
         This should help to establish accurate location counts when we start tracking those."""
         cursor = sqlcon.cursor()
 
@@ -298,11 +307,11 @@ class Item(dict):
         finally:
             sqlcon.commit()
         logger.debug(f"locationsdb: classified {self.sender.game}: {self.location} as {is_checkable}")
-    
+
     def set_item_classification(self, player: Player = None):
         """Refer to the itemdb and see whether the provided Item has a classification.
         If it doesn't, creates a new entry for that item with no classification.
-        
+
         We can pass this through an intermediate step to assume things about
         some common items, but not everything.
         """
@@ -372,7 +381,7 @@ class Item(dict):
         return classification_cache[self.game][self.name][0]
         # return response
 
-    
+
     def update_item_classification(self, classification: str) -> bool:
         # Abort if already set
         if classification == self.classification: return True
@@ -388,7 +397,7 @@ class Item(dict):
         if classification not in permitted_values:
             logger.error(f"Tried to update classification for {self.game}: {self.name} (value '{classification}' not permitted)")
             return False
-        
+
         logger.info(f"Request to update classification for {self.game}: {self.name} (to: {classification})")
         cursor = sqlcon.cursor()
 
@@ -404,7 +413,7 @@ class Item(dict):
     def is_found(self):
         return self.found
 
-    
+
     def is_filler(self):
         return self.classification == "filler"
     def is_currency(self):
@@ -622,7 +631,7 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                     required = len(settings['Included Levels'].split(', '))
                     return f"{item} ({count}/{required})"
                 if any([item.startswith(color) for color in ["Blue","Yellow","Red"]]) and not item == "BlueArmor":
-                    try: 
+                    try:
                         item_match = item_regex.match(item)
                         subitem,map = item_match.groups()
                         collected_string = str()
@@ -744,7 +753,7 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                     jewels = ["Emerald", "Entry Jewel", "Golden Jewel", "Ruby", "Sapphire", "Topaz"]
                     parts = ["Bottom Left", "Bottom Right", "Top Left", "Top Right"]
                     jewel = next(j for j in jewels if j in item)
-                    # 
+                    #
                     jewel_count = len([i for i in player.items if f"{jewel} Piece" in i])
                     jewel_required = 4
                     jewels_complete = len(
@@ -755,7 +764,7 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                     return f"{item} ({jewel_count}/{jewel_required}P|{jewels_complete}/{jewels_required}C)"
             case _:
                 return item
-    
+
     # Return the same name if nothing matched (or no settings available)
     return item
 
@@ -774,7 +783,7 @@ def handle_location_tracking(game: Game, player: Player, item: Item):
                 # There'll probably be something here later
                 return location.replace("_", " ").replace("-"," - ")
             case "Simon Tatham's Portable Puzzle Collection":
-                required = round(settings['puzzle_count'] 
+                required = round(settings['puzzle_count']
                                  * (settings['Target Completion Percentage'] / 100))
                 count = player.collected_locations
                 return f"{location} ({count}/{required})"
@@ -784,7 +793,7 @@ def handle_location_tracking(game: Game, player: Player, item: Item):
 
 def handle_location_hinting(player: Player, item: Item) -> tuple[list[str], str]:
     """Some locations have a cost or extra info associated with it.
-    If an item that's hinted is on this location, go through similar steps to 
+    If an item that's hinted is on this location, go through similar steps to
     the tracking functions to provide info on costs etc."""
 
     location = item.location
@@ -846,7 +855,7 @@ def handle_location_hinting(player: Player, item: Item) -> tuple[list[str], str]
                     cost = settings[f"Kiosk {level} Cost"]
 
                     requirements.append(f"{cost} Coins")
-                    
+
                 # Contact List Requirements
                 if location in contact_lists["1"]:
                     requirements.append("Contact List 1")
