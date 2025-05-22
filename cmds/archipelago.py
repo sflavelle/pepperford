@@ -411,7 +411,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                                  "classification": h['classification'],
                                  "entrance": h['location_entrance'],
                                  "costs": h['location_costs'],
-                                } for h in game_table['players'][slot]['hints']['sending'] if h['found'] is False and h['classification'] not in ["trap", "filler"]}
+                                } for h in game_table['players'][slot]['hints']['sending'] if h['classification'] not in ["trap", "filler"]}
                 hint_table[slot].update({
                     h['location']: {"item": h['name'],
                                  "sender": h['sender'],
@@ -419,7 +419,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                                  "classification": h['classification'],
                                  "entrance": h['location_entrance'],
                                  "costs": h['location_costs'],
-                                } for h in game_table['players'][slot]['hints']['receiving'] if h['found'] is False and h['classification'] not in ["trap", "filler"]})
+                                } for h in game_table['players'][slot]['hints']['receiving'] if h['classification'] not in ["trap", "filler"]})
 
         # Format the hint table
         hint_table_list = []
@@ -443,6 +443,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
         for hint in hint_table_list:
             if hint["Sender"] not in linked_slots: continue
             if game_table['players'][hint["Receiver"]]['goaled'] is True or game_table['players'][hint["Receiver"]]['released'] is True: continue
+
             if hint["Sender"] == hint["Receiver"]:
                 hints_list += f"\n**Your {hint['Item']}** is on {hint['Location']}{f" at {hint['Entrance']}" if hint['Entrance'] else ""}."
                 if bool(hint['Costs']):
@@ -458,7 +459,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
             if hint["Sender"] == hint["Receiver"]: continue
             hints_list += f"\n**Your {hint['Item']}** is on {hint['Sender']}'s {hint['Location']}{f" at {hint['Entrance']}" if hint['Entrance'] else ""}."
             if bool(hint['Costs']):
-                hints_list += f"\n> -# This will cost {join_words(hint['Costs'])} to obtain."
+                hints_list += f" (Costs {join_words(hint['Costs'])})"
 
 
         await newpost.edit(content=hints_list)

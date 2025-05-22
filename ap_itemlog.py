@@ -223,9 +223,21 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
                 else: game.players[receiver].items[item] = ReceivedItemObject
                 # players[sender].send(SentItemObject)
                 # game["spoiler"][sender]["locations"][item_location].collect()
+
+                # If it was hinted, update the player's hint table
+                if item in game.players[receiver].hints['receiving']:
+                    del game.players[receiver].hints['receiving'][item]
+                    SentItemObject.hinted = True
+                    ReceivedItemObject.hinted = True
+                if item in game.players[sender].hints['sending']:
+                    del game.players[sender].hints['sending'][item]
+                    SentItemObject.hinted = True
+                    ReceivedItemObject.hinted = True
+
             except KeyError as e:
                 logger.error(f"""Sent Item Object Creation error. Parsed item name: '{item}', Receiver: '{receiver}', Location: '{item_location}', Error: '{str(e)}'""", e, exc_info=True)
                 logger.error(f"Line being parsed: {line}")
+
 
             # Update location totals
             ReceivedItemObject.db_add_location(True)
@@ -551,7 +563,9 @@ def watch_log(url, interval):
                 logger.info(f"sent {len(message_buffer)} messages to webhook")
                 message_buffer.clear()
             previous_lines = current_lines
-            game.pushdb('games.all_rooms', 'last_line', len(current_lines))
+            with sqlcon.cursor() as cursor:
+                game.pushdb(cursor, 'games.all_rooms', 'last_line', len(current_lines))
+                sqlcon.commit()
 
 def process_releases():
     global release_buffer
