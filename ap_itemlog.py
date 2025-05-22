@@ -10,10 +10,11 @@ from collections import defaultdict
 import requests
 import threading
 import yaml
-from cmds.ap_scripts.utils import Game, Item, CollectedItem, Player, PlayerSettings, handle_item_tracking, handle_location_tracking, handle_location_hinting, push_to_database
+from cmds.ap_scripts.utils import Game, Item, CollectedItem, Player, PlayerSettings, handle_item_tracking, handle_location_tracking, handle_location_hinting
 from cmds.ap_scripts.emitter import event_emitter
 from word2number import w2n
 from flask import Flask, jsonify, Response
+import psycopg2 as psql
 
 # setup logging
 logger = logging.getLogger('ap_itemlog')
@@ -24,6 +25,18 @@ logger.addHandler(handler)
 
 with open('config.yaml', 'r', encoding='UTF-8') as file:
     cfg = yaml.safe_load(file)
+
+sqlcfg = cfg['bot']['archipelago']['psql']
+try:
+    sqlcon = psql.connect(
+        dbname=sqlcfg['database']['archipelago'],
+        user=sqlcfg['user'],
+        password=sqlcfg['password'] if 'password' in sqlcfg else None,
+        host=sqlcfg['host']
+    )
+except psql.OperationalError:
+    # TODO Disable commands that need SQL connectivity
+    sqlcon = False
 
 # Disclaimer: Copilot helped me with the initial setup of this file.
 # Everything since is my own code. Thank you :-)
@@ -140,8 +153,10 @@ def process_spoiler_log(seed_url):
                     game.seed = parse_to_type(line.split(' ')[-1])
                     logger.info(f"Parsing seed {game.seed}")
                     logger.info(f"Generated on Archipelago version {game.version_generator}")
-                    push_to_database('games.all_rooms', 'seed', game.seed)
-                    push_to_database('games.all_rooms', 'version', game.version_generator)
+                    with sqlcon.cursor() as cursor:
+                        game.pushdb(cursor, 'games.all_rooms', 'seed', game.seed)
+                        game.pushdb(cursor, 'games.all_rooms', 'version', game.version_generator)
+                        sqlcon.commit()
                 else:
                     current_key, value = line.strip().split(':', 1)
                     game.world_settings[current_key.strip()] = parse_to_type(value.lstrip())
@@ -328,7 +343,9 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
                 logger.info(f"Seed URI has changed: {address}")
                 message = f"**The seed address has changed.** Use this updated address: `{address}`"
                 if not skip_msg:
-                    push_to_database('games.all_rooms', 'port', seed_address.split(":")[1])
+                    with sqlcon.cursor() as cursor:
+                        game.pushdb(cursor, 'games.all_rooms', 'port', seed_address.split(":")[1])
+                        sqlcon.commit()
                     send_chat("Archipelago", message)
                     message_buffer.append(message)
         elif match := regex_patterns['messages'].match(line):
@@ -501,7 +518,9 @@ def watch_log(url, interval):
     logger.info(f"Completion Percentage: {round(game.collection_percentage,2)}%")
     logger.info(f"Total Players: {len(game.players)}")
     logger.info(f"Seed Address: {seed_address}")
-    push_to_database('games.all_rooms', 'port', seed_address.split(":")[1])
+    with sqlcon.cursor() as cursor:
+        game.pushdb(cursor, 'games.all_rooms', 'port', seed_address.split(":")[1])
+        sqlcon.commit()
 
     message_buffer.clear() # Clear buffer in case we have any old messages
 
@@ -532,7 +551,7 @@ def watch_log(url, interval):
                 logger.info(f"sent {len(message_buffer)} messages to webhook")
                 message_buffer.clear()
             previous_lines = current_lines
-            push_to_database('games.all_rooms', 'last_line', len(current_lines))
+            game.pushdb('games.all_rooms', 'last_line', len(current_lines))
 
 def process_releases():
     global release_buffer

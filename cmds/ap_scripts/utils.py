@@ -33,11 +33,9 @@ cache_timeout = 1*60*60 # 1 hour(s)
 
 item_table = {}
 
-def push_to_database(database: str, column: str, payload):
+def push_to_database(cursor: psql.Cursor, game: Game, database: str, column: str, payload):
     try:
-        with sqlcon.cursor() as db:
-            db.execute(f"INSERT INTO {database} ({column}) VALUES (%s)", (payload,))
-            sqlcon.commit()
+            cursor.execute(f"UPDATE {database} set {column} = %s WHERE room_id = %s", (payload, room_id))
     except Exception as e:
         logger.error(f"Error pushing to database: {e}")
 
@@ -97,6 +95,11 @@ class Game(dict):
             "collection_percentage": self.collection_percentage,
         }
 
+    def pushdb(self, cursor: psql.Cursor, database: str, column: str, payload):
+        try:
+            cursor.execute(f"UPDATE {database} set {column} = %s WHERE room_id = %s", (payload, self.room_id))
+        except Exception as e:
+            logger.error(f"Error pushing to database: {e}")
 
 def handle_hint_update(self):
     pass
