@@ -385,7 +385,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
         if not room:
             return await newpost.edit(content="No Archipelago room is currently set for this server.")
 
-        room_slots = requests.get(f"https://{room['hostname']}/api/room_status/{room['room_id']}", timeout=10).json()['players']
+        room_slots = requests.get(f"https://{room['host']}/api/room_status/{room['room_id']}", timeout=10).json()['players']
 
         linked_slots = []
         with sqlcon.cursor() as cursor:
