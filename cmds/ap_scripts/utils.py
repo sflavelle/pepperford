@@ -95,7 +95,7 @@ class Game(dict):
             "collection_percentage": self.collection_percentage,
         }
 
-    def pushdb(self, cursor: psql.cursor, database: str, column: str, payload):
+    def pushdb(self, cursor, database: str, column: str, payload):
         try:
             cursor.execute(f"UPDATE {database} set {column} = %s WHERE room_id = %s", (payload, self.room_id))
         except Exception as e:
