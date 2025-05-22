@@ -275,6 +275,9 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
                         logger.info(f"Playlist {playlist_id} first video: {video1['items'][0]['snippet']['title']}")
                         date = video1['items'][0]['contentDetails']['videoPublishedAt'] if video1 else None
                         latest_date = None
+                        playlist_length = item['contentDetails']['itemCount']
+                        thumbnail = item['snippet']['thumbnails']['high']['url'] if 'thumbnails' in item['snippet'] else None
+                        duration = None
 
                         if 'videoPublishedAt' in video1['items'][-1]['contentDetails']:
                             latest_date = video1['items'][-1]['contentDetails']['videoPublishedAt']
@@ -286,9 +289,6 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
                                 if item['contentDetails']['videoPublishedAt']:
                                     latest_date = item['contentDetails']['videoPublishedAt']
                                     break
-                        playlist_length = item['contentDetails']['itemCount']
-                        thumbnail = item['snippet']['thumbnails']['high']['url'] if 'thumbnails' in item['snippet'] else None
-                        duration: str = None
 
                         if calculate_duration:
                             # Calculate the total duration of the playlist
