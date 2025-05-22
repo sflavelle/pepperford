@@ -272,10 +272,11 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
                         # Get the date of the first video in the playlist
                         # And use as the playlist date
                         video1 = ytc.get_playlist_items(playlist_id=playlist_id, count=None, return_json=True)
+                        logger.info(f"Playlist {playlist_id} first video: {video1['items'][0]['snippet']['title']}")
                         date = video1['items'][0]['contentDetails']['videoPublishedAt'] if video1 else None
                         latest_date = None
 
-                        if video1['items'][-1]['contentDetails']['videoPublishedAt']:
+                        if 'videoPublishedAt' in video1['items'][-1]['contentDetails']:
                             latest_date = video1['items'][-1]['contentDetails']['videoPublishedAt']
                         else:
                             for item in sorted(video1['items'], key=lambda x: x['snippet']['position'], reverse=True):
