@@ -22,7 +22,7 @@ from discord import app_commands
 from discord.ext import commands
 from discord.ext.commands import Context
 from discord.ext.commands._types import BotT
-from datetime import datetime, timezone, timedelta as td
+from datetime import date, timezone, timedelta as td
 
 cfg = None
 
@@ -148,7 +148,7 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
                 ONGOING_SERIES_THRESHOLD = td(days=3)
 
                 # Parse the latest_video and datestamp as datetime objects
-                now = datetime.now(timezone.utc)
+                now = date.today()
 
                 if now - latest_video <= ONGOING_SERIES_THRESHOLD:
                     date_string = f"{datestamp.date()} - Ongoing"
