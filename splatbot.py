@@ -83,8 +83,14 @@ async def settings(interaction: discord.Interaction, log_level: str = None, avat
     """Configure settings for the bot"""
     message_buffer = []
     friendly_names = {
+        "avatar": "Avatar",
         "log_level": "Logging Level",
     }
+
+    if not (log_level or avatar):
+        await interaction.response.send_message("No changes made.", ephemeral=True)
+        return
+
     if log_level:
         match log_level:
             case "error": logger.setLevel(logging.ERROR)
@@ -108,10 +114,12 @@ async def settings(interaction: discord.Interaction, log_level: str = None, avat
     if avatar:
         # Check if the attachment is an image
         if not avatar.content_type.startswith("image/"):
-            message_buffer.append("**Avatar:** The provided file is not an image.")
+            message_buffer.append(f"**{friendly_names['avatar']}:** The provided file is not an image.")
         else:
             # Set avatar for Pepper
             await pon.user.edit(avatar=await avatar.read())
+            await pon.application.edit(icon=await avatar.read())
+            message_buffer.append(f"**{friendly_names['avatar']}:** Successfully set avatar.")
 
     # Finally send message
     await interaction.response.send_message("\n".join(message_buffer), ephemeral=True)

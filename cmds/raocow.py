@@ -74,9 +74,9 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
             # Extract the titles from the results
 
         if len(current) == 0:
-            return [app_commands.Choice(name=opt[1],value=opt[0]) for opt in results][:25]
+            return [app_commands.Choice(name=opt[1][:100],value=opt[0]) for opt in results][:25]
         else:
-            return [app_commands.Choice(name=opt[1],value=opt[0]) for opt in results if current.lower() in opt[1].lower()][:25]
+            return [app_commands.Choice(name=opt[1][:100],value=opt[0]) for opt in results if current.lower() in opt[1].lower()][:25]
 
     async def playlist_autocomplete_all(self, ctx: discord.Interaction, current: str) -> typing.List[app_commands.Choice[str]]:
         """Autocomplete for the playlist command (all videos, including non-visible)."""
@@ -98,7 +98,7 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
     @app_commands.describe(search="Search for a playlist (leave blank for a random one)",
                            public="Share the playlist with the class?")
     async def playlist(self, interaction: discord.Interaction, search: str = None, public: bool = False):
-        """Fetches a playlist from raocow's channel."""
+        """Find a playlist of one of Raocow's series. (or: get a random one!)"""
         await interaction.response.defer(thinking=True,ephemeral=not public)
 
         result = None
@@ -187,7 +187,7 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
     async def tweak_playlist(self, interaction: discord.Interaction,
                              search: str, new_title: str = None, new_datestamp: str = None,
                              visible: bool = None, new_game_link: str = None):
-        """Tweak a playlist in the database."""
+        """Edit a playlist in Pepper's database with new information."""
         await interaction.response.defer(thinking=True,ephemeral=True)
 
         if not sqlcon:
@@ -225,16 +225,24 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
                            calculate_duration="Calculate the total duration of the playlist (EXPENSIVE API USE)",
                            skip_calculated="Skip playlists that already have their duration calculated",
                            skip_existing="Skip fetching existing playlists")
-    async def fetch_playlists(self, interaction: discord.Interaction, playlist_count: int = None, calculate_duration: bool = False, skip_calculated: bool = False, skip_existing: bool = False):
-        """Fetches the playlists from raocow's channel and stores them in the database."""
+    async def fetch_playlists(self, interaction: discord.Interaction,
+        playlist_count: int = None,
+        include_fanchannels: bool = False,
+        calculate_duration: bool = False,
+        skip_duration_calculated: bool = False,
+        skip_existing: bool = False):
+        """Pulls playlists from raocow's channel (and optionally endorsed fan channels)."""
         await interaction.response.defer(thinking=True,ephemeral=True)
 
         api_key = cfg['bot']['raocow']['yt_api_key']
         channel_ids = [
             "UCjM-Wd2651MWgo0s5yNQRJA" # raocow's channel ID
-            # "UCeYAO0Cw3RRwicMZQ2tGD9A" # raoclassic (fan channel with pre-YouTube content)
-            # "UC5DLg0WeN4kLbJ8vmJDVAkg" # RaocowGV (Google Video archive)
+            "UCeYAO0Cw3RRwicMZQ2tGD9A" # raoclassic (fan channel with pre-YouTube content)
+            "UC5DLg0WeN4kLbJ8vmJDVAkg" # RaocowGV (Google Video archive)
         ]
+
+        if not include_fanchannels:
+            channel_ids = [channel_ids[0]]
 
         ytc = Api(api_key=api_key)
 
@@ -254,7 +262,7 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
                                 logger.info(f"Skipping existing playlist {item['id']}")
                                 continue
                         # Skip playlists that already have their duration calculated
-                        if skip_calculated:
+                        if skip_duration_calculated:
                             cursor.execute("SELECT * FROM playlists WHERE playlist_id = %s and duration is not null", (item['id'],))
                             result = cursor.fetchone()
                             if result:
