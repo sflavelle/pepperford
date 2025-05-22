@@ -223,7 +223,7 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
     @app_commands.command()
     @app_commands.describe(playlist_count="Number of playlists to fetch (omit for all)",
                            calculate_duration="Calculate the total duration of the playlist (EXPENSIVE API USE)",
-                           skip_calculated="Skip playlists that already have their duration calculated",
+                           skip_duration_calculated="Skip playlists that already have their duration calculated",
                            skip_existing="Skip fetching existing playlists")
     async def fetch_playlists(self, interaction: discord.Interaction,
         playlist_count: int = None,
