@@ -225,14 +225,18 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
                 # game["spoiler"][sender]["locations"][item_location].collect()
 
                 # If it was hinted, update the player's hint table
-                if item in game.players[receiver].hints['receiving']:
-                    del game.players[receiver].hints['receiving'][item]
-                    SentItemObject.hinted = True
-                    ReceivedItemObject.hinted = True
-                if item in game.players[sender].hints['sending']:
-                    del game.players[sender].hints['sending'][item]
-                    SentItemObject.hinted = True
-                    ReceivedItemObject.hinted = True
+                for hintitem in game.players[receiver].hints['receiving']:
+                    if item_location == hintitem.location:
+                        del hintitem
+                        SentItemObject.hinted = True
+                        ReceivedItemObject.hinted = True
+                        break
+                for hintitem in game.players[sender].hints['sending']:
+                    if item_location == hintitem.location:
+                        del hintitem
+                        SentItemObject.hinted = True
+                        ReceivedItemObject.hinted = True
+                        break
 
             except KeyError as e:
                 logger.error(f"""Sent Item Object Creation error. Parsed item name: '{item}', Receiver: '{receiver}', Location: '{item_location}', Error: '{str(e)}'""", e, exc_info=True)
