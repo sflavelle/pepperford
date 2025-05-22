@@ -34,7 +34,7 @@ with open('config.yaml', 'r', encoding='UTF-8') as file:
     cfg = yaml.safe_load(file)
 
 sqlcfg = cfg['bot']['archipelago']['psql']
-try: 
+try:
     sqlcon = psql.connect(
         dbname=sqlcfg['database']['raocow'],
         user=sqlcfg['user'],
@@ -77,7 +77,7 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
             return [app_commands.Choice(name=opt[1],value=opt[0]) for opt in results][:25]
         else:
             return [app_commands.Choice(name=opt[1],value=opt[0]) for opt in results if current.lower() in opt[1].lower()][:25]
-        
+
     async def playlist_autocomplete_all(self, ctx: discord.Interaction, current: str) -> typing.List[app_commands.Choice[str]]:
         """Autocomplete for the playlist command (all videos, including non-visible)."""
 
@@ -171,7 +171,7 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
         pl_embed.add_field(name="Videos", value=length, inline=True)
         pl_embed.add_field(name="Date(s)", value=date_string, inline=True)
         pl_embed.add_field(name="Duration", value=duration if duration else "N/A", inline=True)
-        if thumbnail: 
+        if thumbnail:
             pl_embed.set_thumbnail(url=thumbnail)
         pl_embed.set_footer(text="Source: [raocow's channel](https://www.youtube.com/@raocow)")
 
@@ -195,7 +195,7 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
         if not sqlcon:
             await interaction.followup.send("Database connection is not available.",ephemeral=True)
             return
-        
+
         search_result = None
 
         with sqlcon.cursor() as cursor:
@@ -249,7 +249,7 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
                 with sqlcon.cursor() as cursor:
                     for item in playlists['items']:
                         # Skip existing playlists
-                        if skip_existing: 
+                        if skip_existing:
                             cursor.execute("SELECT * FROM playlists WHERE playlist_id = %s", (item['id'],))
                             result = cursor.fetchone()
                             if result:
@@ -273,7 +273,7 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
                         # And use as the playlist date
                         video1 = ytc.get_playlist_items(playlist_id=playlist_id, count=None, return_json=True)
                         date = video1['items'][0]['contentDetails']['videoPublishedAt'] if video1 else None
-                        latest_date = video1['items'][-1]['contentDetails']['videoPublishedAt'] if video1 else None
+                        latest_date = video1['items'][-1]['contentDetails']['videoPublishedAt'] if video1 and video1['items'][-1]['contentDetails'] else None
                         playlist_length = item['contentDetails']['itemCount']
                         thumbnail = item['snippet']['thumbnails']['high']['url'] if 'thumbnails' in item['snippet'] else None
                         duration: str = None
