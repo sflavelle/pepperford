@@ -33,11 +33,11 @@ cache_timeout = 1*60*60 # 1 hour(s)
 
 item_table = {}
 
-def push_to_database(cursor: psql.Cursor, game: Game, database: str, column: str, payload):
-    try:
-            cursor.execute(f"UPDATE {database} set {column} = %s WHERE room_id = %s", (payload, room_id))
-    except Exception as e:
-        logger.error(f"Error pushing to database: {e}")
+# def push_to_database(cursor: psql.cursor, game: Game, database: str, column: str, payload):
+#     try:
+#             cursor.execute(f"UPDATE {database} set {column} = %s WHERE room_id = %s", (payload, room_id))
+#     except Exception as e:
+#         logger.error(f"Error pushing to database: {e}")
 
 
 class Game(dict):
