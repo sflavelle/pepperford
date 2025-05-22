@@ -111,7 +111,7 @@ async def settings(interaction: discord.Interaction, log_level: str = None, avat
             message_buffer.append("**Avatar:** The provided file is not an image.")
         else:
             # Set avatar for Pepper
-            await interaction.user.edit(avatar=await avatar.read())
+            await pon.user.edit(avatar=await avatar.read())
 
     # Finally send message
     await interaction.response.send_message("\n".join(message_buffer), ephemeral=True)
