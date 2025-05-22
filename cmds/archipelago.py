@@ -376,7 +376,10 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
 
 
         if not self.ctx.extras.get('ap_rooms'):
-            return await newpost.edit(content="No Archipelago room is currently set for this server.")
+            self.ctx.extras['ap_rooms'] = {}
+            self.fetch_guild_room(interaction.guild_id)
+            if not self.ctx.extras['ap_rooms'].get(interaction.guild_id):
+                return await newpost.edit(content="No Archipelago room is currently set for this server.")
 
         room = self.ctx.extras['ap_rooms'].get(interaction.guild_id)
         if not room:
