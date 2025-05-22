@@ -58,7 +58,7 @@ async def load_extensions(bot: commands.Bot):
         "cmds.raocow",
     ]:
         await bot.load_extension(ext,package=ext)
-        
+
 async def ext_autocomplete(ctx: discord.Interaction, current: str) -> typing.List[app_commands.Choice[str]]:
     permitted_values = list(pon.extensions.keys())
     if len(current) == 0:
@@ -79,7 +79,7 @@ async def extension_reload(interaction: discord.Interaction, extension: str):
 
 @commands.is_owner()
 @app_commands.command()
-async def settings(interaction: discord.Interaction, log_level: str = None):
+async def settings(interaction: discord.Interaction, log_level: str = None, avatar: discord.Attachment = None):
     """Configure settings for the bot"""
     message_buffer = []
     friendly_names = {
@@ -104,7 +104,15 @@ async def settings(interaction: discord.Interaction, log_level: str = None):
                 message_buffer.append(f"**{friendly_names['log_level']}:** `{log_level}` is not an accepted log level.")
 
         message_buffer.append(f"**{friendly_names['log_level']}:** Set the bot's logging level to `{log_level}`.")
-    
+
+    if avatar:
+        # Check if the attachment is an image
+        if not avatar.content_type.startswith("image/"):
+            message_buffer.append("**Avatar:** The provided file is not an image.")
+        else:
+            # Set avatar for Pepper
+            await interaction.user.edit(avatar=await avatar.read())
+
     # Finally send message
     await interaction.response.send_message("\n".join(message_buffer), ephemeral=True)
 
