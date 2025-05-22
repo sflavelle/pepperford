@@ -255,7 +255,7 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
                                 continue
                         # Skip playlists that already have their duration calculated
                         if skip_calculated:
-                            cursor.execute("SELECT * FROM playlists WHERE playlist_id = %s and duration is null", (item['id'],))
+                            cursor.execute("SELECT * FROM playlists WHERE playlist_id = %s and duration is not null", (item['id'],))
                             result = cursor.fetchone()
                             if result:
                                 logger.info(f"Skipping playlist {item['id']} (duration already calculated)")
