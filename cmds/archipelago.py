@@ -37,6 +37,7 @@ try:
         user=sqlcfg['user'],
         password=sqlcfg['password'] if 'password' in sqlcfg else None,
         host=sqlcfg['host'],
+        port=sqlcfg['port']
     )
     sqlcon.set_session(autocommit=True)
 except psql.OperationalError:

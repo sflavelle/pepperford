@@ -21,7 +21,8 @@ try:
         dbname=sqlcfg['database'],
         user=sqlcfg['user'],
         password=sqlcfg['password'] if 'password' in sqlcfg else None,
-        host=sqlcfg['host']
+        host=sqlcfg['host'],
+        port=sqlcfg['port']
     )
 except psql.OperationalError:
     # TODO Disable commands that need SQL connectivity
