@@ -138,9 +138,7 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
                     return
 
         # Format the results
-        id, title, datestamp, length, duration, visibility, thumbnail, game_link, latest_video = result
-
-        description = f"***Playlist Link:*** https://www.youtube.com/playlist?list={id}"
+        id, title, datestamp, length, duration, visibility, thumbnail, game_link, latest_video, aliases, series = result
 
         date_string: str = None
 
@@ -162,17 +160,22 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
 
         pl_embed = discord.Embed(
             title=title,
-            description=description,
+            description=None,
             color=discord.Color.red()
         )
+        pl_embed.add_field(name="Playlist Link", value=f"https://www.youtube.com/playlist?list={id}", inline=False)
         if game_link:
             pl_embed.add_field(name="Game Link(s)", value=game_link, inline=False)
         pl_embed.add_field(name="Videos", value=length, inline=True)
         pl_embed.add_field(name="Date(s)", value=date_string, inline=True)
         pl_embed.add_field(name="Duration", value=duration if duration else "N/A", inline=True)
+        if aliases:
+            pl_embed.add_field(name="Aliases (also known as)", value=join_words(aliases), inline=False)
         if thumbnail:
             pl_embed.set_thumbnail(url=thumbnail)
         # pl_embed.set_footer(text="raocow on youtube: https://www.youtube.com/@raocow")
+        if series:
+            pl_embed.set_footer(text=f"a game in the {series} series")
 
         logger.info(f"Playlist: Found playlist {title} ({id}), sending")
         await interaction.followup.send(embed=pl_embed,ephemeral=not public)
