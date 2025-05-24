@@ -360,10 +360,6 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
         logger.info("Setting up room data...")
         self.fetch_guild_room(interaction.guild_id)
 
-        # Persist the room data to disk
-        with open('ap_rooms.json', 'w', encoding='UTF-8') as file:
-            json.dump(self.ctx.extras['ap_rooms'], file, indent=4)
-
         logger.info(f"Set room for {interaction.guild.name} ({interaction.guild.id}) to {room_url}")
         await newpost.edit(content=f"Set room for {interaction.guild.name} to {room_url} !")
 
