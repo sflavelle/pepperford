@@ -117,7 +117,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
 
     async def db_game_complete(self, ctx: discord.Interaction, current: str) -> typing.List[app_commands.Choice[str]]:
         cursor = sqlcon.cursor()
-        cursor.execute("select game, count(*) from item_classification group by game;")
+        cursor.execute("select game, count(*) from archipelago.item_classifications group by game;")
         response = sorted([opt[0] for opt in cursor.fetchall()])
         if len(current) == 0:
             return [app_commands.Choice(name=opt,value=opt) for opt in response[:20]]
@@ -127,7 +127,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
     async def db_item_complete(self, ctx: discord.Interaction, current: str) -> typing.List[app_commands.Choice[str]]:
         cursor = sqlcon.cursor()
         game_selection = ctx.data['options'][0]['options'][0]['options'][0]['value']
-        cursor.execute(f"select item from item_classification where game = '{str(game_selection)}';")
+        cursor.execute(f"select item from archipelago.item_classifications where game = '{str(game_selection)}';")
         response = sorted([opt[0] for opt in cursor.fetchall()])
         if len(current) == 0:
             return [app_commands.Choice(name=opt,value=opt) for opt in response[:20]]
@@ -139,7 +139,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
     async def db_location_complete(self, ctx: discord.Interaction, current: str) -> typing.List[app_commands.Choice[str]]:
         cursor = sqlcon.cursor()
         game_selection = ctx.data['options'][0]['options'][0]['options'][0]['value']
-        cursor.execute(f"select location from game_locations where game = '{str(game_selection)}';")
+        cursor.execute(f"select location from archipelago.game_locations where game = '{str(game_selection)}';")
         response = sorted([opt[0] for opt in cursor.fetchall()])
         if len(current) == 0:
             return [app_commands.Choice(name=opt,value=opt) for opt in response[:20]]
@@ -198,13 +198,13 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
         cursor = sqlcon.cursor()
 
         if '%' in item or '?' in item:
-            cursor.execute("UPDATE item_classification SET classification = %s where game = %s and item like %s", (classification.lower(), game, item))
+            cursor.execute("UPDATE archipelago.item_classifications SET classification = %s where game = %s and item like %s", (classification.lower(), game, item))
             count = cursor.rowcount
             logger.info(f"Classified {str(count)} item(s) matching '{item}' in {game} to {classification}")
             return await interaction.response.send_message(f"Classification for {game}'s {str(count)} items matching '{item}' was successful.",ephemeral=True)
         else:
             try:
-                cursor.execute("UPDATE item_classification SET classification = %s where game = %s and item = %s", (classification.lower(), game, item))
+                cursor.execute("UPDATE archipelago.item_classifications SET classification = %s where game = %s and item = %s", (classification.lower(), game, item))
                 logger.info(f"Classified '{item}' in {game} to {classification}")
                 return await interaction.response.send_message(f"Classification for {game}'s '{item}' was successful.",ephemeral=True)
             finally:
@@ -221,13 +221,13 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
         cursor = sqlcon.cursor()
 
         if '%' in location:
-            cursor.execute("UPDATE game_locations SET is_checkable = %s where game = %s and location like %s", (is_checkable, game, location))
+            cursor.execute("UPDATE archipelago.game_locations SET is_checkable = %s where game = %s and location like %s", (is_checkable, game, location))
             count = cursor.rowcount
             logger.info(f"Classified {str(count)} locations(s) matching '{location}' in {game} to {'not ' if is_checkable is False else ''}checkable")
             return await interaction.response.send_message(f"Classification for {game}'s {str(count)} locations matching '{location}' was successful.",ephemeral=True)
         else:
             try:
-                cursor.execute("UPDATE game_locations SET is_checkable = %s where game = %s and location = %s", (is_checkable, game, location))
+                cursor.execute("UPDATE archipelago.game_locations SET is_checkable = %s where game = %s and location = %s", (is_checkable, game, location))
                 logger.info(f"Classified '{location}' in {game} to {'not ' if is_checkable is False else ''}checkable")
                 return await interaction.response.send_message(f"Classification for {game}'s '{location}' was successful.",ephemeral=True)
             finally:
@@ -258,13 +258,13 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                 for item in data['item_name_groups']['Everything']:
                     logger.info(f"Importing {game}: {item} to item_classification")
                     cursor.execute(
-                        "INSERT INTO item_classification (game, item, classification) VALUES (%s, %s, %s) ON CONFLICT (game, item) DO NOTHING;",
+                        "INSERT INTO archipelago.item_classifications (game, item, classification) VALUES (%s, %s, %s) ON CONFLICT (game, item) DO NOTHING;",
                         (game, item, None))
                 for location in data['location_name_groups']['Everywhere']:
                     logger.info(f"Importing {game}: {location} to game_locations")
                     # Any location that shows up in the datapackage appears to be checkable
                     cursor.execute(
-                        "INSERT INTO game_locations (game, location, is_checkable) VALUES (%s, %s, %s) ON CONFLICT (game, location) DO UPDATE SET is_checkable = EXCLUDED.is_checkable;",
+                        "INSERT INTO archipelago.game_locations (game, location, is_checkable) VALUES (%s, %s, %s) ON CONFLICT (game, location) DO UPDATE SET is_checkable = EXCLUDED.is_checkable;",
                         (game, location, True))
                 await newpost.edit(content=f"Imported {game}...")
 

@@ -18,7 +18,7 @@ with open('config.yaml', 'r', encoding='UTF-8') as file:
 sqlcfg = cfg['bot']['archipelago']['psql']
 try:
     sqlcon = psql.connect(
-        dbname=sqlcfg['database']['archipelago'],
+        dbname=sqlcfg['database'],
         user=sqlcfg['user'],
         password=sqlcfg['password'] if 'password' in sqlcfg else None,
         host=sqlcfg['host']
@@ -277,7 +277,7 @@ class Item(dict):
         if not isinstance(self.sender, Player):
             return False # Archipelago starting items, etc
         cursor = sqlcon.cursor()
-        cursor.execute("SELECT is_checkable FROM game_locations WHERE game = %s AND location = %s;", (self.sender.game, self.location))
+        cursor.execute("SELECT is_checkable FROM archipelago.game_locations WHERE game = %s AND location = %s;", (self.sender.game, self.location))
         response = cursor.fetchone()
         # logger.info(f"locationsdb: {self.sender.game}: {self.location} is checkable: {response[0]}") # debugging in info, yes i know
         return response[0] if response else False
@@ -293,20 +293,20 @@ class Item(dict):
         This should help to establish accurate location counts when we start tracking those."""
         cursor = sqlcon.cursor()
 
-        cursor.execute("CREATE TABLE IF NOT EXISTS game_locations (game bpchar, location bpchar, is_checkable boolean)")
+        cursor.execute("CREATE TABLE IF NOT EXISTS archipelago.game_locations (game bpchar, location bpchar, is_checkable boolean)")
 
         is_checkable: bool = None
 
         try:
-            cursor.execute("SELECT * FROM game_locations WHERE game = %s AND location = %s;", (self.sender.game, self.location))
+            cursor.execute("SELECT * FROM archipelago.game_locations WHERE game = %s AND location = %s;", (self.sender.game, self.location))
             game, location, is_checkable = cursor.fetchone()
             if is_checkable != is_check and is_check == True:
                 logger.info(f"Request to update checkable status for {self.sender.game}: {self.location} (to: {str(is_check)})")
-                cursor.execute("UPDATE game_locations set is_checkable = %s WHERE game = %s AND location = %s;", (str(is_check), game, location))
+                cursor.execute("UPDATE archipelago.game_locations set is_checkable = %s WHERE game = %s AND location = %s;", (str(is_check), game, location))
         except TypeError:
             logger.debug("Nothing found for this location, likely")
             logger.info(f"locationsdb: adding {self.sender.game}: {self.location} to the db")
-            cursor.execute("INSERT INTO game_locations VALUES (%s, %s, %s)", (self.sender.game, self.location, str(is_check)))
+            cursor.execute("INSERT INTO archipelago.game_locations VALUES (%s, %s, %s)", (self.sender.game, self.location, str(is_check)))
         finally:
             sqlcon.commit()
         logger.debug(f"locationsdb: classified {self.sender.game}: {self.location} as {is_checkable}")
@@ -352,10 +352,10 @@ class Item(dict):
             case _:
                 cursor = sqlcon.cursor()
 
-                cursor.execute("CREATE TABLE IF NOT EXISTS item_classification (game bpchar, item bpchar, classification varchar(32))")
+                cursor.execute("CREATE TABLE IF NOT EXISTS archipelago.item_classifications (game bpchar, item bpchar, classification varchar(32))")
 
                 try:
-                    cursor.execute("SELECT classification FROM item_classification WHERE game = %s AND item = %s;", (self.game, self.name))
+                    cursor.execute("SELECT classification FROM archipelago.item_classifications WHERE game = %s AND item = %s;", (self.game, self.name))
                     response = cursor.fetchone()[0]
                     if response == "conditional progression":
                         # Progression in certain settings, otherwise useful/filler
@@ -379,7 +379,7 @@ class Item(dict):
                 except TypeError:
                     logger.debug("Nothing found for this item, likely")
                     logger.info(f"itemsdb: adding {self.game}: {self.name} to the db")
-                    cursor.execute("INSERT INTO item_classification VALUES (%s, %s, %s)", (self.game, self.name, None))
+                    cursor.execute("INSERT INTO archipelago.item_classifications VALUES (%s, %s, %s)", (self.game, self.name, None))
                 finally:
                     sqlcon.commit()
         logger.debug(f"itemsdb: classified {self.game}: {self.name} as {response}")
@@ -409,10 +409,10 @@ class Item(dict):
         logger.info(f"Request to update classification for {self.game}: {self.name} (to: {classification})")
         cursor = sqlcon.cursor()
 
-        cursor.execute("CREATE TABLE IF NOT EXISTS item_classification (game bpchar, item bpchar, classification varchar(32))")
+        cursor.execute("CREATE TABLE IF NOT EXISTS archipelago.item_classifications (game bpchar, item bpchar, classification varchar(32))")
 
         try:
-            cursor.execute("UPDATE item_classification set classification = %s where game = %s and item = %s;", (classification, self.game, self.name))
+            cursor.execute("UPDATE archipelago.item_classifications set classification = %s where game = %s and item = %s;", (classification, self.game, self.name))
         finally:
             sqlcon.commit()
             self.set_item_classification(self.receiver)
