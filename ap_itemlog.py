@@ -245,7 +245,7 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
 
             # Update location totals
             ReceivedItemObject.db_add_location(True)
-            game.players[receiver].update_locations(game)
+            game.players[sender].update_locations(game)
             game.update_locations()
 
             if not skip_msg: logger.info(f"{sender}: ({str(game.players[sender].collected_locations)}/{str(game.players[sender].total_locations)}/{str(round(game.players[sender].collection_percentage,2))}%) {item_location} -> {receiver}'s {item} ({ReceivedItemObject.classification})")
