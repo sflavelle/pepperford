@@ -69,7 +69,7 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
         if not sqlcon:
             return []
         with sqlcon.cursor() as cursor:
-            cursor.execute("SELECT playlist_id, title FROM playlists where visible = 'true' order by datestamp desc")
+            cursor.execute("SELECT playlist_id, title FROM pepper.raocow_playlists where visible = 'true' order by datestamp desc")
             results = cursor.fetchall()
             # Extract the titles from the results
 
@@ -84,7 +84,7 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
         if not sqlcon:
             return []
         with sqlcon.cursor() as cursor:
-            cursor.execute("SELECT playlist_id, title FROM playlists order by datestamp desc")
+            cursor.execute("SELECT playlist_id, title FROM pepper.raocow_playlists order by datestamp desc")
             results = cursor.fetchall()
             # Extract the titles from the results
 
@@ -110,7 +110,7 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
         if search is None:
             logger.info("Playlist: Fetching a random playlist.")
             with sqlcon.cursor() as cursor:
-                cursor.execute("SELECT * FROM playlists where visible = 'true' ORDER BY RANDOM() LIMIT 1")
+                cursor.execute("SELECT * FROM pepper.raocow_playlists where visible = 'true' ORDER BY RANDOM() LIMIT 1")
                 result = cursor.fetchone()
 
                 if not result:
@@ -124,11 +124,11 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
                 if search.startswith("PL") and " " not in search:
                     # Choice returns the playlist ID
                     logger.info(f"Playlist: Searching for playlist ID {search}")
-                    cursor.execute("SELECT * FROM playlists WHERE playlist_id = %s and visible = 'true'", (search,))
+                    cursor.execute("SELECT * FROM pepper.raocow_playlists WHERE playlist_id = %s and visible = 'true'", (search,))
                 else:
                     # Search for the playlist title
                     logger.info(f"Playlist: Searching for playlist title matching {search}")
-                    cursor.execute("SELECT * FROM playlists WHERE title ILIKE %s and visible = 'true' order by datestamp desc", (search,))
+                    cursor.execute("SELECT * FROM pepper.raocow_playlists WHERE title ILIKE %s and visible = 'true' order by datestamp desc", (search,))
                 result = cursor.fetchone()
 
                 if not result:
@@ -171,7 +171,7 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
         pl_embed.add_field(name="Duration", value=duration if duration else "N/A", inline=True)
         if thumbnail:
             pl_embed.set_thumbnail(url=thumbnail)
-        pl_embed.set_footer(text="raocow on youtube: https://www.youtube.com/@raocow")
+        # pl_embed.set_footer(text="raocow on youtube: https://www.youtube.com/@raocow")
 
         logger.info(f"Playlist: Found playlist {title} ({id}), sending")
         await interaction.followup.send(embed=pl_embed,ephemeral=not public)
@@ -199,7 +199,7 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
         with sqlcon.cursor() as cursor:
             # Update the playlist in the database
             cursor.execute(f'''
-                UPDATE playlists
+                UPDATE pepper.raocow_playlists
                 SET title = COALESCE(%s, title),
                     datestamp = COALESCE(%s, datestamp),
                     visible = COALESCE(%s, visible),
@@ -210,7 +210,7 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
             sqlcon.commit()
             search_result = cursor.fetchone()
 
-        playlist_id, title, datestamp, length, duration, visibility, thumbnail, game_link, latest_video = search_result
+        playlist_id, new_title, datestamp, length, duration, visibility, thumbnail, game_link, latest_video = search_result
 
         message = f"Playlist {title} updated successfully.\n"
         for param in ["new_title", "new_datestamp", "visible", "new_game_link"]:
@@ -256,14 +256,14 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
                     for item in playlists['items']:
                         # Skip existing playlists
                         if skip_existing:
-                            cursor.execute("SELECT * FROM playlists WHERE playlist_id = %s", (item['id'],))
+                            cursor.execute("SELECT * FROM pepper.raocow_playlists WHERE playlist_id = %s", (item['id'],))
                             result = cursor.fetchone()
                             if result:
                                 logger.info(f"Skipping existing playlist {item['id']}")
                                 continue
                         # Skip playlists that already have their duration calculated
                         if skip_duration_calculated:
-                            cursor.execute("SELECT * FROM playlists WHERE playlist_id = %s and duration is not null", (item['id'],))
+                            cursor.execute("SELECT * FROM pepper.raocow_playlists WHERE playlist_id = %s and duration is not null", (item['id'],))
                             result = cursor.fetchone()
                             if result:
                                 logger.info(f"Skipping playlist {item['id']} (duration already calculated)")
@@ -310,7 +310,7 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
                                 duration = str(total_duration)
 
                         cursor.execute('''
-                                        INSERT INTO playlists (playlist_id, title, datestamp, length, duration, thumbnail, latest_video) VALUES (%s, %s, %s, %s, %s, %s, %s) ON CONFLICT (playlist_id) DO UPDATE
+                                        INSERT INTO pepper.raocow_playlists (playlist_id, title, datestamp, length, duration, thumbnail, latest_video) VALUES (%s, %s, %s, %s, %s, %s, %s) ON CONFLICT (playlist_id) DO UPDATE
                                         SET datestamp = EXCLUDED.datestamp, length = EXCLUDED.length, duration = COALESCE(playlists.duration, EXCLUDED.duration),
                                         thumbnail = EXCLUDED.thumbnail, latest_video = EXCLUDED.latest_video''',
                                         (playlist_id, title, date, playlist_length, duration, thumbnail, latest_date)

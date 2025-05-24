@@ -154,8 +154,8 @@ def process_spoiler_log(seed_url):
                     logger.info(f"Parsing seed {game.seed}")
                     logger.info(f"Generated on Archipelago version {game.version_generator}")
                     with sqlcon.cursor() as cursor:
-                        game.pushdb(cursor, 'games.all_rooms', 'seed', game.seed)
-                        game.pushdb(cursor, 'games.all_rooms', 'version', game.version_generator)
+                        game.pushdb(cursor, 'pepper.ap_all_rooms', 'seed', game.seed)
+                        game.pushdb(cursor, 'pepper.ap_all_rooms', 'version', game.version_generator)
                         sqlcon.commit()
                 else:
                     current_key, value = line.strip().split(':', 1)
@@ -360,7 +360,7 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
                 message = f"**The seed address has changed.** Use this updated address: `{address}`"
                 if not skip_msg:
                     with sqlcon.cursor() as cursor:
-                        game.pushdb(cursor, 'games.all_rooms', 'port', seed_address.split(":")[1])
+                        game.pushdb(cursor, 'pepper.ap_all_rooms', 'port', seed_address.split(":")[1])
                         sqlcon.commit()
                     send_chat("Archipelago", message)
                     message_buffer.append(message)
@@ -535,7 +535,7 @@ def watch_log(url, interval):
     logger.info(f"Total Players: {len(game.players)}")
     logger.info(f"Seed Address: {seed_address}")
     with sqlcon.cursor() as cursor:
-        game.pushdb(cursor, 'games.all_rooms', 'port', seed_address.split(":")[1])
+        game.pushdb(cursor, 'pepper.ap_all_rooms', 'port', seed_address.split(":")[1])
         sqlcon.commit()
 
     message_buffer.clear() # Clear buffer in case we have any old messages
@@ -561,15 +561,15 @@ def watch_log(url, interval):
         current_lines = fetch_log(url)
         if len(current_lines) > len(previous_lines):
             new_lines = current_lines[len(previous_lines):]
+            with sqlcon.cursor() as cursor:
+                game.pushdb(cursor, 'pepper.ap_all_rooms', 'last_line', len(current_lines))
+                sqlcon.commit()
             process_new_log_lines(new_lines)
             if message_buffer:
                 send_to_discord('\n'.join(message_buffer))
                 logger.info(f"sent {len(message_buffer)} messages to webhook")
                 message_buffer.clear()
             previous_lines = current_lines
-            with sqlcon.cursor() as cursor:
-                game.pushdb(cursor, 'games.all_rooms', 'last_line', len(current_lines))
-                sqlcon.commit()
 
 def process_releases():
     global release_buffer

@@ -122,7 +122,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
         if len(current) == 0:
             return [app_commands.Choice(name=opt,value=opt) for opt in response[:20]]
         else:
-            return [app_commands.Choice(name=opt,value=opt) for opt in response if current in opt][:20]
+            return [app_commands.Choice(name=opt,value=opt) for opt in response if current.lower() in opt.lower()][:20]
 
     async def db_item_complete(self, ctx: discord.Interaction, current: str) -> typing.List[app_commands.Choice[str]]:
         cursor = sqlcon.cursor()
@@ -134,7 +134,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
         elif "%" in current or "?" in current:
             return [app_commands.Choice(name=f"{current} (Multi-Selection)",value=current)]
         else:
-            return [app_commands.Choice(name=opt,value=opt) for opt in response if current in opt][:20]
+            return [app_commands.Choice(name=opt,value=opt) for opt in response if current.lower() in opt.lower()][:20]
 
     async def db_location_complete(self, ctx: discord.Interaction, current: str) -> typing.List[app_commands.Choice[str]]:
         cursor = sqlcon.cursor()
@@ -146,7 +146,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
         elif "%" in current or "?" in current:
             return [app_commands.Choice(name=f"{current} (Multi-Selection)",value=current)]
         else:
-            return [app_commands.Choice(name=opt,value=opt) for opt in response if current in opt][:20]
+            return [app_commands.Choice(name=opt,value=opt) for opt in response if current.lower() in opt.lower()][:20]
 
     async def db_classification_complete(self, ctx: discord.Interaction, current: str) -> typing.List[app_commands.Choice[str]]:
         permitted_values = [
@@ -160,7 +160,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
         if len(current) == 0:
             return [app_commands.Choice(name=opt.title(),value=opt) for opt in permitted_values]
         else:
-            return [app_commands.Choice(name=opt.title(),value=opt) for opt in permitted_values if current in opt]
+            return [app_commands.Choice(name=opt.title(),value=opt) for opt in permitted_values if current.lower() in opt.lower()]
 
     @commands.is_owner()
     @db.command(name='select')
@@ -277,7 +277,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
         if len(current) == 0:
             return [app_commands.Choice(name=opt,value=opt) for opt in permitted_values]
         else:
-            return [app_commands.Choice(name=opt,value=opt) for opt in permitted_values if current in opt.lower()]
+            return [app_commands.Choice(name=opt,value=opt) for opt in permitted_values if current.lower() in opt.lower()]
 
     @aproom.command()
     @app_commands.autocomplete(slot_name=link_slot_complete)
@@ -287,7 +287,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
         if user is None:
             user = interaction.user
 
-        cmd = "UPDATE games.players SET discord_user = %s WHERE player_name = %s"
+        cmd = "UPDATE pepper.ap_players SET discord_user = %s WHERE player_name = %s"
         with sqlcon.cursor() as cursor:
             cursor.execute(cmd, (user.id, slot_name))
             # sqlcon.commit()
@@ -338,10 +338,10 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                 (
                     # This is a PostgreSQL function that deals with updating
                     # all the various tables that need to be updated
-                    # Master room table: games.all_rooms
-                    # Master players table: games.players
-                    # Active rooms/players table: games.room_players
-                    '''SELECT games.create_room_with_players(%s, %s, %s, %s, %s);''',
+                    # Master room table: pepper.ap_all_rooms
+                    # Master players table: pepper.ap_players
+                    # Active rooms/players table: pepper.ap_room_players
+                    '''SELECT pepper.create_aproom(%s, %s, %s, %s, %s);''',
                     (room_id, interaction.guild_id, players, hostname, room_port)
                 ),
             ]
@@ -386,7 +386,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
         linked_slots = []
         with sqlcon.cursor() as cursor:
             cursor.execute(
-                "SELECT rp.player_name FROM games.room_players rp JOIN games.players p ON rp.player_name = p.player_name WHERE rp.room_id = %s AND rp.guild = %s AND p.discord_user = %s;",
+                "SELECT rp.player_name FROM pepper.ap_room_players rp JOIN pepper.ap_players p ON rp.player_name = p.player_name WHERE rp.room_id = %s AND rp.guild = %s AND p.discord_user = %s;",
                 (room["room_id"], interaction.guild_id, interaction.user.id),
             )
             linked_slots = [row[0] for row in cursor.fetchall()]
@@ -654,7 +654,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
             return self.ctx.extras['ap_rooms'].get(guild_id, {})
         else:
             with sqlcon.cursor() as cursor:
-                cursor.execute("SELECT * FROM games.all_rooms WHERE guild = %s and active = 'true' LIMIT 1", (guild_id,))
+                cursor.execute("SELECT * FROM pepper.ap_all_rooms WHERE guild = %s and active = 'true' LIMIT 1", (guild_id,))
                 result = cursor.fetchone()
                 if result:
                     roomdict = {
