@@ -283,11 +283,33 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
                         # And use as the playlist date
                         pl_videos = ytc.get_playlist_items(playlist_id=playlist_id, count=None, return_json=True)
                         logger.info(f"Playlist {playlist_id} first video: {pl_videos['items'][0]['snippet']['title']}")
+                        first_id = pl_videos['items'][0]['snippet']['resourceId']['videoId']
+
+                        # For fan-channels:
+                        # Make sure this playlist is not already uploaded by raocow himself
+                        if channel_id in channel_ids[1:]:
+                            cursor.execute('SELECT video_id, playlist_id, channel_id from pepper.raocow_videos where playlist_id = %s and channel_id = %s', (playlist_id, channel_ids[0]))
+                            query_exists = cursor.fetchall()
+                            if bool(query_exists):
+                                logger.warning(f"Playlist uploaded already by official channel, skipping.")
+                                continue
+
+
                         date = pl_videos['items'][0]['contentDetails']['videoPublishedAt'] if pl_videos else None
                         latest_date = None
                         playlist_length = item['contentDetails']['itemCount']
                         thumbnail = item['snippet']['thumbnails']['high']['url'] if 'thumbnails' in item['snippet'] else None
                         duration = None
+
+                        for v in pl_videos['items']:
+                            if v['status']['privacyStatus'] in ['private', 'unlisted']:
+                                    continue
+                            vdate = v['contentDetails']['videoPublishedAt']
+                            vid = v['snippet']['resourceId']['videoId']
+                            pid = item['id']
+                            vtitle = v['snippet']['title']
+                            cursor.execute('INSERT INTO pepper.raocow_videos (video_id, playlist_id, title, datestamp, channel_id) VALUES (%s, %s, %s, %s, %s)'
+                            'ON CONFLICT (video_id) DO NOTHING', (vid, pid, vtitle, vdate, channel_id))
 
                         if 'videoPublishedAt' in pl_videos['items'][-1]['contentDetails']:
                             latest_date = pl_videos['items'][-1]['contentDetails']['videoPublishedAt']
@@ -316,7 +338,7 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
                         cursor.execute('''
                                         INSERT INTO pepper.raocow_playlists (playlist_id, title, datestamp, length, duration, thumbnail, latest_video) VALUES (%s, %s, %s, %s, %s, %s, %s) ON CONFLICT (playlist_id) DO UPDATE
                                         SET datestamp = EXCLUDED.datestamp, length = EXCLUDED.length, duration = COALESCE(playlists.duration, EXCLUDED.duration),
-                                        thumbnail = EXCLUDED.thumbnail, latest_video = EXCLUDED.latest_video''',
+                                        thumbnail = EXCLUDED.thumbnail, latest_video = EXCLUDED.latest_video, channel_id = EXCLUDED.channel_id''',
                                         (playlist_id, title, date, playlist_length, duration, thumbnail, latest_date)
                                         )
                         sqlcon.commit()
