@@ -67,32 +67,42 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
     async def playlist_autocomplete(self, ctx: discord.Interaction, current: str) -> typing.List[app_commands.Choice[str]]:
         """Autocomplete for the playlist command."""
 
+        results = None
+
         if not sqlcon:
             return []
         with sqlcon.cursor() as cursor:
-            cursor.execute("SELECT playlist_id, title FROM pepper.raocow_playlists where visible = 'true' order by datestamp desc")
+            cursor.execute("SELECT playlist_id, title, aliases FROM pepper.raocow_playlists where visible = 'true' order by datestamp desc")
             results = cursor.fetchall()
-            # Extract the titles from the results
+
+        options = []
+        for result in results:
+            options.append((result[0], f"{result[1] ({", ".join(result[2])})}" if bool(result[2]) else result[1]))
 
         if len(current) == 0:
-            return [app_commands.Choice(name=opt[1][:100],value=opt[0]) for opt in results][:25]
+            return [app_commands.Choice(name=opt[1][:100],value=opt[0]) for opt in options][:25]
         else:
-            return [app_commands.Choice(name=opt[1][:100],value=opt[0]) for opt in results if (current.lower() in opt[1].lower() or current.upper() in opt[2])][:25]
+            return [app_commands.Choice(name=opt[1][:100],value=opt[0]) for opt in options if current.lower() in opt[1].lower()][:25]
 
     async def playlist_autocomplete_all(self, ctx: discord.Interaction, current: str) -> typing.List[app_commands.Choice[str]]:
         """Autocomplete for the playlist command (all videos, including non-visible)."""
+
+        results = None
 
         if not sqlcon:
             return []
         with sqlcon.cursor() as cursor:
             cursor.execute("SELECT playlist_id, title, aliases FROM pepper.raocow_playlists order by datestamp desc")
             results = cursor.fetchall()
-            # Extract the titles from the results
+        
+        options = []
+        for result in results:
+            options.append((result[0], f"{result[1] ({", ".join(result[2])})}" if bool(result[2]) else result[1]))
 
         if len(current) == 0:
-            return [app_commands.Choice(name=opt[1],value=opt[0]) for opt in results][:25]
+            return [app_commands.Choice(name=opt[1],value=opt[0]) for opt in options][:25]
         else:
-            return [app_commands.Choice(name=opt[1],value=opt[0]) for opt in results if (current.lower() in opt[1].lower() or current.upper() in opt[2])][:25]
+            return [app_commands.Choice(name=opt[1],value=opt[0]) for opt in options if current.lower() in opt[1].lower()][:25]
 
     @app_commands.command()
     @app_commands.autocomplete(search=playlist_autocomplete)
