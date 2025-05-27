@@ -85,14 +85,14 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
         if not sqlcon:
             return []
         with sqlcon.cursor() as cursor:
-            cursor.execute("SELECT playlist_id, title FROM pepper.raocow_playlists order by datestamp desc")
+            cursor.execute("SELECT playlist_id, title, aliases FROM pepper.raocow_playlists order by datestamp desc")
             results = cursor.fetchall()
             # Extract the titles from the results
 
         if len(current) == 0:
             return [app_commands.Choice(name=opt[1],value=opt[0]) for opt in results][:25]
         else:
-            return [app_commands.Choice(name=opt[1],value=opt[0]) for opt in results if current.lower() in opt[1].lower()][:25]
+            return [app_commands.Choice(name=opt[1],value=opt[0]) for opt in results if (current.lower() in opt[1].lower() or current.upper() in opt[2])][:25]
 
     @app_commands.command()
     @app_commands.autocomplete(search=playlist_autocomplete)
