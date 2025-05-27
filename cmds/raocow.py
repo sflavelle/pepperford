@@ -148,7 +148,7 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
                     return
 
         # Format the results
-        id, title, datestamp, length, duration, visibility, thumbnail, game_link, latest_video, aliases, series = result
+        id, title, datestamp, length, duration, visibility, thumbnail, game_link, latest_video, alias, series = result
 
         date_string: str = None
 
@@ -179,8 +179,8 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
         pl_embed.add_field(name="Videos", value=length, inline=True)
         pl_embed.add_field(name="Date(s)", value=date_string, inline=True)
         pl_embed.add_field(name="Duration", value=duration if duration else "N/A", inline=True)
-        if aliases:
-            pl_embed.add_field(name="Aliases (also known as)", value=join_words(aliases), inline=False)
+        if alias:
+            pl_embed.add_field(name="Alias (also known as)", value=alias, inline=False)
         if thumbnail:
             pl_embed.set_thumbnail(url=thumbnail)
         # pl_embed.set_footer(text="raocow on youtube: https://www.youtube.com/@raocow")
