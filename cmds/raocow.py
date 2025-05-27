@@ -72,12 +72,12 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
         if not sqlcon:
             return []
         with sqlcon.cursor() as cursor:
-            cursor.execute("SELECT playlist_id, title, aliases FROM pepper.raocow_playlists where visible = 'true' order by datestamp desc")
+            cursor.execute("SELECT playlist_id, title, alias FROM pepper.raocow_playlists where visible = 'true' order by datestamp desc")
             results = cursor.fetchall()
 
         options = []
         for result in results:
-            options.append((result[0], f"{result[1] ({", ".join(result[2])})}" if bool(result[2]) else result[1]))
+            options.append((result[0], f"{result[1]} ({result[2]})" if bool(result[2]) else result[1]))
 
         if len(current) == 0:
             return [app_commands.Choice(name=opt[1][:100],value=opt[0]) for opt in options][:25]
@@ -92,12 +92,12 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
         if not sqlcon:
             return []
         with sqlcon.cursor() as cursor:
-            cursor.execute("SELECT playlist_id, title, aliases FROM pepper.raocow_playlists order by datestamp desc")
+            cursor.execute("SELECT playlist_id, title, alias FROM pepper.raocow_playlists order by datestamp desc")
             results = cursor.fetchall()
         
         options = []
         for result in results:
-            options.append((result[0], f"{result[1] ({", ".join(result[2])})}" if bool(result[2]) else result[1]))
+            options.append((result[0], f"{result[1]} ({result[2]})" if bool(result[2]) else result[1]))
 
         if len(current) == 0:
             return [app_commands.Choice(name=opt[1],value=opt[0]) for opt in options][:25]
