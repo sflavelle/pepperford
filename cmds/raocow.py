@@ -77,7 +77,7 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
         if len(current) == 0:
             return [app_commands.Choice(name=opt[1][:100],value=opt[0]) for opt in results][:25]
         else:
-            return [app_commands.Choice(name=opt[1][:100],value=opt[0]) for opt in results if current.lower() in opt[1].lower()][:25]
+            return [app_commands.Choice(name=opt[1][:100],value=opt[0]) for opt in results if (current.lower() in opt[1].lower() or current.upper() in opt[2])][:25]
 
     async def playlist_autocomplete_all(self, ctx: discord.Interaction, current: str) -> typing.List[app_commands.Choice[str]]:
         """Autocomplete for the playlist command (all videos, including non-visible)."""
