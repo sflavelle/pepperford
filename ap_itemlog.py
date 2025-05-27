@@ -280,9 +280,9 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
                 if not skip_msg: message_buffer.append(message.replace("_",r"\_"))
 
                 # Handle completion milestones
-                if game.players[receiver].collection_percentage == 100 and game.players[receiver].is_finished() is False:
-                    message = f"**That was their last check! They're probably just waiting to finish now...**"
-                    message_buffer.append(message)
+                # if game.players[sender].collection_percentage == 100 and game.players[sender].is_finished() is False:
+                #     message = f"**That was their last check! They're probably just waiting to finish now...**"
+                #     message_buffer.append(message)
 
 
         elif match := regex_patterns['item_hints'].match(line):
