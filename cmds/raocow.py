@@ -401,7 +401,7 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
                         cursor.execute('''
                                         INSERT INTO pepper.raocow_playlists (playlist_id, title, datestamp, length, duration, thumbnail, latest_video) VALUES (%s, %s, %s, %s, %s, %s, %s) 
                                         ON CONFLICT (playlist_id) DO UPDATE
-                                        SET datestamp = EXCLUDED.datestamp, length = EXCLUDED.length, duration = COALESCE(duration, EXCLUDED.duration),
+                                        SET datestamp = EXCLUDED.datestamp, length = EXCLUDED.length, duration = COALESCE(EXCLUDED.duration, pepper.raocow_playlists.duration),
                                         thumbnail = EXCLUDED.thumbnail, latest_video = EXCLUDED.latest_video, channel_id = EXCLUDED.channel_id''',
                                         (playlist_id, title, date, playlist_length, duration, thumbnail, latest_date)
                                         )
