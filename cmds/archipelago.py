@@ -364,6 +364,40 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
         logger.info(f"Set room for {interaction.guild.name} ({interaction.guild.id}) to {room_url}")
         await newpost.edit(content=f"Set room for {interaction.guild.name} to {room_url} !")
 
+    @aproom.command(name="status")
+    async def room_status(self, interaction: discord.Interaction, public: bool = False):
+        """Get the status of the current Archipelago room."""
+        deferpost = await interaction.response.defer(ephemeral=not public, thinking=True,)
+        newpost = await interaction.original_response()
+
+        if not self.ctx.extras.get('ap_rooms'):
+            self.ctx.extras['ap_rooms'] = {}
+            self.fetch_guild_room(interaction.guild_id)
+            if not self.ctx.extras['ap_rooms'].get(interaction.guild_id):
+                return await newpost.edit(content="No Archipelago room is currently set for this server.")
+
+        room = self.ctx.extras['ap_rooms'].get(interaction.guild_id)
+        if not room:
+            return await newpost.edit(content="No Archipelago room is currently set for this server.")
+
+        game_table = requests.get(f"http://localhost:42069/inspectgame", timeout=10).json()
+
+        if not game_table:
+            return await newpost.edit(content="Couldn't fetch the game table from the running Archipelago game.")
+        
+        msg_lines = []
+
+        msg_lines.append(f"**Archipelago Room Status**")
+        msg_lines.append(f"This game is {game_table['collection_percentage']}% complete. ({game_table['collected_locations']} out of {game_table['total_locations']} locations checked.)")
+
+        for player in game_table['players']:
+            if player['goaled'] is True:
+                msg_lines.append(f"**{player['name']} ({player['game']})**: finished their game.")
+            else:
+                msg_lines.append(f"**{player['name']} ({player['game']})**: {player['collection_percentage']}% complete. ({player['collected_locations']} out of {player['total_locations']} locations checked.)")
+
+        await newpost.edit(content="\n".join(msg_lines))
+
     @aproom.command()
     async def get_hints(self, interaction: discord.Interaction, public: bool = False):
         """Get hints for the current room."""
