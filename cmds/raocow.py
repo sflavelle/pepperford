@@ -278,7 +278,12 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
             id, title, datestamp, length, duration, visibility, thumbnail, game_link, latest_video, alias, series, channel_id = result
             date_string = f"{datestamp} - {latest_video}" if latest_video else str(datestamp)
 
-            playlist_strings.append(f"- **[{title}](https://www.youtube.com/playlist?list={id})** - Date(s): {date_string} / {length} videos / {duration if duration else 'duration N/A'}")
+            playlist_strings.append(f"- **[{title}](https://www.youtube.com/playlist?list={id})** - Date(s): {datestamp} / {length} videos")
+
+        # If the full message exceeds Discord's character limit, truncate it
+        if len("\n".join(playlist_strings)) > 2000:
+            playlist_strings = playlist_strings[:10]
+            playlist_strings.append("\n... (truncated, too many playlists)")
 
         await interaction.followup.send("\n".join(playlist_strings),ephemeral=not public)
 
