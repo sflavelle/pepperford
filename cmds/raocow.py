@@ -270,7 +270,7 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
 
         embed = discord.Embed(title=f"Playlists for Series: {series_name}", color=discord.Color.blue())
         for result in results:
-            id, title, datestamp, length, duration, visibility, thumbnail, game_link, latest_video, alias = result
+            id, title, datestamp, length, duration, visibility, thumbnail, game_link, latest_video, alias, series = result
             date_string = f"{datestamp} - {latest_video}" if latest_video else str(datestamp)
             embed.add_field(name=f"[title](https://www.youtube.com/playlist?list={id})", value=f"Date(s): {date_string} / {length} videos, {duration if duration else 'duration N/A'}", inline=False)
 
