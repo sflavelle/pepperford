@@ -357,7 +357,7 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
                         # For fan-channels:
                         # Make sure this playlist is not already uploaded by raocow himself
                         if channel_id in channel_ids[1:]:
-                            cursor.execute('SELECT video_id, playlist_id, channel_id from pepper.raocow_videos where playlist_id = %s and channel_id = %s', (playlist_id, channel_ids[0]))
+                            cursor.execute('SELECT video_id, playlist_id, channel_id from pepper.raocow_videos where playlist_id = %s and channel_id = %s', (channel_ids[0],))
                             query_exists = cursor.fetchall()
                             if bool(query_exists):
                                 logger.warning(f"Playlist uploaded already by official channel, skipping.")
@@ -373,7 +373,7 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
                         for v in pl_videos['items']:
                             if v['status']['privacyStatus'] in ['private', 'unlisted']:
                                     continue
-                            vdate = v['contentDetails']['videoPublishedAt']
+                            vdate = v['contentDetails']['videoPublishedAt'] if 'videoPublishedAt' in v['contentDetails'] else v['snippet']['publishedAt']
                             vid = v['snippet']['resourceId']['videoId']
                             pid = item['id']
                             vtitle = v['snippet']['title']
@@ -405,11 +405,11 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
                                 duration = str(total_duration)
 
                         cursor.execute('''
-                                        INSERT INTO pepper.raocow_playlists (playlist_id, title, datestamp, length, duration, thumbnail, latest_video) VALUES (%s, %s, %s, %s, %s, %s, %s) 
+                                        INSERT INTO pepper.raocow_playlists (playlist_id, title, datestamp, length, duration, thumbnail, latest_video, channel_id) VALUES (%s, %s, %s, %s, %s, %s, %s, %s) 
                                         ON CONFLICT (playlist_id) DO UPDATE
                                         SET datestamp = EXCLUDED.datestamp, length = EXCLUDED.length, duration = COALESCE(EXCLUDED.duration, pepper.raocow_playlists.duration),
                                         thumbnail = EXCLUDED.thumbnail, latest_video = EXCLUDED.latest_video, channel_id = EXCLUDED.channel_id''',
-                                        (playlist_id, title, date, playlist_length, duration, thumbnail, latest_date)
+                                        (playlist_id, title, date, playlist_length, duration, thumbnail, latest_date, channel_id)
                                         )
                         sqlcon.commit()
                         logger.info(f"Inserted playlist {playlist_id} into database.")
