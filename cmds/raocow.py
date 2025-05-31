@@ -252,7 +252,7 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
     @app_commands.command()
     @app_commands.autocomplete(series_name=series_autocomplete)
     @app_commands.describe(series_name="The series to fetch playlists for")
-    async def series(interaction: discord.Interaction, series_name: str, public: bool = False):
+    async def series(self, interaction: discord.Interaction, series_name: str, public: bool = False):
         """Get a list of playlists for a specific series."""
         await interaction.response.defer(thinking=not public,ephemeral=True)
 
