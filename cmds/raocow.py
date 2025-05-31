@@ -307,8 +307,9 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
 
         if include_fanchannels:
             channel_ids = channel_ids + [
-                "UCeYAO0Cw3RRwicMZQ2tGD9A" # raoclassic (fan channel with pre-YouTube content)
-                "UC5DLg0WeN4kLbJ8vmJDVAkg" # RaocowGV (Google Video archive)
+                "UCKnEkwBqrai2GB6Rxl1OqCA" # raolists (fan channel with playlists)
+                # "UC5DLg0WeN4kLbJ8vmJDVAkg" # RaocowGV (Google Video archive)
+                # "UCeYAO0Cw3RRwicMZQ2tGD9A" # raoclassic (fan channel with pre-YouTube content)
             ]
 
         ytc = Api(api_key=api_key)
@@ -341,6 +342,11 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
                         logger.debug(f"Playlist item: {item}")
                         playlist_id = item['id']
                         title = item['snippet']['title']
+
+                        if channel_id == "UCKnEkwBqrai2GB6Rxl1OqCA":
+                            # Raolists prefixes every playlist with a number
+                            # Remove the number prefix from the title
+                            title = title.split('. ', 1)[-1] if '. ' in title else title
 
                         # Get the date of the first video in the playlist
                         # And use as the playlist date
