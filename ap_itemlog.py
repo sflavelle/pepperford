@@ -161,7 +161,10 @@ def process_spoiler_log(seed_url):
                         sqlcon.commit()
                 else:
                     current_key, value = line.strip().split(':', 1)
-                    game.world_settings[current_key.strip()] = parse_to_type(value.lstrip())
+                    if "," in value.lstrip():
+                        # Parse as a list
+                        game.players[working_player].settings[current_key.strip()] = [parse_to_type(v.strip()) for v in value.lstrip().split(',')]
+                    else: game.world_settings[current_key.strip()] = parse_to_type(value.lstrip())
 
             case "Players":
                 current_key, value = line.strip().split(':', 1)
