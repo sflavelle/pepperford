@@ -652,21 +652,17 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                             required = len(settings['Included Levels'])
                         return f"{item} ({count}/{required})"
                     if any([item.startswith(color) for color in ["Blue","Yellow","Red"]]) and not item == "BlueArmor":
-                        try:
-                            item_match = item_regex.match(item)
-                            subitem,map = item_match.groups()
-                            collected_string = str()
-                            keys = [f"{color}{key}" for color in ["Blue","Yellow","Red"] for key in ["Skull", "Card"]]
-                            map_keys = sorted([i for i in item_table['gzDoom'].keys() if (i.endswith(f"({map})") and any([key in i for key in keys]))])
-                            for i in map_keys:
-                                if i in player.items: collected_string += i[0]
-                                else: collected_string += "_"
-                            if f"Level Access ({map})" not in player.items:
-                                collected_string = f"~~{collected_string}~~" # Strikethrough keys if not found
-                            return f"{item} ({collected_string})"
-                        except AttributeError as e:
-                            logger.error(f"Error while parsing tracking info for item {item} in game {game}:",e,exc_info=True)
-                            return item
+                        item_match = item_regex.match(item)
+                        subitem,map = item_match.groups()
+                        collected_string = str()
+                        keys = [f"{color}{key}" for color in ["Blue","Yellow","Red"] for key in ["Skull", "Card"]]
+                        map_keys = sorted([i for i in item_table['gzDoom'].keys() if (i.endswith(f"({map})") and any([key in i for key in keys]))])
+                        for i in map_keys:
+                            if i in player.items: collected_string += i[0]
+                            else: collected_string += "_"
+                        if f"Level Access ({map})" not in player.items:
+                            collected_string = f"~~{collected_string}~~" # Strikethrough keys if not found
+                        return f"{item} ({collected_string})"
                 case "Here Comes Niko!":
                     if item == "Cassette":
                         required = max({k: v for k, v in settings.items() if "Cassette Cost" in k}.values())
@@ -701,7 +697,7 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                         return f"{item} ({capacities[player.items[item].count]} Capacity)"
                 case "Simon Tatham's Portable Puzzle Collection":
                     # Tracking total access to puzzles instead of completion percentage, that's for the locations
-                    total = settings['puzzle_count']
+                    total = settings['Puzzle Count']
                     count = len(player.items)
                     return f"{item} ({count}/{total})"
                 case "Sonic Adventure 2 Battle":
@@ -811,7 +807,7 @@ def handle_location_tracking(game: Game, player: Player, item: Item):
                 # There'll probably be something here later
                 return location.replace("_", " ").replace("-"," - ")
             case "Simon Tatham's Portable Puzzle Collection":
-                required = round(settings['puzzle_count']
+                required = round(settings['Puzzle Count']
                                  * (settings['Target Completion Percentage'] / 100))
                 count = player.collected_locations
                 return f"{location} ({count}/{required})"
