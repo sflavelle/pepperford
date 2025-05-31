@@ -77,12 +77,12 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
 
         options = []
         for result in results:
-            options.append((result[0], f"{result[1]} ({result[2]})" if bool(result[2]) else result[1]))
+            options.append((result[0], result[1], f"{result[1]} ({result[2]})" if bool(result[2]) else result[1]))
 
         if len(current) == 0:
             return [app_commands.Choice(name=opt[1][:100],value=opt[0]) for opt in options][:25]
         else:
-            return [app_commands.Choice(name=opt[1][:100],value=opt[0]) for opt in options if current.lower() in opt[1].lower()][:25]
+            return [app_commands.Choice(name=opt[1][:100],value=opt[0]) for opt in options if current.lower() in opt[2].lower()][:25]
 
     async def playlist_autocomplete_all(self, ctx: discord.Interaction, current: str) -> typing.List[app_commands.Choice[str]]:
         """Autocomplete for the playlist command (all videos, including non-visible)."""
@@ -97,12 +97,12 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
         
         options = []
         for result in results:
-            options.append((result[0], f"{result[1]} ({result[2]})" if bool(result[2]) else result[1]))
+            options.append((result[0], result[1], f"{result[1]} ({result[2]})" if bool(result[2]) else result[1]))
 
         if len(current) == 0:
-            return [app_commands.Choice(name=opt[1],value=opt[0]) for opt in options][:25]
+            return [app_commands.Choice(name=opt[1][:100],value=opt[0]) for opt in options][:25]
         else:
-            return [app_commands.Choice(name=opt[1],value=opt[0]) for opt in options if current.lower() in opt[1].lower()][:25]
+            return [app_commands.Choice(name=opt[1][:100],value=opt[0]) for opt in options if current.lower() in opt[2].lower()][:25]
 
     @app_commands.command()
     @app_commands.autocomplete(search=playlist_autocomplete)
