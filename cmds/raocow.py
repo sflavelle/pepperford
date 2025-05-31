@@ -72,7 +72,7 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
         if not sqlcon:
             return []
         with sqlcon.cursor() as cursor:
-            cursor.execute("SELECT series_name FROM pepper.raocow_series where order by series_name asc")
+            cursor.execute("SELECT series_name FROM pepper.raocow_series order by series_name asc")
             results = cursor.fetchall()
 
         if len(current) == 0:
