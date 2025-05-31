@@ -8,6 +8,7 @@ import ast
 import logging
 from collections import defaultdict
 import requests
+import fnmatch
 import threading
 import yaml
 from cmds.ap_scripts.utils import Game, Item, CollectedItem, Player, PlayerSettings, handle_item_tracking, handle_location_tracking, handle_location_hinting
@@ -188,6 +189,24 @@ def process_spoiler_log(seed_url):
                     game.players[receiver].items[item] = ItemObject
             case _:
                 continue
+
+    # Some game-specific handling
+    for player in game.players.values():
+        if player.game == "gzDoom":
+            # If gzDoom has a wildcard in the map list, we need to handle it
+            expanded_levels = set()
+            patterns = player.settings.get("Included Levels", [])
+            for pattern in patterns:
+                if "*" in pattern or "?" in pattern:
+                    # Find all unique map names in player's locations that match the pattern
+                    for location in player.locations:
+                        map_name = location.split(" - ")[0]
+                        if fnmatch.fnmatch(map_name, pattern):
+                            expanded_levels.add(map_name)
+                else:
+                    expanded_levels.add(pattern)
+            # Remove duplicates and update Included Levels
+            player.settings["Included Levels"] = sorted(expanded_levels)
     logger.info("Done parsing the spoiler log")
 
 def process_new_log_lines(new_lines, skip_msg: bool = False):
