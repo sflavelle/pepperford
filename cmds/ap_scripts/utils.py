@@ -506,284 +506,292 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
         game = player.game
         count = player.items[item].count
 
-        match game:
-            case "A Link to the Past":
-                if item == "Triforce Piece" and "Triforce Hunt" in settings['Goal']:
-                    required = settings['Triforce Pieces Required']
-                    return f"{item} (*{count}/{required}*)"
-            case "A Hat in Time":
-                if item == "Time Piece" and not settings['Death Wish Only']:
-                    required = 0
-                    match settings['End Goal']:
-                        case 'Finale':
-                            required = settings['Chapter 5 Cost']
-                        case 'Rush Hour':
-                            required = settings['Chapter 7 Cost']
-                    return f"{item} (*{count}/{required}*)"
-                if item == "Progressive Painting Unlock":
-                    required = 3
-                    return f"{item} ({count}/{required})"
-                if item.startswith("Metro Ticket"):
-                    required = 4
-                    tickets = ["Yellow", "Green", "Blue", "Pink"]
-                    collected = [ticket for ticket in tickets if f"Metro Ticket - {ticket}" in player.items]
-                    return f"{item} ({''.join([key[0] for key in collected]) if len(collected) > 0 else "0"}/{required})"
-                if item.startswith("Relic"):
-                    relics = {
-                        "Burger": [
-                            "Relic (Burger Cushion)",
-                            "Relic (Burger Patty)"
-                        ],
-                        "Cake": [
-                            "Relic (Cake Stand)",
-                            "Relic (Chocolate Cake Slice)",
-                            "Relic (Chocolate Cake)",
-                            "Relic (Shortcake)"
-                        ],
-                        "Crayon": [
-                            "Relic (Blue Crayon)",
-                            "Relic (Crayon Box)",
-                            "Relic (Green Crayon)",
-                            "Relic (Red Crayon)"
-                        ],
-                        "Necklace": [
-                            "Relic (Necklace Bust)",
-                            "Relic (Necklace)"
-                        ],
-                        "Train": [
-                            "Relic (Mountain Set)",
-                            "Relic (Train)"
-                        ],
-                        "UFO": [
-                            "Relic (Cool Cow)",
-                            "Relic (Cow)",
-                            "Relic (Tin-foil Hat Cow)",
-                            "Relic (UFO)"
-                        ]
-                    }
-                    for relic, parts in relics.items():
-                        if any(part == item for part in parts):
-                            required = len(parts)
-                            count = len([i for i in player.items if i in parts])
-                            return f"{item} ({relic} {count}/{required})"
-            case "Archipela-Go!":
-                if settings['Goal'] == "Long Macguffin" and len(item) == 1:
-                    items = list("Archipela-Go!")
-                    collected = [i for i in player.items if i in items]
-                    collected_string = ""
-                    for i in items:
-                        if i in collected: collected_string += i
-                        else: collected_string += "_"
-                    return f"{item} ({collected_string})"
-            case "Celeste (Open World)":
-                if item == 'Strawberry':
-                    total = settings['Total Strawberries']
-                    required = round(total * (settings['Strawberries Required Percentage'] / 100))
-                    return f"{item} *({count}/{required})*"
-            case "Donkey Kong 64":
-                kongs = ["Donkey", "Diddy", "Lanky", "Tiny", "Chunky"]
-                shopkeepers = ["Candy", "Cranky", "Funky", "Snide"]
-                moves = { # Translate rando names to full names for convenience
-                    "Barrels": "Barrel Throwing",
-                    "Bongos": "Bongo Blast",
-                    "Coconut": "Coconut Shooter",
-                    "Feather": "Feather Bow",
-                    "Grape": "Grape Shooter",
-                    "Guitar": "Guitar Gazump",
-                    "Oranges": "Orange Throwing",
-                    "Peanut": "Peanut Popguns",
-                    "Triangle": "Triangle Trample",
-                    "Trombone": "Trombone Tremor",
-                    "Vines": "Vine Swinging",
-                }
-                if item == "Banana Fairy":
-                    total = 20
-                    return f"{item} ({count}/{total})"
-                if item == "Golden Banana":
-                    total = 201
-                    return f"{item} ({count}/{total})"
-                if item.startswith("Key "):
-                    keys = 8
-                    collected_string = ""
-                    for k in range(keys):
-                            if f"Key {k+1}" in player.items: collected_string += str(k+1)
+        try:
+            match game:
+                case "A Link to the Past":
+                    if item == "Triforce Piece" and "Triforce Hunt" in settings['Goal']:
+                        required = settings['Triforce Pieces Required']
+                        return f"{item} (*{count}/{required}*)"
+                case "A Hat in Time":
+                    if item == "Time Piece" and not settings['Death Wish Only']:
+                        required = 0
+                        match settings['End Goal']:
+                            case 'Finale':
+                                required = settings['Chapter 5 Cost']
+                            case 'Rush Hour':
+                                required = settings['Chapter 7 Cost']
+                        return f"{item} (*{count}/{required}*)"
+                    if item == "Progressive Painting Unlock":
+                        required = 3
+                        return f"{item} ({count}/{required})"
+                    if item.startswith("Metro Ticket"):
+                        required = 4
+                        tickets = ["Yellow", "Green", "Blue", "Pink"]
+                        collected = [ticket for ticket in tickets if f"Metro Ticket - {ticket}" in player.items]
+                        return f"{item} ({''.join([key[0] for key in collected]) if len(collected) > 0 else "0"}/{required})"
+                    if item.startswith("Relic"):
+                        relics = {
+                            "Burger": [
+                                "Relic (Burger Cushion)",
+                                "Relic (Burger Patty)"
+                            ],
+                            "Cake": [
+                                "Relic (Cake Stand)",
+                                "Relic (Chocolate Cake Slice)",
+                                "Relic (Chocolate Cake)",
+                                "Relic (Shortcake)"
+                            ],
+                            "Crayon": [
+                                "Relic (Blue Crayon)",
+                                "Relic (Crayon Box)",
+                                "Relic (Green Crayon)",
+                                "Relic (Red Crayon)"
+                            ],
+                            "Necklace": [
+                                "Relic (Necklace Bust)",
+                                "Relic (Necklace)"
+                            ],
+                            "Train": [
+                                "Relic (Mountain Set)",
+                                "Relic (Train)"
+                            ],
+                            "UFO": [
+                                "Relic (Cool Cow)",
+                                "Relic (Cow)",
+                                "Relic (Tin-foil Hat Cow)",
+                                "Relic (UFO)"
+                            ]
+                        }
+                        for relic, parts in relics.items():
+                            if any(part == item for part in parts):
+                                required = len(parts)
+                                count = len([i for i in player.items if i in parts])
+                                return f"{item} ({relic} {count}/{required})"
+                case "Archipela-Go!":
+                    if settings['Goal'] == "Long Macguffin" and len(item) == 1:
+                        items = list("Archipela-Go!")
+                        collected = [i for i in player.items if i in items]
+                        collected_string = ""
+                        for i in items:
+                            if i in collected: collected_string += i
                             else: collected_string += "_"
-                    return f"{item} ({collected_string})"
-                if item in kongs:
-                    collected_string = ""
-                    for kong in kongs:
-                        if kong in player.items: collected_string += kong[0:1]
-                        else: collected_string += "__"
-                    return f"{item} Kong ({collected_string})"
-                if item in moves.keys():
-                    return moves[item]
-            case "DOOM 1993":
-                if item.endswith(" - Complete"):
-                    count = len([i for i in player.items if i.endswith(" - Complete")])
-                    required = 0
-                    for episode in 1, 2, 3, 4:
-                        if settings[f"Episode {episode}"] is True:
-                            required = required + (1 if settings['Goal'] == "Complete Boss Levels" else 9)
-                    return f"{item} ({count}/{required})"
-            case "DOOM II":
-                if item.endswith(" - Complete"):
-                    count = len([i for i in player.items if i.endswith(" - Complete")])
-                    required = 0
-                    if settings["Episode 1"] is True:
-                        required = required + 11 # MAP01-MAP11
-                    if settings["Episode 2"] is True:
-                        required = required + 9 # MAP12-MAP20
-                    if settings["Episode 3"] is True:
-                        required = required + 10 #  MAP21-MAP30
-                    if settings["Secret Levels"] is True:
-                        required = required + 2 # Wolfenstein/Grosse
-                    return f"{item} ({count}/{required})"
-            case "gzDoom":
-                item_regex = re.compile(r"^([a-zA-Z]+) \((\S+)\)$")
-                if item.startswith("Level Access"):
-                    count = len([i for i in player.items if i.startswith("Level Access")])
-                    total = len(settings['Included Levels'])
-                    return f"{item} ({count}/{total})"
-                if item.startswith("Level Clear"):
-                    count = len([i for i in player.items if i.startswith("Level Clear")])
-                    required = settings['Win Conditions']['nrof-maps']
-                    if required == "all":
-                        required = len(settings['Included Levels'])
-                    return f"{item} ({count}/{required})"
-                if any([item.startswith(color) for color in ["Blue","Yellow","Red"]]) and not item == "BlueArmor":
-                    try:
-                        item_match = item_regex.match(item)
-                        subitem,map = item_match.groups()
-                        collected_string = str()
-                        keys = [f"{color}{key}" for color in ["Blue","Yellow","Red"] for key in ["Skull", "Card"]]
-                        map_keys = sorted([i for i in item_table['gzDoom'].keys() if (i.endswith(f"({map})") and any([key in i for key in keys]))])
-                        for i in map_keys:
-                            if i in player.items: collected_string += i[0]
-                            else: collected_string += "_"
-                        if f"Level Access ({map})" not in player.items:
-                            collected_string = f"~~{collected_string}~~" # Strikethrough keys if not found
                         return f"{item} ({collected_string})"
-                    except AttributeError as e:
-                        logger.error(f"Error while parsing tracking info for item {item} in game {game}:",e,exc_info=True)
-                        return item
-            case "Here Comes Niko!":
-                if item == "Cassette":
-                    required = max({k: v for k, v in settings.items() if "Cassette Cost" in k}.values())
-                    return f"{item} ({count}/{required})"
-                if item.endswith("Cassette") and settings['Cassette Logic'] == "Level Based":
-                    total = 10
+                case "Celeste (Open World)":
+                    if item == 'Strawberry':
+                        total = settings['Total Strawberries']
+                        required = round(total * (settings['Strawberries Required Percentage'] / 100))
+                        return f"{item} *({count}/{required})*"
+                case "Donkey Kong 64":
+                    kongs = ["Donkey", "Diddy", "Lanky", "Tiny", "Chunky"]
+                    shopkeepers = ["Candy", "Cranky", "Funky", "Snide"]
+                    moves = { # Translate rando names to full names for convenience
+                        "Barrels": "Barrel Throwing",
+                        "Bongos": "Bongo Blast",
+                        "Coconut": "Coconut Shooter",
+                        "Feather": "Feather Bow",
+                        "Grape": "Grape Shooter",
+                        "Guitar": "Guitar Gazump",
+                        "Oranges": "Orange Throwing",
+                        "Peanut": "Peanut Popguns",
+                        "Triangle": "Triangle Trample",
+                        "Trombone": "Trombone Tremor",
+                        "Vines": "Vine Swinging",
+                    }
+                    if item == "Banana Fairy":
+                        total = 20
+                        return f"{item} ({count}/{total})"
+                    if item == "Golden Banana":
+                        total = 201
+                        return f"{item} ({count}/{total})"
+                    if item.startswith("Key "):
+                        keys = 8
+                        collected_string = ""
+                        for k in range(keys):
+                                if f"Key {k+1}" in player.items: collected_string += str(k+1)
+                                else: collected_string += "_"
+                        return f"{item} ({collected_string})"
+                    if item in kongs:
+                        collected_string = ""
+                        for kong in kongs:
+                            if kong in player.items: collected_string += kong[0:1]
+                            else: collected_string += "__"
+                        return f"{item} Kong ({collected_string})"
+                    if item in moves.keys():
+                        return moves[item]
+                case "DOOM 1993":
+                    if item.endswith(" - Complete"):
+                        count = len([i for i in player.items if i.endswith(" - Complete")])
+                        required = 0
+                        for episode in 1, 2, 3, 4:
+                            if settings[f"Episode {episode}"] is True:
+                                required = required + (1 if settings['Goal'] == "Complete Boss Levels" else 9)
+                        return f"{item} ({count}/{required})"
+                case "DOOM II":
+                    if item.endswith(" - Complete"):
+                        count = len([i for i in player.items if i.endswith(" - Complete")])
+                        required = 0
+                        if settings["Episode 1"] is True:
+                            required = required + 11 # MAP01-MAP11
+                        if settings["Episode 2"] is True:
+                            required = required + 9 # MAP12-MAP20
+                        if settings["Episode 3"] is True:
+                            required = required + 10 #  MAP21-MAP30
+                        if settings["Secret Levels"] is True:
+                            required = required + 2 # Wolfenstein/Grosse
+                        return f"{item} ({count}/{required})"
+                case "gzDoom":
+                    item_regex = re.compile(r"^([a-zA-Z]+) \((\S+)\)$")
+                    if item.startswith("Level Access"):
+                        count = len([i for i in player.items if i.startswith("Level Access")])
+                        total = len(settings['Included Levels'])
+                        return f"{item} ({count}/{total})"
+                    if item.startswith("Level Clear"):
+                        count = len([i for i in player.items if i.startswith("Level Clear")])
+                        required = settings['Win Conditions']['nrof-maps']
+                        if required == "all":
+                            required = len(settings['Included Levels'])
+                        return f"{item} ({count}/{required})"
+                    if any([item.startswith(color) for color in ["Blue","Yellow","Red"]]) and not item == "BlueArmor":
+                        try:
+                            item_match = item_regex.match(item)
+                            subitem,map = item_match.groups()
+                            collected_string = str()
+                            keys = [f"{color}{key}" for color in ["Blue","Yellow","Red"] for key in ["Skull", "Card"]]
+                            map_keys = sorted([i for i in item_table['gzDoom'].keys() if (i.endswith(f"({map})") and any([key in i for key in keys]))])
+                            for i in map_keys:
+                                if i in player.items: collected_string += i[0]
+                                else: collected_string += "_"
+                            if f"Level Access ({map})" not in player.items:
+                                collected_string = f"~~{collected_string}~~" # Strikethrough keys if not found
+                            return f"{item} ({collected_string})"
+                        except AttributeError as e:
+                            logger.error(f"Error while parsing tracking info for item {item} in game {game}:",e,exc_info=True)
+                            return item
+                case "Here Comes Niko!":
+                    if item == "Cassette":
+                        required = max({k: v for k, v in settings.items() if "Cassette Cost" in k}.values())
+                        return f"{item} ({count}/{required})"
+                    if item.endswith("Cassette") and settings['Cassette Logic'] == "Level Based":
+                        total = 10
+                        return f"{item} ({count}/{total})"
+                    if item == "Coin":
+                        required = 76 if settings['Completion Goal'] == "Employee" else settings['Elevator Cost']
+                        return f"{item} (*{count}/{required}*)"
+                    if item in ["Hairball City Fish", "Turbine Town Fish", "Salmon Creek Forest Fish", "Public Pool Fish", "Bathhouse Fish", "Tadpole HQ Fish"] and settings['Fishsanity'] == "Insanity":
+                        required = 5
+                        return f"{item} ({count}/{required})"
+                case "Hollow Knight":
+                    # There'll probably be something here later
+                    return item.replace("_", " ").replace("-"," - ")
+                case "Muse Dash":
+                    if item == "Music Sheet":
+                        song_count = settings['Starting Song Count'] + settings['Additional Song Count']
+                        total = round(song_count * (settings['Music Sheet Percentage'] / 100))
+                        required = round(total / (settings['Music Sheets Needed to Win'] / 100))
+                        return f"{item} ({count}/{required})"
+                case "Ocarina of Time":
+                    if item == "Triforce Piece" and settings['Triforce Hunt'] is True:
+                        required = settings['Required Triforce Pieces']
+                        return f"{item} ({count}/{required})"
+                    if item == "Gold Skulltula Token":
+                        required = 50
+                        return f"{item} ({count}/{required})"
+                    if item == "Progressive Wallet":
+                        capacities = ["99", "200", "500", "999"]
+                        return f"{item} ({capacities[player.items[item].count]} Capacity)"
+                case "Simon Tatham's Portable Puzzle Collection":
+                    # Tracking total access to puzzles instead of completion percentage, that's for the locations
+                    total = settings['puzzle_count']
+                    count = len(player.items)
                     return f"{item} ({count}/{total})"
-                if item == "Coin":
-                    required = 76 if settings['Completion Goal'] == "Employee" else settings['Elevator Cost']
-                    return f"{item} (*{count}/{required}*)"
-                if item in ["Hairball City Fish", "Turbine Town Fish", "Salmon Creek Forest Fish", "Public Pool Fish", "Bathhouse Fish", "Tadpole HQ Fish"] and settings['Fishsanity'] == "Insanity":
-                    required = 5
-                    return f"{item} ({count}/{required})"
-            case "Hollow Knight":
-                # There'll probably be something here later
-                return item.replace("_", " ").replace("-"," - ")
-            case "Muse Dash":
-                if item == "Music Sheet":
-                    song_count = settings['Starting Song Count'] + settings['Additional Song Count']
-                    total = round(song_count * (settings['Music Sheet Percentage'] / 100))
-                    required = round(total / (settings['Music Sheets Needed to Win'] / 100))
-                    return f"{item} ({count}/{required})"
-            case "Ocarina of Time":
-                if item == "Triforce Piece" and settings['Triforce Hunt'] is True:
-                    required = settings['Required Triforce Pieces']
-                    return f"{item} ({count}/{required})"
-                if item == "Gold Skulltula Token":
-                    required = 50
-                    return f"{item} ({count}/{required})"
-                if item == "Progressive Wallet":
-                    capacities = ["99", "200", "500", "999"]
-                    return f"{item} ({capacities[player.items[item].count]} Capacity)"
-            case "Simon Tatham's Portable Puzzle Collection":
-                # Tracking total access to puzzles instead of completion percentage, that's for the locations
-                total = settings['puzzle_count']
-                count = len(player.items)
-                return f"{item} ({count}/{total})"
-            case "Sonic Adventure 2 Battle":
-                if item == "Emblem":
-                    required = round(settings['Max Emblem Cap'] * (settings["Emblem Percentage for Cannon's Core"] / 100))
-                    return f"{item} ({count}/{required})"
-            case "Super Cat Planet":
-                if item == "Cat":
-                    total = 169
-                    return f"{item} ({count}/{total})"
-            case "Super Mario 64":
-                if item == "Power Star":
-                    required = round(
-                        settings['Total Power Stars']
-                        * (settings['Endless Stairs Star %'] / 100)
-                    )
-                    return f"{item} ({count}/{required})"
-            case "Super Mario World":
-                if item == "Yoshi Egg" and settings['Goal'] == "Yoshi Egg Hunt":
-                    required = round(
-                        settings['Max Number of Yoshi Eggs']
-                        * (settings['Required Percentage of Yoshi Eggs'] / 100))
-                    return f"{item} ({count}/{required})"
-            case "TUNIC":
-                treasures = {
-                    "DEF": ["Secret Legend", "Phonomath"],
-                    "POTION": ["Spring Falls", "Just Some Pals", "Back To Work"],
-                    "SP": ["Forever Friend", "Mr Mayor", "Power Up", "Regal Weasel"],
-                    "MP": ["Sacred Geometry", "Vintage", "Dusty"]
-                }
-                if item == "Flask Shard":
-                    flask_progress = player.items[item].count % 3
-                    return f"{item} ({"Gained Flask!" if flask_progress == 0 else f"{flask_progress}/3"})"
-                if item == "Fairy":
-                    required = 20
-                    if count < 10: required = 10
-                    return f"{item} ({count}/{required})"
-                if item == "Gold Questagon":
-                    required = settings['Gold Hexagons Required']
-                    return f"{item} ({count}/{required})"
-                if item == "Golden Coin":
-                    required = [3,6,10,15]
-                    next_req = 0
-                    for check in required:
-                        if count >= check: continue
-                        if count < check:
-                            next_req = check
-                            break
-                    return f"{item} ({count}/{next_req})"
-                if item in ["Blue Questagon", "Red Questagon", "Green Questagon"]:
-                    count = len(i for i in ["Blue Questagon", "Red Questagon", "Green Questagon"] if i in player.items)
-                    required = 3
-                    return f"{item} ({count}/{required})"
-                if item == "Sword Upgrade":
-                    upgrades = ["Stick", "Ruin Seeker's Sword", "Librarian's Sword", "Heir's Sword"]
-                    upgrade = upgrades[count-1]
-                    return f"{item} (LV{count}: {upgrade})"
-                # Treasures
-                for stat, stat_items in treasures.items():
-                    if item in stat_items:
-                        return f"{item} (+1 {stat})"
-            case "Twilight Princess":
-                if item == "Poe Soul":
-                    required = 60
-                    if count < 20: required = 20
-                    return f"{item} ({count}/{required})"
-            case "Wario Land 4":
-                if item.endswith("Piece"):
-                    # Gather up all the jewels
-                    jewels = ["Emerald", "Entry Jewel", "Golden Jewel", "Ruby", "Sapphire", "Topaz"]
-                    parts = ["Bottom Left", "Bottom Right", "Top Left", "Top Right"]
-                    jewel = next(j for j in jewels if j in item)
-                    #
-                    jewel_count = len([i for i in player.items if f"{jewel} Piece" in i])
-                    jewel_required = 4
-                    jewels_complete = len(
-                        [j for j in jewels
-                        if len([f"{part} {j} Piece" for part in parts
-                            if f"{part} {j} Piece" in player.items]) == 4 ])
-                    jewels_required = settings['Required Jewels']
-                    return f"{item} ({jewel_count}/{jewel_required}P|{jewels_complete}/{jewels_required}C)"
-            case _:
-                return item
+                case "Sonic Adventure 2 Battle":
+                    if item == "Emblem":
+                        required = round(settings['Max Emblem Cap'] * (settings["Emblem Percentage for Cannon's Core"] / 100))
+                        return f"{item} ({count}/{required})"
+                case "Super Cat Planet":
+                    if item == "Cat":
+                        total = 169
+                        return f"{item} ({count}/{total})"
+                case "Super Mario 64":
+                    if item == "Power Star":
+                        required = round(
+                            settings['Total Power Stars']
+                            * (settings['Endless Stairs Star %'] / 100)
+                        )
+                        return f"{item} ({count}/{required})"
+                case "Super Mario World":
+                    if item == "Yoshi Egg" and settings['Goal'] == "Yoshi Egg Hunt":
+                        required = round(
+                            settings['Max Number of Yoshi Eggs']
+                            * (settings['Required Percentage of Yoshi Eggs'] / 100))
+                        return f"{item} ({count}/{required})"
+                case "TUNIC":
+                    treasures = {
+                        "DEF": ["Secret Legend", "Phonomath"],
+                        "POTION": ["Spring Falls", "Just Some Pals", "Back To Work"],
+                        "SP": ["Forever Friend", "Mr Mayor", "Power Up", "Regal Weasel"],
+                        "MP": ["Sacred Geometry", "Vintage", "Dusty"]
+                    }
+                    if item == "Flask Shard":
+                        flask_progress = player.items[item].count % 3
+                        return f"{item} ({"Gained Flask!" if flask_progress == 0 else f"{flask_progress}/3"})"
+                    if item == "Fairy":
+                        required = 20
+                        if count < 10: required = 10
+                        return f"{item} ({count}/{required})"
+                    if item == "Gold Questagon":
+                        required = settings['Gold Hexagons Required']
+                        return f"{item} ({count}/{required})"
+                    if item == "Golden Coin":
+                        required = [3,6,10,15]
+                        next_req = 0
+                        for check in required:
+                            if count >= check: continue
+                            if count < check:
+                                next_req = check
+                                break
+                        return f"{item} ({count}/{next_req})"
+                    if item in ["Blue Questagon", "Red Questagon", "Green Questagon"]:
+                        count = len(i for i in ["Blue Questagon", "Red Questagon", "Green Questagon"] if i in player.items)
+                        required = 3
+                        return f"{item} ({count}/{required})"
+                    if item == "Sword Upgrade":
+                        upgrades = ["Stick", "Ruin Seeker's Sword", "Librarian's Sword", "Heir's Sword"]
+                        upgrade = upgrades[count-1]
+                        return f"{item} (LV{count}: {upgrade})"
+                    # Treasures
+                    for stat, stat_items in treasures.items():
+                        if item in stat_items:
+                            return f"{item} (+1 {stat})"
+                case "Twilight Princess":
+                    if item == "Poe Soul":
+                        required = 60
+                        if count < 20: required = 20
+                        return f"{item} ({count}/{required})"
+                case "Wario Land 4":
+                    if item.endswith("Piece"):
+                        # Gather up all the jewels
+                        jewels = ["Emerald", "Entry Jewel", "Golden Jewel", "Ruby", "Sapphire", "Topaz"]
+                        parts = ["Bottom Left", "Bottom Right", "Top Left", "Top Right"]
+                        jewel = next(j for j in jewels if j in item)
+                        #
+                        jewel_count = len([i for i in player.items if f"{jewel} Piece" in i])
+                        jewel_required = 4
+                        jewels_complete = len(
+                            [j for j in jewels
+                            if len([f"{part} {j} Piece" for part in parts
+                                if f"{part} {j} Piece" in player.items]) == 4 ])
+                        jewels_required = settings['Required Jewels']
+                        return f"{item} ({jewel_count}/{jewel_required}P|{jewels_complete}/{jewels_required}C)"
+                case _:
+                    return item
+        except Exception as e:
+            logger.error(f"Error while parsing tracking info for item {item} in game {game}:", e, exc_info=True)
+            # If we can't parse the item, just return the name
+            # This is to prevent the bot from crashing if something goes wrong
+            # with the settings or the item name.
+            return item
+    # If the item is not in the settings, return the name as is
 
     # Return the same name if nothing matched (or no settings available)
     return item
