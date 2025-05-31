@@ -302,13 +302,14 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
 
         api_key = cfg['bot']['raocow']['yt_api_key']
         channel_ids = [
-            "UCjM-Wd2651MWgo0s5yNQRJA" # raocow's channel ID
-            "UCeYAO0Cw3RRwicMZQ2tGD9A" # raoclassic (fan channel with pre-YouTube content)
-            "UC5DLg0WeN4kLbJ8vmJDVAkg" # RaocowGV (Google Video archive)
+            "UCjM-Wd2651MWgo0s5yNQRJA" # raocow's channel ID    
         ]
 
-        if not include_fanchannels:
-            channel_ids = list([channel_ids[0]])
+        if include_fanchannels:
+            channel_ids = channel_ids + [
+                "UCeYAO0Cw3RRwicMZQ2tGD9A" # raoclassic (fan channel with pre-YouTube content)
+                "UC5DLg0WeN4kLbJ8vmJDVAkg" # RaocowGV (Google Video archive)
+            ]
 
         ytc = Api(api_key=api_key)
 
