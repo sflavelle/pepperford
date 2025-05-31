@@ -357,7 +357,7 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
                         # For fan-channels:
                         # Make sure this playlist is not already uploaded by raocow himself
                         if channel_id in channel_ids[1:]:
-                            cursor.execute('SELECT video_id, playlist_id, channel_id from pepper.raocow_videos where playlist_id = %s and channel_id = %s', (channel_ids[0],))
+                            cursor.execute('SELECT video_id, playlist_id, channel_id from pepper.raocow_videos where playlist_id = %s and video_id = %s', (channel_ids[0], first_id))
                             query_exists = cursor.fetchall()
                             if bool(query_exists):
                                 logger.warning(f"Playlist uploaded already by official channel, skipping.")
