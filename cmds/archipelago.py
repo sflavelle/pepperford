@@ -390,7 +390,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
         msg_lines.append(f"**Archipelago Room Status**")
         msg_lines.append(f"This game is {game_table['collection_percentage']}% complete. ({game_table['collected_locations']} out of {game_table['total_locations']} locations checked.)")
 
-        for player in game_table['players']:
+        for player in game_table['players'].values():
             if player['goaled'] is True:
                 msg_lines.append(f"**{player['name']} ({player['game']})**: finished their game.")
             else:
