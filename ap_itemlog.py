@@ -167,9 +167,15 @@ def process_spoiler_log(seed_url):
                     else: game.world_settings[current_key.strip()] = parse_to_type(value.lstrip())
 
             case "Players":
-                current_key, value = line.strip().split(':', 1)
-                value_str = value.lstrip()
-                key = current_key.strip().replace("_", " ").title()
+                def parse_line(line):
+                    current_key, value = line.strip().split(':', 1)
+                    value_str = value.lstrip()
+                    key = current_key.strip().replace("_", " ").title()
+
+                    return key, value_str
+                
+                key, value_str = parse_line(line)
+                game.players[working_player].settings[key] = parse_to_type(value_str)
 
                 # Try to parse as a list (comma-separated, not inside brackets)
                 if "," in value_str and not (value_str.startswith("[") or value_str.startswith("{")):
@@ -195,6 +201,11 @@ def process_spoiler_log(seed_url):
                         json_str = "{" + value_str + "}"
                         json_str = re.sub(r'(\w[\w\- ]*):', r'"\1":', json_str)
                         game.players[working_player].settings[key] = json.loads(json_str)
+                        continue
+
+                    if type(game.players[working_player].settings[key]) in [list]:
+                        # If the value is a list, parse it as such
+                        game.players[working_player].settings[key] = [parse_to_type(v.strip()) for v in game.players[working_player].settings[key]]
                         continue
                 except Exception:
                     pass
