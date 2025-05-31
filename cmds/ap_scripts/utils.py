@@ -646,8 +646,9 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                     return f"{item} ({count}/{total})"
                 if item.startswith("Level Clear"):
                     count = len([i for i in player.items if i.startswith("Level Clear")])
-                    # Currently (2 Mar 25) must complete all levels to goal
-                    required = len(settings['Included Levels'])
+                    required = settings['Win Conditions']['nrof-maps']
+                    if required == "all":
+                        required = len(settings['Included Levels'])
                     return f"{item} ({count}/{required})"
                 if any([item.startswith(color) for color in ["Blue","Yellow","Red"]]) and not item == "BlueArmor":
                     try:

@@ -173,11 +173,21 @@ def process_spoiler_log(seed_url):
                         game.players[working_player].settings[current_key.strip()] = json.loads(value.lstrip())
                     except ValueError:
                         pass
-                elif "," in value.lstrip():
-                    # Parse as a list
-                    game.players[working_player].settings[current_key.strip()] = [parse_to_type(v.strip()) for v in value.lstrip().split(',')]
-                else:
-                    game.players[working_player].settings[current_key.strip()] = parse_to_type(value.lstrip())
+                # Try to parse as a JSON object if possible (e.g. "key1: val1, key2: val2")
+                try:
+                    # Attempt to wrap in braces and parse as JSON after replacing ':' with '":' and ',' with ',"'
+                    # and adding quotes to keys
+                    # This is a bit hacky but works for simple key: value, ... lists
+                    json_str = '{' + value + '}'
+                    # Add quotes around keys
+                    json_str = re.sub(r'(\w[\w\- ]*):', r'"\1":', json_str)
+                    game.players[working_player].settings[current_key.strip()] = json.loads(json_str)
+                except Exception:
+                    if "," in value.lstrip():
+                        # Parse as a list
+                        game.players[working_player].settings[current_key.strip()] = [parse_to_type(v.strip()) for v in value.lstrip().split(',')]
+                    else:
+                        game.players[working_player].settings[current_key.strip()] = parse_to_type(value.lstrip())
             case "Locations":
                 if match := regex_patterns['location'].match(line):
                     item_location, sender, item, receiver = match.groups()
