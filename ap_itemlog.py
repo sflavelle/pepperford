@@ -168,28 +168,31 @@ def process_spoiler_log(seed_url):
 
             case "Players":
                 current_key, value = line.strip().split(':', 1)
+                :
                 if value.lstrip().startswith("[") or value.lstrip().startswith("{"):
                     try:
-                        game.players[working_player].settings[current_key.strip()] = json.loads(value.lstrip())
+                        game.players[working_player].settings[current_key.strip().title()] = json.loads(value.lstrip())
                     except ValueError:
                         pass
                 # Try to parse as a JSON object if possible (e.g. "key1: val1, key2: val2")
                 try:
+                    # First try to interpret as a simple int/float/str
+                    if int(value.lstrip()) or float(value.lstrip()) or not all([ch not in value.lstrip() for ch in [':', '[', ']', '{', '}']]):
+                        game.players[working_player].settings[current_key.strip().title()] = parse_to_type(value.lstrip())
+                        continue
                     # Attempt to parse as a Python dict using ast.literal_eval for more flexible parsing
                     try:
                         parsed = ast.literal_eval('{' + value + '}')
-                        game.players[working_player].settings[current_key.strip()] = parsed
+                        game.players[working_player].settings[current_key.strip().title()] = parse_to_type(parsed)
                     except Exception:
                         # Fallback: Try to wrap in braces and parse as JSON after adding quotes to keys
                         json_str = '{' + value + '}'
                         json_str = re.sub(r'(\w[\w\- ]*):', r'"\1":', json_str)
-                        game.players[working_player].settings[current_key.strip()] = json.loads(json_str)
+                        game.players[working_player].settings[current_key.strip().title()] = json.loads(json_str)
                 except Exception:
                     if "," in value.lstrip():
                         # Parse as a list
-                        game.players[working_player].settings[current_key.strip()] = [parse_to_type(v.strip()) for v in value.lstrip().split(',')]
-                    else:
-                        game.players[working_player].settings[current_key.strip()] = parse_to_type(value.lstrip())
+                        game.players[working_player].settings[current_key.strip().title()] = [parse_to_type(v.strip()) for v in value.lstrip().split(',')]
             case "Locations":
                 if match := regex_patterns['location'].match(line):
                     item_location, sender, item, receiver = match.groups()
@@ -213,7 +216,7 @@ def process_spoiler_log(seed_url):
         if player.game == "gzDoom":
             # If gzDoom has a wildcard in the map list, we need to handle it
             expanded_levels = set()
-            patterns = player.settings.get("Included levels", [])
+            patterns = player.settings.get("Included Levels", [])
             for pattern in patterns:
                 if "*" in pattern or "?" in pattern:
                     # Find all unique map names in player's locations that match the pattern
@@ -224,7 +227,7 @@ def process_spoiler_log(seed_url):
                 else:
                     expanded_levels.add(pattern)
             # Remove duplicates and update Included Levels
-            player.settings["Included levels"] = list(sorted(expanded_levels))
+            player.settings["Included Levels"] = list(sorted(expanded_levels))
     logger.info("Done parsing the spoiler log")
 
 def process_new_log_lines(new_lines, skip_msg: bool = False):
