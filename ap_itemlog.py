@@ -169,7 +169,7 @@ def process_spoiler_log(seed_url):
             case "Players":
                 current_key, value = line.strip().split(':', 1)
                 value_str = value.lstrip()
-                key = current_key.strip().title()
+                key = current_key.strip().replace("_", " ").title()
 
                 # Try to parse as a list (comma-separated, not inside brackets)
                 if "," in value_str and not (value_str.startswith("[") or value_str.startswith("{")):
