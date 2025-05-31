@@ -396,7 +396,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
             if player['goaled'] is True:
                 msg_lines.append(f"**{player['name']} ({player['game']})**: finished their game.")
             else:
-                msg_lines.append(f"**{player['name']} ({player['game']})**: {player['collection_percentage']}% complete. ({player['collected_locations']} out of {player['total_locations']} locations checked.)")
+                msg_lines.append(f"**{player['name']} ({player['game']})**: {round(player['collection_percentage'], 2)}% complete. ({player['collected_locations']}/{player['total_locations']} checks.)")
 
         await newpost.edit(content="\n".join(msg_lines))
 
