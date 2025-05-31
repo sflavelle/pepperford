@@ -276,7 +276,7 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
             id, title, datestamp, length, duration, visibility, thumbnail, game_link, latest_video, alias, series = result
             date_string = f"{datestamp} - {latest_video}" if latest_video else str(datestamp)
 
-            playlist_strings.append(f"**[{title}](https://www.youtube.com/playlist?list={id})** - Date(s): {date_string} / {length} videos, {duration if duration else 'duration N/A'}", inline=False)
+            playlist_strings.append(f"**[{title}](https://www.youtube.com/playlist?list={id})** - Date(s): {date_string} / {length} videos, {duration if duration else 'duration N/A'}")
 
         if len(playlist_strings) > 0:
             embed.description = "\n".join(playlist_strings)
