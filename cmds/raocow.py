@@ -64,6 +64,22 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
     async def cog_command_error(self, ctx: Context[BotT], error: Exception) -> None:
         await ctx.reply(f"Command error: {error}",ephemeral=True)
 
+    async def series_autocomplete(self, ctx: discord.Interaction, current: str) -> typing.List[app_commands.Choice[str]]:
+        """Autocomplete for the playlist command."""
+
+        results = None
+
+        if not sqlcon:
+            return []
+        with sqlcon.cursor() as cursor:
+            cursor.execute("SELECT series_name FROM pepper.raocow_series where order by series_name asc")
+            results = cursor.fetchall()
+
+        if len(current) == 0:
+            return [app_commands.Choice(name=opt[0][:100],value=opt[0]) for opt in results][:25]
+        else:
+            return [app_commands.Choice(name=opt[0][:100],value=opt[0]) for opt in results if current.lower() in opt[0].lower()][:25]
+
     async def playlist_autocomplete(self, ctx: discord.Interaction, current: str) -> typing.List[app_commands.Choice[str]]:
         """Autocomplete for the playlist command."""
 
@@ -232,6 +248,33 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
                 message += f"\n{param.replace('_', ' ').capitalize()}: {param}"
 
         await interaction.followup.send(f"Playlist {title} updated successfully.",ephemeral=True)
+
+    @app_commands.command()
+    @app_commands.autocomplete(series=series_autocomplete)
+    @app_commands.describe(series="The series to fetch playlists for")
+    async def series(interaction: discord.Interaction, series_name: str, public: bool = False):
+        """Get a list of playlists for a specific series."""
+        await interaction.response.defer(thinking=not public,ephemeral=True)
+
+        if not sqlcon:
+            await interaction.followup.send("Database connection is not available.",ephemeral=True)
+            return
+
+        with sqlcon.cursor() as cursor:
+            cursor.execute("SELECT * FROM pepper.raocow_playlists WHERE series = %s and visible = 'true' ORDER BY datestamp ASC", (series_name,))
+            results = cursor.fetchall()
+
+        if not results:
+            await interaction.followup.send(f"No playlists found for series '{series_name}'.",ephemeral=True)
+            return
+
+        embed = discord.Embed(title=f"Playlists for Series: {series_name}", color=discord.Color.blue())
+        for result in results:
+            id, title, datestamp, length, duration, visibility, thumbnail, game_link, latest_video, alias = result
+            date_string = f"{datestamp} - {latest_video}" if latest_video else str(datestamp)
+            embed.add_field(name=f"[title](https://www.youtube.com/playlist?list={id})", value=f"Date(s): {date_string} / {length} videos, {duration if duration else 'duration N/A'}", inline=False)
+
+        await interaction.followup.send(embed=embed,ephemeral=True)
 
     @commands.is_owner()
     @app_commands.command()
