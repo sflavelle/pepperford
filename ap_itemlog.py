@@ -168,30 +168,38 @@ def process_spoiler_log(seed_url):
 
             case "Players":
                 current_key, value = line.strip().split(':', 1)
-                if value.lstrip().startswith("[") or value.lstrip().startswith("{"):
-                    try:
-                        game.players[working_player].settings[current_key.strip().title()] = json.loads(value.lstrip())
-                    except ValueError:
-                        pass
-                # Try to parse as a JSON object if possible (e.g. "key1: val1, key2: val2")
+                value_str = value.lstrip()
+                key = current_key.strip().title()
+
+                # Try to parse as a bool, int, float, or simple string
+                parsed_simple = parse_to_type(value_str)
+                if parsed_simple is not None and not (isinstance(parsed_simple, str) and parsed_simple == value_str):
+                    game.players[working_player].settings[key] = parsed_simple
+                    continue
+
+                # Try to parse as a list (comma-separated, not inside brackets)
+                if "," in value_str and not (value_str.startswith("[") or value_str.startswith("{")):
+                    game.players[working_player].settings[key] = [parse_to_type(v.strip()) for v in value_str.split(",")]
+                    continue
+
+                # Try to parse as JSON (object or array)
                 try:
-                    # First try to interpret as a simple int/float/str
-                    if int(value.lstrip()) or float(value.lstrip()) or not all([ch not in value.lstrip() for ch in [':', '[', ']', '{', '}']]):
-                        game.players[working_player].settings[current_key.strip().title()] = parse_to_type(value.lstrip())
+                    # If it looks like a JSON object or array
+                    if value_str.startswith("{") or value_str.startswith("["):
+                        game.players[working_player].settings[key] = json.loads(value_str)
                         continue
-                    # Attempt to parse as a Python dict using ast.literal_eval for more flexible parsing
-                    try:
-                        parsed = ast.literal_eval('{' + value + '}')
-                        game.players[working_player].settings[current_key.strip().title()] = parse_to_type(parsed)
-                    except Exception:
-                        # Fallback: Try to wrap in braces and parse as JSON after adding quotes to keys
-                        json_str = '{' + value + '}'
+                    # If it looks like a dict without braces, add braces and try to parse
+                    if ":" in value_str:
+                        json_str = "{" + value_str + "}"
+                        # Add quotes to keys for JSON compatibility
                         json_str = re.sub(r'(\w[\w\- ]*):', r'"\1":', json_str)
-                        game.players[working_player].settings[current_key.strip().title()] = json.loads(json_str)
+                        game.players[working_player].settings[key] = json.loads(json_str)
+                        continue
                 except Exception:
-                    if "," in value.lstrip():
-                        # Parse as a list
-                        game.players[working_player].settings[current_key.strip().title()] = [parse_to_type(v.strip()) for v in value.lstrip().split(',')]
+                    pass
+
+                # Fallback: store as string
+                game.players[working_player].settings[key] = value_str
             case "Locations":
                 if match := regex_patterns['location'].match(line):
                     item_location, sender, item, receiver = match.groups()
