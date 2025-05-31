@@ -224,7 +224,7 @@ def process_spoiler_log(seed_url):
                 else:
                     expanded_levels.add(pattern)
             # Remove duplicates and update Included Levels
-            player.settings["Included levels"] = sorted(expanded_levels)
+            player.settings["Included levels"] = list(sorted(expanded_levels))
     logger.info("Done parsing the spoiler log")
 
 def process_new_log_lines(new_lines, skip_msg: bool = False):
