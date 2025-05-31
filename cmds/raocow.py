@@ -3,6 +3,7 @@ import os
 import sys
 import subprocess
 import requests
+import regex as re
 import logging
 import signal
 import yaml
@@ -378,6 +379,21 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
                                 vid = v['snippet']['resourceId']['videoId']
                                 pid = item['id']
                                 vtitle = v['snippet']['title']
+
+                                if channel_id == "UCKnEkwBqrai2GB6Rxl1OqCA":
+                                    # 'Originally Uploaded - 6/9/07'
+                                    # Match a date string in the description
+                                    logger.info(f"Fan channel: searching for date in description of video {vid}")
+                                    if 'description' in v['snippet'] and v['snippet']['description']:
+                                        if match := re.search(r'(\d{1,2}/\d{1,2}/\d{2,4})', v['snippet']['description']):
+                                            vdate = match.group(1)
+                                            try:
+                                                vdate = date.fromisoformat(vdate.replace('/', '-'))
+                                                logger.info(f"Found date {vdate} in video {vid}")
+                                            except ValueError:
+                                                logger.error(f"Invalid date format in video {vid}: {vdate}")
+                                                vdate = None
+
                                 cursor.execute('INSERT INTO pepper.raocow_videos (video_id, playlist_id, title, datestamp, channel_id) VALUES (%s, %s, %s, %s, %s)'
                                 'ON CONFLICT (video_id) DO NOTHING', (vid, pid, vtitle, vdate, channel_id))
 
