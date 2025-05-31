@@ -254,10 +254,10 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
     @app_commands.describe(series_name="The series to fetch playlists for")
     async def series(self, interaction: discord.Interaction, series_name: str, public: bool = False):
         """Get a list of playlists for a specific series."""
-        await interaction.response.defer(thinking=not public,ephemeral=True)
+        await interaction.response.defer(thinking=True,ephemeral=not public)
 
         if not sqlcon:
-            await interaction.followup.send("Database connection is not available.",ephemeral=True)
+            await interaction.followup.send("Database connection is not available.",ephemeral=not public)
             return
 
         with sqlcon.cursor() as cursor:
@@ -265,7 +265,7 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
             results = cursor.fetchall()
 
         if not results:
-            await interaction.followup.send(f"No playlists found for series '{series_name}'.",ephemeral=True)
+            await interaction.followup.send(f"No playlists found for series '{series_name}'.",ephemeral=not public)
             return
 
         embed = discord.Embed(title=f"Playlists for Series: {series_name}", color=discord.Color.blue())
@@ -273,7 +273,7 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
         playlist_strings = []
 
         for result in results:
-            id, title, datestamp, length, duration, visibility, thumbnail, game_link, latest_video, alias, series = result
+            id, title, datestamp, length, duration, visibility, thumbnail, game_link, latest_video, alias, series, channel_id = result
             date_string = f"{datestamp} - {latest_video}" if latest_video else str(datestamp)
 
             playlist_strings.append(f"**[{title}](https://www.youtube.com/playlist?list={id})** - Date(s): {date_string} / {length} videos, {duration if duration else 'duration N/A'}")
@@ -283,7 +283,7 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
         else:
             embed.description = "No playlists found for this series."
 
-        await interaction.followup.send(embed=embed,ephemeral=True)
+        await interaction.followup.send(embed=embed,ephemeral=not public)
 
     @commands.is_owner()
     @app_commands.command()
