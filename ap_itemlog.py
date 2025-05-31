@@ -171,12 +171,6 @@ def process_spoiler_log(seed_url):
                 value_str = value.lstrip()
                 key = current_key.strip().title()
 
-                # Try to parse as a bool, int, float, or simple string
-                parsed_simple = parse_to_type(value_str)
-                if parsed_simple is not None and not (isinstance(parsed_simple, str) and ":" in parsed_simple) and not (isinstance(parsed_simple, str) and parsed_simple == value_str):
-                    game.players[working_player].settings[key] = parsed_simple
-                    continue
-
                 # Try to parse as a list (comma-separated, not inside brackets)
                 if "," in value_str and not (value_str.startswith("[") or value_str.startswith("{")):
                     game.players[working_player].settings[key] = [parse_to_type(v.strip()) for v in value_str.split(",")]
@@ -206,7 +200,7 @@ def process_spoiler_log(seed_url):
                     pass
 
                 # Fallback: store as string
-                game.players[working_player].settings[key] = value_str
+                game.players[working_player].settings[key] = parse_to_type(value_str)
             case "Locations":
                 if match := regex_patterns['location'].match(line):
                     item_location, sender, item, receiver = match.groups()
