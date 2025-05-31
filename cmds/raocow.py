@@ -269,22 +269,18 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
             await interaction.followup.send(f"No playlists found for series '{series_name}'.",ephemeral=not public)
             return
 
-        embed = discord.Embed(title=f"Playlists for Series: {series_name}", color=discord.Color.blue())
 
         playlist_strings = []
+
+        playlist_strings.append(f"##Playlists for Series: {series_name}")
 
         for result in results:
             id, title, datestamp, length, duration, visibility, thumbnail, game_link, latest_video, alias, series, channel_id = result
             date_string = f"{datestamp} - {latest_video}" if latest_video else str(datestamp)
 
-            playlist_strings.append(f"**[{title}](https://www.youtube.com/playlist?list={id})** - Date(s): {date_string} / {length} videos, {duration if duration else 'duration N/A'}")
+            playlist_strings.append(f"- **[{title}](https://www.youtube.com/playlist?list={id})** - Date(s): {date_string} / {length} videos / {duration if duration else 'duration N/A'}")
 
-        if len(playlist_strings) > 0:
-            embed.description = "\n".join(playlist_strings)
-        else:
-            embed.description = "No playlists found for this series."
-
-        await interaction.followup.send(embed=embed,ephemeral=not public)
+        await interaction.followup.send("\n".join(playlist_strings),ephemeral=not public)
 
     @commands.is_owner()
     @app_commands.command()
