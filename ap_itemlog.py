@@ -173,7 +173,7 @@ def process_spoiler_log(seed_url):
 
                 # Try to parse as a bool, int, float, or simple string
                 parsed_simple = parse_to_type(value_str)
-                if parsed_simple is not None and ":" not in parsed_simple and not (isinstance(parsed_simple, str) and parsed_simple == value_str):
+                if parsed_simple is not None and not (isinstance(parsed_simple, str) and ":" in parsed_simple) and not (isinstance(parsed_simple, str) and parsed_simple == value_str):
                     game.players[working_player].settings[key] = parsed_simple
                     continue
 
