@@ -168,7 +168,6 @@ def process_spoiler_log(seed_url):
 
             case "Players":
                 current_key, value = line.strip().split(':', 1)
-                :
                 if value.lstrip().startswith("[") or value.lstrip().startswith("{"):
                     try:
                         game.players[working_player].settings[current_key.strip().title()] = json.loads(value.lstrip())
