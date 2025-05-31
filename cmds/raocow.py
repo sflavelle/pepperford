@@ -256,7 +256,7 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
         ]
 
         if not include_fanchannels:
-            channel_ids = [channel_ids[0]]
+            channel_ids = list([channel_ids[0]])
 
         ytc = Api(api_key=api_key)
 
