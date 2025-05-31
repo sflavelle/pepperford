@@ -175,13 +175,15 @@ def process_spoiler_log(seed_url):
                         pass
                 # Try to parse as a JSON object if possible (e.g. "key1: val1, key2: val2")
                 try:
-                    # Attempt to wrap in braces and parse as JSON after replacing ':' with '":' and ',' with ',"'
-                    # and adding quotes to keys
-                    # This is a bit hacky but works for simple key: value, ... lists
-                    json_str = '{' + value + '}'
-                    # Add quotes around keys
-                    json_str = re.sub(r'(\w[\w\- ]*):', r'"\1":', json_str)
-                    game.players[working_player].settings[current_key.strip()] = json.loads(json_str)
+                    # Attempt to parse as a Python dict using ast.literal_eval for more flexible parsing
+                    try:
+                        parsed = ast.literal_eval('{' + value + '}')
+                        game.players[working_player].settings[current_key.strip()] = parsed
+                    except Exception:
+                        # Fallback: Try to wrap in braces and parse as JSON after adding quotes to keys
+                        json_str = '{' + value + '}'
+                        json_str = re.sub(r'(\w[\w\- ]*):', r'"\1":', json_str)
+                        game.players[working_player].settings[current_key.strip()] = json.loads(json_str)
                 except Exception:
                     if "," in value.lstrip():
                         # Parse as a list
@@ -211,7 +213,7 @@ def process_spoiler_log(seed_url):
         if player.game == "gzDoom":
             # If gzDoom has a wildcard in the map list, we need to handle it
             expanded_levels = set()
-            patterns = player.settings.get("Included Levels", [])
+            patterns = player.settings.get("Included levels", [])
             for pattern in patterns:
                 if "*" in pattern or "?" in pattern:
                     # Find all unique map names in player's locations that match the pattern
@@ -222,7 +224,7 @@ def process_spoiler_log(seed_url):
                 else:
                     expanded_levels.add(pattern)
             # Remove duplicates and update Included Levels
-            player.settings["Included Levels"] = sorted(expanded_levels)
+            player.settings["Included levels"] = sorted(expanded_levels)
     logger.info("Done parsing the spoiler log")
 
 def process_new_log_lines(new_lines, skip_msg: bool = False):
