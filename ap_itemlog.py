@@ -189,9 +189,16 @@ def process_spoiler_log(seed_url):
                         game.players[working_player].settings[key] = json.loads(value_str)
                         continue
                     # If it looks like a dict without braces, add braces and try to parse
-                    if ":" in value_str:
+                    # Only trigger if it contains ':' and at least one comma, and does not start with '{' or '['
+                    if ":" in value_str and "," in value_str and not (value_str.startswith("{") or value_str.startswith("[")):
                         json_str = "{" + value_str + "}"
                         # Add quotes to keys for JSON compatibility
+                        json_str = re.sub(r'(\w[\w\- ]*):', r'"\1":', json_str)
+                        game.players[working_player].settings[key] = json.loads(json_str)
+                        continue
+                    # If it looks like a dict without braces and only one key:value, handle that too
+                    if ":" in value_str and not (value_str.startswith("{") or value_str.startswith("[")) and "," not in value_str:
+                        json_str = "{" + value_str + "}"
                         json_str = re.sub(r'(\w[\w\- ]*):', r'"\1":', json_str)
                         game.players[working_player].settings[key] = json.loads(json_str)
                         continue
