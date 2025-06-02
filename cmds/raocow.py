@@ -168,6 +168,7 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
         id, title, datestamp, length, duration, visibility, thumbnail, game_link, latest_video, alias, series, channel_id = result
 
         date_string: str = None
+        ongoing = False
 
         if latest_video:
             try:
@@ -177,6 +178,7 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
                 now = date.today()
 
                 if now - latest_video <= ONGOING_SERIES_THRESHOLD:
+                    ongoing = True
                     date_string = f"{datestamp} - Ongoing"
                 else:
                     date_string = f"{datestamp} - {latest_video}"
@@ -190,6 +192,8 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
             description=None,
             color=discord.Color.red()
         )
+        if ongoing:
+            pl_embed.description = "-# This series is ongoing - the data for this playlist may not be up to date."
         pl_embed.add_field(name="Playlist Link", value=f"https://www.youtube.com/playlist?list={id}", inline=False)
         if game_link:
             pl_embed.add_field(name="Game Link(s)", value=game_link, inline=False)
@@ -241,7 +245,7 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
             sqlcon.commit()
             search_result = cursor.fetchone()
 
-        playlist_id, new_title, datestamp, length, duration, visibility, thumbnail, game_link, latest_video = search_result
+        id, new_title, datestamp, length, duration, visibility, thumbnail, game_link, latest_video, alias, series, channel_id = search_result
 
         message = f"Playlist {title} updated successfully.\n"
         for param in ["new_title", "new_datestamp", "visible", "new_game_link"]:
@@ -272,7 +276,7 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
 
         playlist_strings = []
 
-        playlist_strings.append(f"##Playlists for Series: {series_name}")
+        playlist_strings.append(f"## Playlists for Series: {series_name}")
 
         for result in results:
             id, title, datestamp, length, duration, visibility, thumbnail, game_link, latest_video, alias, series, channel_id = result
@@ -282,7 +286,7 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
 
         # If the full message exceeds Discord's character limit, truncate it
         if len("\n".join(playlist_strings)) > 2000:
-            playlist_strings = playlist_strings[:10]
+            playlist_strings = playlist_strings[:15]  # Limit to first 15 playlists
             playlist_strings.append("\n... (truncated, too many playlists)")
 
         await interaction.followup.send("\n".join(playlist_strings),ephemeral=not public)
@@ -349,7 +353,7 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
                             if channel_id == "UCKnEkwBqrai2GB6Rxl1OqCA":
                                 # Raolists prefixes every playlist with a number
                                 # Remove the number prefix from the title
-                                title = title.split('. ', 1)[-1] if '. ' in title else title
+                                title = title.split('.', 1)[-1].lstrip() if '. ' in title else title
 
                             # Get the date of the first video in the playlist
                             # And use as the playlist date
