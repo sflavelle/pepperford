@@ -51,6 +51,11 @@ def join_words(words):
         return ' and '.join(words)
     else:
         return words[0]
+    
+def is_aphost():
+    async def predicate(ctx):
+        return ctx.user.get_role(1234064646491602944) is not None
+    return commands.check(predicate)
 
 class Archipelago(commands.GroupCog, group_name="archipelago"):
     """Commands relating to the Archipelago randomizer"""
@@ -188,7 +193,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
             responsefile = bytes(str_response,encoding='UTF-8')
             await interaction.response.send_message("Here's the result, as a file:",file=discord.File(BytesIO(responsefile), 'result.txt'),ephemeral=not public)
 
-    @commands.is_owner()
+    @is_aphost()
     @db.command(name='update_item_classification')
     @app_commands.describe(game="The game that contains the item",
                            item="The item to act on (wildcards: ? one, % many)",
@@ -211,7 +216,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
             finally:
                 pass
 
-    @commands.is_owner()
+    @is_aphost()
     @db.command(name='update_location_checkability')
     @app_commands.describe(game="The game that contains the location",
                            location="The location to act on (wildcards: ? one, % many)",
@@ -234,6 +239,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
             finally:
                 pass
 
+    @is_aphost()
     @db.command()
     async def import_datapackage(self, interaction: discord.Interaction, url: str = "https://archipelago.gg/datapackage"):
         """Import items and locations from an Archipelago datapackage into the database."""
@@ -297,7 +303,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
         return await interaction.response.send_message(f"Linked {slot_name} to {user.display_name} ({user.id})!",ephemeral=True)
 
     @aproom.command()
-    @commands.is_owner()
+    @is_aphost()
     @app_commands.guild_only()
     @app_commands.describe(room_url="Link to the Archipelago room")
     async def set_room(self, interaction: discord.Interaction, room_url: str):
@@ -388,6 +394,15 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
         msg_lines = []
 
         msg_lines.append(f"## Archipelago Room Status")
+
+        with sqlcon.cursor() as cursor:
+            try:
+                cursor.execute("SELECT room_id, host, port from pepper.ap_all_rooms WHERE active = 'true' AND guild = %s;", (interaction.guild_id,))
+                room_id, host, port = cursor.fetchone()
+                msg_lines.append(f"**Room ID** [{room_id}](https://{host}/room/{room_id}) (`{host}:{port}`)")
+            except psql.Error as e:
+                pass
+
         msg_lines.append(f"This game is {round(game_table['collection_percentage'],2)}% complete. ({game_table['collected_locations']} out of {game_table['total_locations']} locations checked.)")
         
         msg_lines.append("")

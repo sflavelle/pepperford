@@ -55,6 +55,12 @@ def join_words(words):
         return ' and '.join(words)
     else:
         return words[0]
+    
+# Moderator role predicates
+def is_mod():
+    async def predicate(ctx):
+        return ctx.user.get_role(404707268823744524) is not None or ctx.user.get_role(629379744063815688) is not None
+    return commands.check(predicate)
 
 class Raocmds(commands.GroupCog, group_name="raocow"):
     """Commands relating to the YouTuber raocow and his content."""
@@ -211,7 +217,7 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
         logger.info(f"Playlist: Found playlist {title} ({id}), sending")
         await interaction.followup.send(embed=pl_embed,ephemeral=not public)
 
-    @commands.is_owner()
+    @is_mod()
     @app_commands.autocomplete(search=playlist_autocomplete_all)
     @app_commands.describe(search="Search for a playlist",
                            new_title="New title for the playlist",
@@ -291,7 +297,7 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
 
         await interaction.followup.send("\n".join(playlist_strings),ephemeral=not public)
 
-    @commands.is_owner()
+    @is_mod()
     @app_commands.command()
     @app_commands.describe(playlist_count="Number of playlists to fetch (omit for all)",
                            calculate_duration="Calculate the total duration of the playlist (EXPENSIVE API USE)",
