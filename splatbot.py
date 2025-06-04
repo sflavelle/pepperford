@@ -67,6 +67,7 @@ async def ext_autocomplete(ctx: discord.Interaction, current: str) -> typing.Lis
         return [app_commands.Choice(name=opt.title(),value=opt) for opt in permitted_values if current in opt.lower()]
 
 @commands.is_owner()
+@app_commands.default_permissions(manage_messages=True)
 @app_commands.describe(extension="The extension to reload")
 @app_commands.autocomplete(extension=ext_autocomplete)
 @app_commands.command(name="reload_ext")
@@ -77,7 +78,7 @@ async def extension_reload(interaction: discord.Interaction, extension: str):
     finally:
         pass
 
-@commands.is_owner()
+@app_commands.default_permissions(manage_messages=True)
 @app_commands.command()
 async def settings(interaction: discord.Interaction, log_level: str = None, avatar: discord.Attachment = None):
     """Configure settings for the bot"""

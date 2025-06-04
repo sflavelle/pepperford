@@ -169,6 +169,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
             return [app_commands.Choice(name=opt.title(),value=opt) for opt in permitted_values if current.lower() in opt.lower()]
 
     @commands.is_owner()
+    
     @db.command(name='select')
     @app_commands.describe(table="The table to select from",
                            selection="What columns/functions to select (* for all)",
@@ -240,6 +241,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                 pass
 
     @is_aphost()
+    @app_commands.default_permissions(manage_messages=True)
     @db.command()
     async def import_datapackage(self, interaction: discord.Interaction, url: str = "https://archipelago.gg/datapackage"):
         """Import items and locations from an Archipelago datapackage into the database."""
@@ -304,6 +306,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
 
     @aproom.command()
     @is_aphost()
+    @app_commands.default_permissions(manage_messages=True)
     @app_commands.guild_only()
     @app_commands.describe(room_url="Link to the Archipelago room")
     async def set_room(self, interaction: discord.Interaction, room_url: str):

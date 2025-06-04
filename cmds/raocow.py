@@ -218,6 +218,7 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
         await interaction.followup.send(embed=pl_embed,ephemeral=not public)
 
     @is_mod()
+    @app_commands.default_permissions(manage_messages=True)
     @app_commands.autocomplete(search=playlist_autocomplete_all)
     @app_commands.describe(search="Search for a playlist",
                            new_title="New title for the playlist",
@@ -298,6 +299,7 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
         await interaction.followup.send("\n".join(playlist_strings),ephemeral=not public)
 
     @is_mod()
+    @app_commands.default_permissions(manage_messages=True)
     @app_commands.command()
     @app_commands.describe(playlist_count="Number of playlists to fetch (omit for all)",
                            calculate_duration="Calculate the total duration of the playlist (EXPENSIVE API USE)",
