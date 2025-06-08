@@ -56,6 +56,24 @@ def join_words(words):
     else:
         return words[0]
     
+def length_from_seconds(seconds) -> str:
+    """Convert seconds to a human-readable format."""
+    days = 0
+    hours = 0
+    minutes = 0
+
+    if seconds is None:
+        return "N/A"
+    minutes = seconds // 60
+    hours = minutes // 60
+    days = hours // 24
+    
+    if days > 0:
+        return f"{days} day{'s' if days > 1 else ''}, {hours:02}:{minutes:02}:{seconds % 60:02}"
+    else:
+        return f"{hours:02}:{minutes:02}:{seconds % 60:02}"
+
+    
 # Moderator role predicates
 def is_mod():
     async def predicate(ctx):
@@ -205,7 +223,7 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
             pl_embed.add_field(name="Game Link(s)", value=game_link, inline=False)
         pl_embed.add_field(name="Videos", value=length, inline=True)
         pl_embed.add_field(name="Date(s)", value=date_string, inline=True)
-        pl_embed.add_field(name="Duration", value=duration if duration else "N/A", inline=True)
+        pl_embed.add_field(name="Duration", value=length_from_seconds(duration) if duration else "N/A", inline=True)
         if alias:
             pl_embed.add_field(name="Alias (also known as)", value=alias, inline=False)
         if thumbnail:
@@ -285,18 +303,69 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
 
         playlist_strings.append(f"## Playlists for Series: {series_name}")
 
+        embed = discord.Embed(
+            title=series_name,
+            color=discord.Color.red()
+        )
+
         for result in results:
             id, title, datestamp, length, duration, visibility, thumbnail, game_link, latest_video, alias, series, channel_id = result
-            date_string = f"{datestamp} - {latest_video}" if latest_video else str(datestamp)
 
-            playlist_strings.append(f"- **[{title}](https://www.youtube.com/playlist?list={id})** - Date(s): {datestamp} / {length} videos")
+            date_string: str = None
+            ongoing = False
 
-        # If the full message exceeds Discord's character limit, truncate it
-        if len("\n".join(playlist_strings)) > 2000:
-            playlist_strings = playlist_strings[:15]  # Limit to first 15 playlists
-            playlist_strings.append("\n... (truncated, too many playlists)")
+            if latest_video:
+                try:
+                    ONGOING_SERIES_THRESHOLD = td(days=3)
 
-        await interaction.followup.send("\n".join(playlist_strings),ephemeral=not public)
+                    # Parse the latest_video and datestamp as datetime objects
+                    now = date.today()
+
+                    if now - latest_video <= ONGOING_SERIES_THRESHOLD:
+                        ongoing = True
+                        date_string = f"{datestamp} - Ongoing"
+                    else:
+                        date_string = f"{datestamp} - {latest_video}"
+                except Exception as e:
+                    logger.error(f"Error parsing playlist dates: {e}")
+            else:
+                date_string = str(datestamp)
+
+            value = f"[YouTube](https://www.youtube.com/playlist?list={id}) / {datestamp} / {length} videos / {length_from_seconds(duration)}"
+            embed.add_field(name=title, value=value, inline=False)
+
+        # If the embed would have too many fields, truncate
+        if len(embed.fields) > 25:
+            embed.clear_fields()
+
+            for result in results[:25]:
+                id, title, datestamp, length, duration, visibility, thumbnail, game_link, latest_video, alias, series, channel_id = result
+
+                date_string: str = None
+                ongoing = False
+
+                if latest_video:
+                    try:
+                        ONGOING_SERIES_THRESHOLD = td(days=3)
+
+                        # Parse the latest_video and datestamp as datetime objects
+                        now = date.today()
+
+                        if now - latest_video <= ONGOING_SERIES_THRESHOLD:
+                            ongoing = True
+                            date_string = f"{datestamp} - Ongoing"
+                        else:
+                            date_string = f"{datestamp} - {latest_video}"
+                    except Exception as e:
+                        logger.error(f"Error parsing playlist dates: {e}")
+                else:
+                    date_string = str(datestamp)
+
+                value = f"[YouTube](https://www.youtube.com/playlist?list={id}) / {datestamp} / {length} videos / {length_from_seconds(duration)}"
+                embed.add_field(name=title, value=value, inline=False)
+                embed.set_footer(text=f"...truncated (25 of {len(results)} playlists shown)")
+
+        await interaction.followup.send(embed=embed, ephemeral=not public)
 
     @is_mod()
     @app_commands.default_permissions(manage_messages=True)
