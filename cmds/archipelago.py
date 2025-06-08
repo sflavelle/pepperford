@@ -243,7 +243,9 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
     @is_aphost()
     @app_commands.default_permissions(manage_messages=True)
     @db.command()
-    async def import_datapackage(self, interaction: discord.Interaction, url: str = "https://archipelago.gg/datapackage"):
+    @app_commands.describe(url="URL to an Archipelago datapackage",
+                           import_classifications="Import community classifications from a third-party repository?")
+    async def import_datapackage(self, interaction: discord.Interaction, url: str = "https://archipelago.gg/datapackage", import_classifications: bool = True):
         """Import items and locations from an Archipelago datapackage into the database."""
 
         with sqlcon.cursor() as cursor:
@@ -269,24 +271,27 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                 next_game = games_list[current_index + 1] if current_index + 1 < len(games_list) else None
 
                 # Retrieve community progression data if it exists
+                comm_classification_table = {}
                 classification = None
-                community_progression = requests.get(f"https://raw.githubusercontent.com/silasary/world_data/refs/heads/main/worlds/{game}/progression.txt")
-                if community_progression.status_code == 200:
-                    for line in community_progression.text.splitlines():
-                        # Each line is in the format 'Item Name: classification'
-                        # Interpret everything up to the final ':' as the item name
-                        if ':' in line:
-                            wd_itemname, new_classification = line.rsplit(':', 1)
-                            wd_itemname = wd_itemname.strip()
-                            if wd_itemname in data['item_name_groups']['Everything']:
-                                if new_classification.strip().lower() in ["mcguffin", "progression", "useful", "currency", "filler", "trap"]:
-                                    classification = new_classification.strip().lower()
-                                if new_classification.strip().lower() in ["unknown", "bad_name"]:
-                                    classification = None
+                if import_classifications:
+                    community_progression = requests.get(f"https://raw.githubusercontent.com/silasary/world_data/refs/heads/main/worlds/{game}/progression.txt")
+                    if community_progression.status_code == 200:
+                        for line in community_progression.text.splitlines():
+                            # Each line is in the format 'Item Name: classification'
+                            # Interpret everything up to the final ':' as the item name
+                            if ':' in line:
+                                comm_classification_table[line.rsplit(':', 1)[0].strip()] = line.rsplit(':', 1)[1].strip().lower()
+
 
                 if game == "Archipelago": continue
                 for item in data['item_name_groups']['Everything']:
                     logger.info(f"Importing {game}: {item} to item_classification")
+                    if item in comm_classification_table.keys():
+                        classification = comm_classification_table[item]
+                        if classification in ["mcguffin", "progression", "useful", "currency", "filler", "trap"]:
+                            pass
+                        else:
+                            classification = None
                     cursor.execute(
                         "INSERT INTO archipelago.item_classifications (game, item, classification) VALUES (%s, %s, %s) ON CONFLICT (game, item) DO UPDATE SET classification = COALESCE(EXCLUDED.classification, archipelago.item_classifications.classification);",
                         (game, item, classification))
