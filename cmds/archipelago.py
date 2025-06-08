@@ -258,7 +258,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
 
             games = list(datapackage['games'].keys())
             if "Archipelago" in games:
-                datapackage['games'].remove("Archipelago") # Skip the Archipelago data
+                del datapackage['games']["Archipelago"] # Skip the Archipelago data
                 games.remove("Archipelago")
 
             msg = f"The datapackage provided has data for:\n\n{", ".join(games)}\n\nImport in progress..."
