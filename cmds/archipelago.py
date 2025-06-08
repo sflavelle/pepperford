@@ -303,6 +303,8 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
             return [app_commands.Choice(name=opt,value=opt) for opt in players if current.lower() in opt.lower()]
 
     async def link_slot_complete(self, ctx: discord.Interaction, current: str) -> typing.List[app_commands.Choice[str]]:
+        if not self.ctx.extras.get('ap_rooms'):
+            self.fetch_guild_room(ctx.guild_id)
         permitted_values = self.ctx.extras['ap_rooms'][ctx.guild_id]['players']
         if len(current) == 0:
             return [app_commands.Choice(name=opt,value=opt) for opt in permitted_values]
