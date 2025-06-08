@@ -263,19 +263,46 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
             await newpost.edit(content=msg)
 
             for game, data in datapackage['games'].items():
+                games_list = list(datapackage['games'].keys())
+                games_list.remove("Archipelago")
+                current_index = games_list.index(game)
+                next_game = games_list[current_index + 1] if current_index + 1 < len(games_list) else None
+
+                # Retrieve community progression data if it exists
+                classification = None
+                community_progression = requests.get(f"https://raw.githubusercontent.com/silasary/world_data/refs/heads/main/worlds/{game}/progression.txt")
+                if community_progression.status_code == 200:
+                    for line in community_progression.text.splitlines():
+                        # Each line is in the format 'Item Name: classification'
+                        # Interpret everything up to the final ':' as the item name
+                        if ':' in line:
+                            wd_itemname, new_classification = line.rsplit(':', 1)
+                            wd_itemname = wd_itemname.strip()
+                            if wd_itemname in data['item_name_groups']['Everything']:
+                                if new_classification.strip().lower() in ["mcguffin", "progression", "useful", "currency", "filler", "trap"]:
+                                    classification = new_classification.strip().lower()
+                                if new_classification.strip().lower() in ["unknown", "bad_name"]:
+                                    classification = None
+
                 if game == "Archipelago": continue
                 for item in data['item_name_groups']['Everything']:
                     logger.info(f"Importing {game}: {item} to item_classification")
                     cursor.execute(
-                        "INSERT INTO archipelago.item_classifications (game, item, classification) VALUES (%s, %s, %s) ON CONFLICT (game, item) DO NOTHING;",
-                        (game, item, None))
+                        "INSERT INTO archipelago.item_classifications (game, item, classification) VALUES (%s, %s, %s) ON CONFLICT (game, item) DO UPDATE SET classification = COALESCE(EXCLUDED.classification, archipelago.item_classifications.classification);",
+                        (game, item, classification))
                 for location in data['location_name_groups']['Everywhere']:
                     logger.info(f"Importing {game}: {location} to game_locations")
                     # Any location that shows up in the datapackage appears to be checkable
                     cursor.execute(
                         "INSERT INTO archipelago.game_locations (game, location, is_checkable) VALUES (%s, %s, %s) ON CONFLICT (game, location) DO UPDATE SET is_checkable = EXCLUDED.is_checkable;",
                         (game, location, True))
-                await newpost.edit(content=f"Imported {game}...")
+                # Find the next game to import, if any
+
+                if next_game:
+                    await newpost.edit(content=f"Imported {game}, working on {next_game}...")
+                else:
+                    pass
+                    # await newpost.edit(content=f"Imported {game}, finishing up...")
 
         return await newpost.edit(content="Import *should* be complete!")
 
