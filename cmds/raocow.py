@@ -489,7 +489,7 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
                                         vdate = None
 
                         cursor.execute('INSERT INTO pepper.raocow_videos (video_id, playlist_id, title, datestamp, channel_id) VALUES (%s, %s, %s, %s, %s)'
-                        'ON CONFLICT (video_id) DO NOTHING', (vid, pid, vtitle, vdate, channel_id))
+                                'ON CONFLICT (video_id) DO UPDATE SET datestamp = datestamp', (vid, pid, vtitle, vdate, channel_id))
 
                     if 'videoPublishedAt' in pl_videos['items'][-1]['contentDetails']:
                         latest_date = pl_videos['items'][-1]['contentDetails']['videoPublishedAt']
@@ -632,7 +632,7 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
                                                 vdate = None
 
                                 cursor.execute('INSERT INTO pepper.raocow_videos (video_id, playlist_id, title, datestamp, channel_id) VALUES (%s, %s, %s, %s, %s)'
-                                'ON CONFLICT (video_id) DO NOTHING', (vid, pid, vtitle, vdate, channel_id))
+                                'ON CONFLICT (video_id) DO UPDATE SET datestamp = datestamp', (vid, pid, vtitle, vdate, channel_id))
 
                             if 'videoPublishedAt' in pl_videos['items'][-1]['contentDetails']:
                                 latest_date = pl_videos['items'][-1]['contentDetails']['videoPublishedAt']
