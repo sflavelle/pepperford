@@ -61,6 +61,7 @@ def length_from_seconds(seconds) -> str:
     days = 0
     hours = 0
     minutes = 0
+    seconds = int(seconds)
 
     if seconds is None:
         return "N/A"
