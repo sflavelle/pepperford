@@ -65,8 +65,8 @@ def length_from_seconds(seconds) -> str:
 
     if seconds is None:
         return "N/A"
-    minutes = seconds // 60
-    hours = minutes // 60
+    minutes = (seconds // 60) % 60
+    hours = (seconds // 60 // 60) % 24
     days = hours // 24
     
     if days > 0:
