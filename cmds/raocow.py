@@ -466,7 +466,7 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
                         pid = item['id']
                         vtitle = v['snippet']['title']
 
-                        if channel_id == "UCKnEkwBqrai2GB6Rxl1OqCA":
+                        if channel_id == "UCKnEkwBqrai2GB6Rxl1OqCA" and v['snippet']['channelId'] != channel_ids[0]:
                             # 'Originally Uploaded - 6/9/07'
                             # Match a date string in the description
                             logger.info(f"Fan channel: searching for date in description of video {vid}")
