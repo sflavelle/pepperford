@@ -498,7 +498,7 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
                                     if 'items' in video_details and len(video_details['items']) > 0:
                                         duration = isodate.parse_duration(video_details['items'][0]['contentDetails']['duration']) # example output: 'PT3M50S'
                                         # Convert to seconds
-                                        duration_sec = timedelta(seconds=duration.total_seconds())
+                                        duration_sec = duration.total_seconds()
                                         if duration_sec is not None:
                                             cursor.execute('UPDATE pepper.raocow_videos SET duration = %s WHERE video_id = %s', (duration_sec, video_id))
 
