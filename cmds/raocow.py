@@ -423,25 +423,40 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
 
                             if calculate_duration:
                                 # Calculate the total duration of the playlist
-                                total_duration = timedelta()
                                 for video in pl_videos['items']:
                                     video_id = video['snippet']['resourceId']['videoId']
                                     video_details = ytc.get_video_by_id(video_id=video_id, return_json=True)
                                     if 'items' in video_details and len(video_details['items']) > 0:
-                                        duration = video_details['items'][0]['contentDetails']['duration']
-                                        total_duration += isodate.parse_duration(duration)
+                                        duration = isodate.parse_duration(video_details['items'][0]['contentDetails']['duration']) # example output: 'PT3M50S'
+                                        # Convert to seconds
+                                        duration_sec = timedelta(seconds=duration.total_seconds())
+                                        if duration_sec is not None:
+                                            cursor.execute('UPDATE pepper.raocow_videos SET duration = %s WHERE video_id = %s', (duration_sec, video_id))
 
-                                    # Convert total duration to a readable format (e.g., HH:MM:SS)
-                                    duration = str(total_duration)
+                            # Reset some vars
+                            duration = None
 
+                            # Main insert
                             cursor.execute('''
-                                            INSERT INTO pepper.raocow_playlists (playlist_id, title, datestamp, length, duration, thumbnail, latest_video, channel_id) VALUES (%s, %s, %s, %s, %s, %s, %s, %s) 
+                                            INSERT INTO pepper.raocow_playlists (playlist_id, title, datestamp, length, thumbnail, latest_video, channel_id) VALUES (%s, %s, %s, %s, %s, %s, %s, %s) 
                                             ON CONFLICT (playlist_id) DO UPDATE
-                                            SET datestamp = EXCLUDED.datestamp, length = EXCLUDED.length, duration = COALESCE(EXCLUDED.duration, pepper.raocow_playlists.duration),
+                                            SET datestamp = EXCLUDED.datestamp, length = EXCLUDED.length,
                                             visible = COALESCE(pepper.raocow_playlists.visible, EXCLUDED.visible),
                                             thumbnail = EXCLUDED.thumbnail, latest_video = EXCLUDED.latest_video, channel_id = EXCLUDED.channel_id''',
-                                            (playlist_id, title, date, playlist_length, duration, thumbnail, latest_date, channel_id)
+                                            (playlist_id, title, date, playlist_length, thumbnail, latest_date, channel_id)
                                             )
+                            # Update playlist duration with the sum from video table
+                            cursor.execute('''
+                                           UPDATE pepper.raocow_playlists
+                                           SET duration = sub.duration
+                                           FROM (
+                                               SELECT playlist_id, SUM(duration) AS duration
+                                               FROM pepper.raocow_videos
+                                               WHERE playlist_id = %s
+                                               GROUP BY playlist_id
+                                           ) AS sub
+                                           WHERE pepper.raocow_playlists.playlist_id = sub.playlist_id
+                                           ''', (playlist_id,))
                             sqlcon.commit()
                             logger.info(f"Inserted playlist {playlist_id} into database.")
                         except Exception as e:
