@@ -408,7 +408,18 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
         ytc = Api(api_key=api_key)
 
         def process_single_playlist(playlist_id):
-            pl_id, title, datestamp, length, duration, visibility, thumbnail, game_link, latest_video, alias, series, channel_id = None
+            pl_id = None
+            title = None
+            datestamp = None
+            length = None
+            duration = None
+            visibility = None
+            thumbnail = None
+            game_link = None
+            latest_video = None
+            alias = None
+            series = None
+            channel_id = None
 
             # Fetch playlist from database
             with sqlcon.cursor() as cursor:
