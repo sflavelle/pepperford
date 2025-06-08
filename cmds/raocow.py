@@ -609,15 +609,22 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
                                 pid = item['id']
                                 vtitle = v['snippet']['title']
 
-                                if channel_id == "UCKnEkwBqrai2GB6Rxl1OqCA":
+                                if channel_id == "UCKnEkwBqrai2GB6Rxl1OqCA" and v['snippet']['channelId'] != channel_ids[0]:
                                     # 'Originally Uploaded - 6/9/07'
                                     # Match a date string in the description
                                     logger.info(f"Fan channel: searching for date in description of video {vid}")
                                     if 'description' in v['snippet'] and v['snippet']['description']:
-                                        if match := re.search(r'(\d{1,2}/\d{1,2}/\d{2,4})', v['snippet']['description']):
+                                        if match := re.search(r'((\d{1,2})[./-](\d{1,2})[./-](\d{2,4}))', v['snippet']['description']):
                                             vdate = match.group(1)
                                             try:
-                                                vdate = date.fromisoformat(vdate.replace('/', '-'))
+                                                # Extract month, day, year
+                                                month = int(match.group(2))
+                                                day = int(match.group(3))
+                                                year = int(match.group(4))
+                                                # Handle 2-digit years
+                                                if year < 100:
+                                                    year += 2000 if year < 50 else 1900
+                                                vdate = date(year, month, day)
                                                 logger.info(f"Found date {vdate} in video {vid}")
                                             except ValueError:
                                                 logger.error(f"Invalid date format in video {vid}: {vdate}")
