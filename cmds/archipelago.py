@@ -257,7 +257,9 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
             datapackage = data.json()
 
             games = list(datapackage['games'].keys())
-            games.remove("Archipelago") # Skip the Archipelago data
+            if "Archipelago" in games:
+                datapackage['games'].remove("Archipelago") # Skip the Archipelago data
+                games.remove("Archipelago")
 
             msg = f"The datapackage provided has data for:\n\n{", ".join(games)}\n\nImport in progress..."
             if len(msg) > 2000:
@@ -266,7 +268,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
 
             for game, data in datapackage['games'].items():
                 games_list = list(datapackage['games'].keys())
-                games_list.remove("Archipelago")
+                if "Archipelago" in games_list: games_list.remove("Archipelago")
                 current_index = games_list.index(game)
                 next_game = games_list[current_index + 1] if current_index + 1 < len(games_list) else None
 
