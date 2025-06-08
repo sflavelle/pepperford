@@ -473,7 +473,6 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
                             logger.info(f"Fan channel: searching for date in description of video {vid}")
                             if 'description' in v['snippet'] and v['snippet']['description']:
                                 if match := re.search(r'((\d{1,2})[./-](\d{1,2})[./-](\d{2,4}))', v['snippet']['description']):
-                                    vdate = match.group(1)
                                     try:
                                         # Extract month, day, year
                                         month = int(match.group(2))
@@ -488,6 +487,7 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
                                         logger.error(f"Invalid date format in video {vid}: {vdate}")
                                         vdate = None
 
+                        logger.debug(f"Inserting video {vid} into playlist {pid} with date {vdate}")
                         cursor.execute('INSERT INTO pepper.raocow_videos (video_id, playlist_id, title, datestamp, channel_id) VALUES (%s, %s, %s, %s, %s)'
                                 'ON CONFLICT (video_id) DO UPDATE SET datestamp = pepper.raocow_videos.datestamp', (vid, pid, vtitle, vdate, channel_id))
 
@@ -616,7 +616,6 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
                                     logger.info(f"Fan channel: searching for date in description of video {vid}")
                                     if 'description' in v['snippet'] and v['snippet']['description']:
                                         if match := re.search(r'((\d{1,2})[./-](\d{1,2})[./-](\d{2,4}))', v['snippet']['description']):
-                                            vdate = match.group(1)
                                             try:
                                                 # Extract month, day, year
                                                 month = int(match.group(2))
