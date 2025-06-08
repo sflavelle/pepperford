@@ -9,7 +9,7 @@ import signal
 import yaml
 import traceback
 import typing
-from datetime import timedelta
+import datetime
 import isodate
 from io import BytesIO
 import psycopg2 as psql
@@ -23,6 +23,7 @@ from discord import app_commands
 from discord.ext import commands
 from discord.ext.commands import Context
 from discord.ext.commands._types import BotT
+
 from datetime import date, timezone, timedelta as td
 
 cfg = None
@@ -481,7 +482,7 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
                                         # Handle 2-digit years
                                         if year < 100:
                                             year += 2000 if year < 50 else 1900
-                                        vdate = date(year, month, day)
+                                        vdate = datetime.date(year, month, day)
                                         logger.info(f"Found date {vdate} in video {vid}")
                                     except ValueError:
                                         logger.error(f"Invalid date format in video {vid}: {vdate}")
@@ -624,7 +625,7 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
                                                 # Handle 2-digit years
                                                 if year < 100:
                                                     year += 2000 if year < 50 else 1900
-                                                vdate = date(year, month, day)
+                                                vdate = datetime.date(year, month, day)
                                                 logger.info(f"Found date {vdate} in video {vid}")
                                             except ValueError:
                                                 logger.error(f"Invalid date format in video {vid}: {vdate}")
