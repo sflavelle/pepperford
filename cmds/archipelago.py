@@ -275,25 +275,11 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                 # Retrieve community progression data if it exists
                 comm_classification_table = {}
                 classification = None
-                if import_classifications:
-                    community_progression = requests.get(f"https://raw.githubusercontent.com/silasary/world_data/refs/heads/main/worlds/{game}/progression.txt")
-                    if community_progression.status_code == 200:
-                        for line in community_progression.text.splitlines():
-                            # Each line is in the format 'Item Name: classification'
-                            # Interpret everything up to the final ':' as the item name
-                            if ':' in line:
-                                comm_classification_table[line.rsplit(':', 1)[0].strip()] = line.rsplit(':', 1)[1].strip().lower()
 
 
                 if game == "Archipelago": continue
                 for item in data['item_name_groups']['Everything']:
                     logger.info(f"Importing {game}: {item} to item_classification")
-                    if item in comm_classification_table.keys():
-                        classification = comm_classification_table[item]
-                        if classification in ["mcguffin", "progression", "useful", "currency", "filler", "trap"]:
-                            pass
-                        else:
-                            classification = None
                     cursor.execute(
                         "INSERT INTO archipelago.item_classifications (game, item, classification) VALUES (%s, %s, %s) ON CONFLICT (game, item) DO UPDATE SET classification = COALESCE(EXCLUDED.classification, archipelago.item_classifications.classification);",
                         (game, item, classification))
@@ -308,8 +294,36 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                 if next_game:
                     await newpost.edit(content=f"Imported {game}, working on {next_game}...")
                 else:
-                    pass
-                    # await newpost.edit(content=f"Imported {game}, finishing up...")
+                    if import_classifications:
+                        await newpost.edit(content=f"Finished imports, now processing community classifications...")
+
+                        # Get a list of games in our database
+                        cursor.execute("SELECT DISTINCT game FROM archipelago.item_classifications;")
+                        db_games = [row[0] for row in cursor.fetchall()]
+
+                        for game in db_games:
+                            community_progression = requests.get(f"https://raw.githubusercontent.com/silasary/world_data/refs/heads/main/worlds/{game}/progression.txt")
+                            if community_progression.status_code == 200:
+                                comm_classification_table[game] = {}
+                                for line in community_progression.text.splitlines():
+                                    # Each line is in the format 'Item Name: classification'
+                                    # Interpret everything up to the final ':' as the item name
+                                    if ':' in line:
+                                        comm_classification_table[game][line.rsplit(':', 1)[0].strip()] = line.rsplit(':', 1)[1].strip().lower()
+                                logger.info(f"Retrieved community classifications for {game} from world_data repository.")
+                        
+                        # Update the item_classifications table with the community classifications
+                        for game, classifications in comm_classification_table.items():
+                            for item, classification in classifications.items():
+                                if classification not in ["mcguffin", "progression", "conditional progression", "useful", "currency", "filler", "trap"]:
+                                    logger.warning(f"Invalid classification '{classification}' for {game}: {item}. Skipping.")
+                                    continue
+                                if classification == "mcguffin":
+                                    classification = "progression"
+                                cursor.execute(
+                                    "UPDATE archipelago.item_classifications SET classification = %s where game = %s and item = %s;",
+                                    (classification, game, item))
+                                logger.info(f"Updated {game}: {item} to {classification} in item_classifications table.")
 
         return await newpost.edit(content="Import *should* be complete!")
 
