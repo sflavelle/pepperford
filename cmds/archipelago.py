@@ -243,9 +243,8 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
     @is_aphost()
     @app_commands.default_permissions(manage_messages=True)
     @db.command()
-    @app_commands.describe(url="URL to an Archipelago datapackage",
-                           import_classifications="Import community classifications from a third-party repository?")
-    async def import_datapackage(self, interaction: discord.Interaction, url: str = "https://archipelago.gg/datapackage", import_classifications: bool = True):
+    @app_commands.describe(url="URL to an Archipelago datapackage")
+    async def import_datapackage(self, interaction: discord.Interaction, url: str = "https://archipelago.gg/datapackage"):
         """Import items and locations from an Archipelago datapackage into the database."""
 
         with sqlcon.cursor() as cursor:
@@ -294,38 +293,49 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                 if next_game:
                     await newpost.edit(content=f"Imported {game}, working on {next_game}...")
                 else:
-                    if import_classifications:
-                        await newpost.edit(content=f"Finished imports, now processing community classifications...")
-
-                        # Get a list of games in our database
-                        cursor.execute("SELECT DISTINCT game FROM archipelago.item_classifications;")
-                        db_games = [row[0] for row in cursor.fetchall()]
-
-                        for game in db_games:
-                            community_progression = requests.get(f"https://raw.githubusercontent.com/silasary/world_data/refs/heads/main/worlds/{game}/progression.txt")
-                            if community_progression.status_code == 200:
-                                comm_classification_table[game] = {}
-                                for line in community_progression.text.splitlines():
-                                    # Each line is in the format 'Item Name: classification'
-                                    # Interpret everything up to the final ':' as the item name
-                                    if ':' in line:
-                                        comm_classification_table[game][line.rsplit(':', 1)[0].strip()] = line.rsplit(':', 1)[1].strip().lower()
-                                logger.info(f"Retrieved community classifications for {game} from world_data repository.")
-                        
-                        # Update the item_classifications table with the community classifications
-                        for game, classifications in comm_classification_table.items():
-                            for item, classification in classifications.items():
-                                if classification not in ["mcguffin", "progression", "conditional progression", "useful", "currency", "filler", "trap"]:
-                                    logger.warning(f"Invalid classification '{classification}' for {game}: {item}. Skipping.")
-                                    continue
-                                if classification == "mcguffin":
-                                    classification = "progression"
-                                cursor.execute(
-                                    "UPDATE archipelago.item_classifications SET classification = %s where game = %s and item = %s;",
-                                    (classification, game, item))
-                                logger.info(f"Updated {game}: {item} to {classification} in item_classifications table.")
+                    pass
 
         return await newpost.edit(content="Import *should* be complete!")
+    
+    @is_aphost()
+    @db.command()
+    @app_commands.default_permissions(manage_messages=True)
+    @app_commands.describe(game="The game to import classifications for (omit to import all)")
+    async def import_classifications(self, interaction: discord.Interaction, game: str = None):
+        """Import community classifications from a third-party repository."""
+        deferpost = await interaction.response.defer(ephemeral=True, thinking=True,)
+        newpost = await interaction.original_response()
+
+        comm_classification_table = {}
+
+        with sqlcon.cursor() as cursor:
+            # Get a list of games in our database
+            cursor.execute("SELECT DISTINCT game FROM archipelago.item_classifications;")
+            db_games = [row[0] for row in cursor.fetchall()]
+
+            for game in db_games:
+                community_progression = requests.get(f"https://raw.githubusercontent.com/silasary/world_data/refs/heads/main/worlds/{game}/progression.txt")
+                if community_progression.status_code == 200:
+                    comm_classification_table[game] = {}
+                    for line in community_progression.text.splitlines():
+                        # Each line is in the format 'Item Name: classification'
+                        # Interpret everything up to the final ':' as the item name
+                        if ':' in line:
+                            comm_classification_table[game][line.rsplit(':', 1)[0].strip()] = line.rsplit(':', 1)[1].strip().lower()
+                    logger.info(f"Retrieved community classifications for {game} from world_data repository.")
+            
+            # Update the item_classifications table with the community classifications
+            for game, classifications in comm_classification_table.items():
+                for item, classification in classifications.items():
+                    if classification not in ["mcguffin", "progression", "conditional progression", "useful", "currency", "filler", "trap"]:
+                        logger.warning(f"Invalid classification '{classification}' for {game}: {item}. Skipping.")
+                        continue
+                    if classification == "mcguffin":
+                        classification = "progression"
+                    cursor.execute(
+                        "UPDATE archipelago.item_classifications SET classification = %s where game = %s and item = %s;",
+                        (classification, game, item))
+                    logger.info(f"Updated {game}: {item} to {classification} in item_classifications table.")
 
     aproom = app_commands.Group(name="room",description="Commands to do with the current room")
 
