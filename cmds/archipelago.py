@@ -300,6 +300,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
     @is_aphost()
     @db.command()
     @app_commands.default_permissions(manage_messages=True)
+    @app_commands.autocomplete(game=db_game_complete)
     @app_commands.describe(game="The game to import classifications for (omit to import all)")
     async def import_classifications(self, interaction: discord.Interaction, game: str = None):
         """Import community classifications from a third-party repository."""
