@@ -160,7 +160,7 @@ class Player(dict):
         return {
             "name": self.name,
             "game": self.game,
-            "items": {i.to_dict() for i in self.items},
+            "items": [i.to_dict() for i in self.items],
             "locations": {k: v.to_dict() for k, v in self.locations.items()},
             "hints": {k: [i.to_dict() for i in v] for k, v in self.hints.items()},
             "online": self.online,
