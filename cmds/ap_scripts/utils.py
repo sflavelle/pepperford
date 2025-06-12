@@ -175,14 +175,17 @@ class Player(dict):
 
     def update_locations(self, game: Game):
         self.locations = {l.location: l for l in game.spoiler_log[self.name].values()}
-        self.collected_locations = len([l for l in self.locations.values() if l.found is True])
         self.total_locations = len([l for l in self.locations.values() if l.is_location_checkable is True])
-        self.collection_percentage = (self.collected_locations / self.total_locations) * 100 if self.total_locations > 0 else 0.0
+        if not (self.goaled or self.released):
+            self.collected_locations = len([l for l in self.locations.values() if l.found is True])
+            self.collection_percentage = (self.collected_locations / self.total_locations) * 100 if self.total_locations > 0 else 0.0
 
         self.check_milestones()
 
     def check_milestones(self):
         milestones = [50, 75, 100]  # Define milestones
+        if self.goaled or self.released:
+            return # Don't process milestones if the player is already finished
         for milestone in milestones:
             if self.collection_percentage >= milestone and milestone not in self.milestones:
                 self.milestones.add(milestone)
