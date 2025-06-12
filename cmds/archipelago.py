@@ -22,6 +22,7 @@ from discord.ext.commands._types import BotT
 
 # from cmds.ap_scripts.archilogger import ItemLog
 from cmds.ap_scripts.emitter import event_emitter
+from collections import defaultdict
 
 cfg = None
 
@@ -169,7 +170,6 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
             return [app_commands.Choice(name=opt.title(),value=opt) for opt in permitted_values if current.lower() in opt.lower()]
 
     @commands.is_owner()
-    
     @db.command(name='select')
     @app_commands.describe(table="The table to select from",
                            selection="What columns/functions to select (* for all)",
@@ -499,6 +499,78 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                 msg_lines.append(f"**{player['name']} ({player['game']})**: {round(player['collection_percentage'], 2)}% complete. ({player['collected_locations']}/{player['total_locations']} checks.)")
 
         await newpost.edit(content="\n".join(msg_lines))
+
+    @aproom.command(name="received")
+    async def received_items(self, interaction: discord.Interaction):
+        """Get a list of items you received since last played."""
+
+        deferpost = await interaction.response.defer(ephemeral=True, thinking=True,)
+        newpost = await interaction.original_response()
+
+        if not self.ctx.extras.get('ap_rooms'):
+            self.ctx.extras['ap_rooms'] = {}
+            self.fetch_guild_room(interaction.guild_id)
+            if not self.ctx.extras['ap_rooms'].get(interaction.guild_id):
+                return await newpost.edit(content="No Archipelago room is currently set for this server.")
+
+        room = self.ctx.extras['ap_rooms'].get(interaction.guild_id)
+        if not room:
+            return await newpost.edit(content="No Archipelago room is currently set for this server.")
+
+        game_table = requests.get(f"http://localhost:42069/inspectgame", timeout=10).json()
+
+        linked_slots = []
+        with sqlcon.cursor() as cursor:
+            cursor.execute(
+                "SELECT rp.player_name FROM pepper.ap_room_players rp JOIN pepper.ap_players p ON rp.player_name = p.player_name WHERE rp.room_id = %s AND rp.guild = %s AND p.discord_user = %s;",
+                (room["room_id"], interaction.guild_id, interaction.user.id),
+            )
+            linked_slots = [row[0] for row in cursor.fetchall()]
+        if len(linked_slots) == 0:
+            return await newpost.edit(content="None of your Archipelago slots are linked to this game.")
+
+        # Build the received items table
+        offline_items = []
+
+        for slot in linked_slots:
+            player = game_table['players'][slot]
+
+            # Check when the player was last online
+            # If they were never online, set a default timestamp of 0
+            # So they see all of the items they received
+            player_last_online = player.get('last_online', 0)
+
+            for item in player['items']:
+                if item['received_timestamp'] > player_last_online and item['classification'] not in ["trap", "filler", "currency"]:
+                    offline_items.append({
+                        "Slot": slot,
+                        "Item": item['name'],
+                        "Sender": item['sender'],
+                        "Receiver": item['receiver'],
+                        "Classification": item['classification'],
+                        "Location": item['location'],
+                        "Timestamp": item['received_timestamp'],
+                    })
+
+        if len(offline_items) == 0:
+            return await newpost.edit(content="You have not received any items since you last played.")
+        
+        # Format the received items table
+        items_list = "## Received Items:\n"
+        # Group items by slot and sort by timestamp
+        items_by_slot = defaultdict(list)
+        for item in sorted(offline_items, key=lambda x: (x["Slot"], x["Timestamp"])):
+            items_by_slot[item["Slot"]].append(item)
+
+        for slot, items in items_by_slot.items():
+            items_list += f"\n### {slot}\n"
+            for item in sorted(items, key=lambda x: x["Timestamp"]):
+                items_list += (
+                    f"- <t:{item['Timestamp']}:R> - **{item['Item']}** from {item['Sender']} at {item['Location']}\n"
+                )
+
+        await newpost.edit(content=items_list)
+
 
     @aproom.command()
     async def get_hints(self, interaction: discord.Interaction, public: bool = False):

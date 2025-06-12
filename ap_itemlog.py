@@ -273,12 +273,15 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
         if match := regex_patterns['sent_items'].match(line):
             timestamp, sender, item, receiver, item_location = match.groups()
 
+            # convert timestamp to epoch time
+            timestamp = to_epoch(timestamp)
+
             # Mark item as collected
             try:
                 SentItemObject = Item(game.players[sender],game.players[receiver],item,item_location)
                 SentItemObject.found = True
                 game.spoiler_log[sender].update({item_location: SentItemObject})
-                ReceivedItemObject = CollectedItem(game.players[sender],game.players[receiver],item,item_location)
+                ReceivedItemObject = CollectedItem(game.players[sender],game.players[receiver],item,item_location,received_timestamp=timestamp)
                 if item in game.players[receiver].items: game.players[receiver].items[item].collect(sender, item_location)
                 else: game.players[receiver].items[item] = ReceivedItemObject
                 # players[sender].send(SentItemObject)

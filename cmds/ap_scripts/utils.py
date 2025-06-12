@@ -442,10 +442,11 @@ class Item(dict):
         return self.classification == "currency"
 
 class CollectedItem(Item):
-    def __init__(self, sender, receiver, item, location, game: str = None):
+    def __init__(self, sender, receiver, item, location, game: str = None, received_timestamp: float = None):
         super().__init__(sender, receiver, item, location, game)
         self.locations = [f"{sender} - {location}"]
         self.count: int = 0
+        self.received_timestamp = received_timestamp
 
         if self.classification is None:
             logger.warning(f"Item {self.name} is not classified in the DB yet.")
@@ -462,6 +463,7 @@ class CollectedItem(Item):
             "classification": self.classification,
             "count": self.count,
             "found": self.found,
+            "received_timestamp": self.received_timestamp,
             "hinted": self.hinted,
             "spoiled": self.spoiled,
         }
