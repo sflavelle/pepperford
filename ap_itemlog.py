@@ -317,7 +317,7 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
             game.players[sender].update_locations(game)
             game.update_locations()
 
-            if not skip_msg: logger.info(f"{sender}: ({str(game.players[sender].collected_locations)}/{str(game.players[sender].total_locations)}/{str(round(game.players[sender].collection_percentage,2))}%) {item_location} -> {receiver}'s {item} ({ReceivedItemObject.classification})")
+            if not skip_msg: logger.info(f"{sender}: ({str(game.players[sender].collected_locations)}/{str(game.players[sender].total_locations)}/{str(round(game.players[sender].collection_percentage,2))}%) {item_location} -> {receiver}'s {item} ({Item.classification})")
 
             # By vote of spotzone: if it's filler, don't post it
             if Item.is_filler() or Item.is_currency(): continue
