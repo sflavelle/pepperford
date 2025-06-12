@@ -690,7 +690,7 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                         return f"{item} ({count}/{required})"
                     if item == "Progressive Wallet":
                         capacities = ["99", "200", "500", "999"]
-                        return f"{item} ({capacities[player.inventory[item].count]} Capacity)"
+                        return f"{item} ({capacities[player.get_item_count(item)]} Capacity)"
                 case "Pizza Tower":
                     if item == "Toppin":
                         total = settings['Toppin Count']
