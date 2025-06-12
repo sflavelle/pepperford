@@ -222,7 +222,7 @@ class Player(dict):
 
     def get_item_count(self, item_name: str) -> int:
         """Get the count of a specific item in the player's inventory."""
-        return sum(1 for item in self.items if item.name == item_name)
+        return sum(1 for item in self.inventory if item.name == item_name)
 
 class Item(dict):
     """An Archipelago item in the multiworld"""
