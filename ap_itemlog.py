@@ -237,7 +237,7 @@ def process_spoiler_log(seed_url):
             case "Starting Items":
                 if match := regex_patterns['starting_item'].match(line):
                     item, receiver = match.groups()
-                    game.players[receiver].items.append(game.get_or_create_item("Archipelago",game.players[receiver],item,"Starting Items",received_timestamp=start_time))
+                    game.players[receiver].inventory.append(game.get_or_create_item("Archipelago",game.players[receiver],item,"Starting Items",received_timestamp=start_time))
             case _:
                 continue
 
