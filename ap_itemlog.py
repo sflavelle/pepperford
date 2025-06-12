@@ -103,6 +103,7 @@ def join_words(words):
 
 def process_spoiler_log(seed_url):
     global game
+    global start_time
 
     spoiler_url = f"https://{hostname}/dl_spoiler/{seed_id}"
 
@@ -263,6 +264,7 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
     global release_buffer
     global players
     global seed_address
+    global start_time
 
     # Regular expressions for different log message types
     regex_patterns = {
