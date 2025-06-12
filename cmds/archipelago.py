@@ -496,9 +496,9 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
 
         for player in game_table['players'].values():
             if player['goaled'] is True:
-                msg_lines.append(f"**{player['name']} ({player['game']})**: finished their game. Last online <t:{player['last_online']}:R>.")
+                msg_lines.append(f"**{player['name']} ({player['game']})**: finished their game. Last online <t:{int(player['last_online'])}:R>.")
             else:
-                msg_lines.append(f"**{player['name']} ({player['game']})**: {round(player['collection_percentage'], 2)}% complete. ({player['collected_locations']}/{player['total_locations']} checks.) Last online <t:{player['last_online']}:R>.")
+                msg_lines.append(f"**{player['name']} ({player['game']})**: {round(player['collection_percentage'], 2)}% complete. ({player['collected_locations']}/{player['total_locations']} checks.) Last online <t:{int(player['last_online'])}:R>.")
 
         await newpost.edit(content="\n".join(msg_lines))
 
@@ -551,7 +551,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                         "Receiver": item['receiver'],
                         "Classification": item['classification'],
                         "Location": item['location'],
-                        "Timestamp": item['received_timestamp'],
+                        "Timestamp": int(item['received_timestamp']),
                     })
 
         if len(offline_items) == 0:
