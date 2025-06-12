@@ -288,6 +288,7 @@ class Item(dict):
             "found": self.found,
             "hinted": self.hinted,
             "spoiled": self.spoiled,
+            "received_timestamp": self.received_timestamp
         }
 
     def collect(self):
