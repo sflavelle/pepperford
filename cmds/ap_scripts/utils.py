@@ -53,6 +53,12 @@ class Game(dict):
     total_locations: int = 0
     collection_percentage: float = 0.0
     milestones = set()
+    start_timestamp: float = None
+
+    # This is a cache for Item instances, so we don't have to create new ones every time
+    # Unique by (sender, location)
+    # Store it in the Game class to keep duplicate instances minimal
+    item_instance_cache = {}
 
     def init_db(self):
         cursor = sqlcon.cursor()
@@ -95,6 +101,17 @@ class Game(dict):
             "total_locations": self.total_locations,
             "collection_percentage": self.collection_percentage,
         }
+    
+    def get_or_create_item(self, sender, receiver, itemname, location, entrance=None, received_timestamp: float = None):
+        key = (str(sender), location, itemname)
+        if key in self.item_instance_cache:
+            item = self.item_instance_cache[key]
+            if received_timestamp is not None:
+                item.received_timestamp = received_timestamp
+            return item
+        obj = Item(sender, receiver, itemname, location, entrance, received_timestamp)
+        self.item_instance_cache[key] = obj
+        return obj
 
     def pushdb(self, cursor, database: str, column: str, payload):
         try:
@@ -224,8 +241,9 @@ class Item(dict):
     found = False
     hinted = False
     spoiled = False
+    received_timestamp: float = None
 
-    def __init__(self, sender: Player|str, receiver: Player, item: str, location: str, entrance: str = None):
+    def __init__(self, sender: Player|str, receiver: Player, item: str, location: str, entrance: str = None, received_timestamp: float = None):
         self.sender = sender
         self.receiver = receiver
         self.name = item
@@ -239,6 +257,7 @@ class Item(dict):
         self.found = False
         self.hinted = False
         self.spoiled = False
+        self.received_timestamp = received_timestamp
 
         if self.game is None:
             logger.warning(f"Item object for {self.name} has no game associated with it?")
@@ -443,41 +462,6 @@ class Item(dict):
         return self.classification == "filler"
     def is_currency(self):
         return self.classification == "currency"
-
-class CollectedItem(Item):
-    def __init__(self, sender, receiver, item, location, game: str = None, received_timestamp: float = None):
-        super().__init__(sender, receiver, item, location, game)
-        self.locations = [f"{sender} - {location}"]
-        self.count: int = 0
-        self.received_timestamp = received_timestamp
-
-        if self.classification is None:
-            logger.warning(f"Item {self.name} is not classified in the DB yet.")
-
-    def to_dict(self):
-        return {
-            "sender": str(self.sender) if hasattr(self.sender, 'name') else self.sender,
-            "receiver": str(self.receiver) if hasattr(self.receiver, 'name') else self.receiver,
-            "name": self.name,
-            "game": self.game,
-            "locations": self.locations,
-            "location_entrance": self.location_entrance,
-            "is_location_checkable": self.is_location_checkable,
-            "classification": self.classification,
-            "count": self.count,
-            "found": self.found,
-            "received_timestamp": self.received_timestamp,
-            "hinted": self.hinted,
-            "spoiled": self.spoiled,
-        }
-
-    def collect(self, sender, location):
-        self.found = True
-        self.locations.append(f"{sender} - {location}")
-        self.count = len(self.locations)
-
-    def get_count(self) -> int:
-        return self.count
 
 class PlayerSettings(dict):
     def __init__(self):

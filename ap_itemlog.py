@@ -11,7 +11,7 @@ import requests
 import fnmatch
 import threading
 import yaml
-from cmds.ap_scripts.utils import Game, Item, CollectedItem, Player, PlayerSettings, handle_item_tracking, handle_location_tracking, handle_location_hinting
+from cmds.ap_scripts.utils import Game, Item, Player, PlayerSettings, handle_item_tracking, handle_location_tracking, handle_location_hinting
 from cmds.ap_scripts.emitter import event_emitter
 from word2number import w2n
 from flask import Flask, jsonify, Response
@@ -84,6 +84,7 @@ message_buffer = []
 # Store for players, items, settings
 game = Game()
 game.room_id = room_id
+start_time = None
 
 # small functions
 goaled = lambda player : game.players[player].is_finished()
@@ -216,6 +217,8 @@ def process_spoiler_log(seed_url):
                 if match := regex_patterns['location'].match(line):
                     item_location, sender, item, receiver = match.groups()
                     item_location = item_location.lstrip()
+                    ItemObject = game.get_or_create_item(game.players[sender],game.players[receiver],item,item_location,received_timestamp=start_time)
+
                     if item_location == item and sender == receiver:
                         continue # Most likely an event, can be skipped
                     if ItemObject.is_location_checkable() is False:
@@ -232,8 +235,7 @@ def process_spoiler_log(seed_url):
             case "Starting Items":
                 if match := regex_patterns['starting_item'].match(line):
                     item, receiver = match.groups()
-                    ItemObject = CollectedItem("Archipelago",game.players[receiver],item,"Starting Items")
-                    game.players[receiver].items[item] = ItemObject
+                    game.players[receiver].items.append(game.get_or_create_item("Archipelago",game.players[receiver],item,"Starting Items",received_timestamp=start_time))
             case _:
                 continue
 
@@ -285,27 +287,21 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
 
             # Mark item as collected
             try:
-                SentItemObject = Item(game.players[sender],game.players[receiver],item,item_location)
-                SentItemObject.found = True
-                game.spoiler_log[sender].update({item_location: SentItemObject})
-                ReceivedItemObject = CollectedItem(game.players[sender],game.players[receiver],item,item_location,received_timestamp=timestamp)
-                if item in game.players[receiver].items: game.players[receiver].items[item].collect(sender, item_location)
-                else: game.players[receiver].items[item] = ReceivedItemObject
-                # players[sender].send(SentItemObject)
-                # game["spoiler"][sender]["locations"][item_location].collect()
+                Item = game.get_or_create_item(game.players[sender],game.players[receiver],item,item_location,received_timestamp=timestamp)
+                Item.found = True
+                game.spoiler_log[sender].update({item_location: Item})
+                Item.collect()
 
                 # If it was hinted, update the player's hint table
                 for hintitem in game.players[receiver].hints['receiving']:
                     if item_location == hintitem.location:
                         del hintitem
-                        SentItemObject.hinted = True
-                        ReceivedItemObject.hinted = True
+                        Item.hinted = True
                         break
                 for hintitem in game.players[sender].hints['sending']:
                     if item_location == hintitem.location:
                         del hintitem
-                        SentItemObject.hinted = True
-                        ReceivedItemObject.hinted = True
+                        Item.hinted = True
                         break
 
             except KeyError as e:
@@ -314,26 +310,26 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
 
 
             # Update location totals
-            ReceivedItemObject.db_add_location(True)
+            Item.db_add_location(True)
             game.players[sender].update_locations(game)
             game.update_locations()
 
             if not skip_msg: logger.info(f"{sender}: ({str(game.players[sender].collected_locations)}/{str(game.players[sender].total_locations)}/{str(round(game.players[sender].collection_percentage,2))}%) {item_location} -> {receiver}'s {item} ({ReceivedItemObject.classification})")
 
             # By vote of spotzone: if it's filler, don't post it
-            if ReceivedItemObject.is_filler() or ReceivedItemObject.is_currency(): continue
+            if Item.is_filler() or Item.is_currency(): continue
 
             # If this is part of a release, send it there instead
             if sender in release_buffer and not skip_msg and (timestamp - release_buffer[sender]['timestamp'] <= 2):
-                release_buffer[sender]['items'][receiver].append(ReceivedItemObject)
+                release_buffer[sender]['items'][receiver].append(Item)
                 logger.debug(f"Adding {item} for {receiver} to release buffer.")
             else:
                 # Update item name based on settings for special items
                 location = item_location
                 if bool(game.players[receiver].settings):
                     try:
-                        item = handle_item_tracking(game, game.players[receiver], ReceivedItemObject)
-                        location = handle_location_tracking(game, game.players[sender], ReceivedItemObject)
+                        item = handle_item_tracking(game, game.players[receiver], Item)
+                        location = handle_location_tracking(game, game.players[sender], Item)
                     except KeyError as e:
                         logger.error(f"Couldn't do tracking for item {item} or location {location}:", e, exc_info=True)
 
@@ -368,14 +364,14 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
 
             if hint_status == "found": continue
 
-            SentItemObject = Item(game.players[sender],game.players[receiver],item,item_location,entrance=entrance)
+            Item = game.get_or_create_item(game.players[sender],game.players[receiver],item,item_location,entrance=entrance)
             if item_location not in game.spoiler_log[sender]:
-                game.spoiler_log[sender][item_location] = SentItemObject
-            else: SentItemObject = game.spoiler_log[sender].get(item_location)
+                game.spoiler_log[sender][item_location] = Item
+            else: Item = game.spoiler_log[sender].get(item_location)
 
             # Store the hint in the player's hints dictionary
-            game.players[sender].add_hint("sending", SentItemObject)
-            game.players[receiver].add_hint("receiving", SentItemObject)
+            game.players[sender].add_hint("sending", Item)
+            game.players[receiver].add_hint("receiving", Item)
 
             message = f"**[Hint]** **{receiver}'s {item}** is at {item_location} in {sender}'s World{f" (found at {entrance})" if bool(entrance) else ''}."
 
@@ -383,23 +379,23 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
                 case "avoid":
                     message += " This item is not useful."
                 case "priority":
-                    SentItemObject.update_item_classification("progression")
+                    Item.update_item_classification("progression")
                     message += " **This item will unlock more checks.**"
                 case _:
                     pass
 
-            if bool(SentItemObject.location_costs):
-                message += f"\n> -# This will cost {join_words(SentItemObject.location_costs)} to obtain."
-            if bool(SentItemObject.location_info):
-                message += f"\n> -# {SentItemObject.location_info}"
+            if bool(Item.location_costs):
+                message += f"\n> -# This will cost {join_words(Item.location_costs)} to obtain."
+            if bool(Item.location_info):
+                message += f"\n> -# {Item.location_info}"
 
             game.spoiler_log[sender][item_location].hint()
 
-            if SentItemObject.is_filler() or SentItemObject.is_currency(): continue
+            if Item.is_filler() or Item.is_currency(): continue
             # Balatro shop items are hinted as soon as they appear and are usually bought right away, so skip their hints
-            if SentItemObject.game == "Balatro" and any([SentItemObject.location.startswith(shop) for shop in ['Shop Item', 'Consumable Item']]): continue
+            if Item.game == "Balatro" and any([Item.location.startswith(shop) for shop in ['Shop Item', 'Consumable Item']]): continue
 
-            if not skip_msg and game.players[receiver].is_finished() is False and not SentItemObject.found: message_buffer.append(message)
+            if not skip_msg and game.players[receiver].is_finished() is False and not Item.found: message_buffer.append(message)
 
 
         elif match := regex_patterns['goals'].match(line):
