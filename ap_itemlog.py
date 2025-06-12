@@ -425,6 +425,8 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
         elif match := regex_patterns['room_spinup'].match(line):
             timestamp, address = match.groups()
             game.running = True
+            if not skip_msg:
+                logger.info(f"Room has spun up at {address}.")
             if address != seed_address:
                 seed_address = address
                 logger.info(f"Seed URI has changed: {address}")
