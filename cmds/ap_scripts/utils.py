@@ -519,7 +519,7 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                     if item.startswith("Metro Ticket"):
                         required = 4
                         tickets = ["Yellow", "Green", "Blue", "Pink"]
-                        collected = [ticket for ticket in tickets if f"Metro Ticket - {ticket}" in player.items]
+                        collected = [ticket for ticket in tickets if f"Metro Ticket - {ticket}" in player.inventory]
                         return f"{item} ({''.join([key[0] for key in collected]) if len(collected) > 0 else "0"}/{required})"
                     if item.startswith("Relic"):
                         relics = {
@@ -557,12 +557,12 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                         for relic, parts in relics.items():
                             if any(part == item for part in parts):
                                 required = len(parts)
-                                count = len([i for i in player.items if i in parts])
+                                count = len([i for i in player.inventory if i in parts])
                                 return f"{item} ({relic} {count}/{required})"
                 case "Archipela-Go!":
                     if settings['Goal'] == "Long Macguffin" and len(item) == 1:
                         items = list("Archipela-Go!")
-                        collected = [i for i in player.items if i in items]
+                        collected = [i for i in player.inventory if i in items]
                         collected_string = ""
                         for i in items:
                             if i in collected: collected_string += i
@@ -599,13 +599,13 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                         keys = 8
                         collected_string = ""
                         for k in range(keys):
-                                if f"Key {k+1}" in player.items: collected_string += str(k+1)
+                                if f"Key {k+1}" in player.inventory: collected_string += str(k+1)
                                 else: collected_string += "_"
                         return f"{item} ({collected_string})"
                     if item in kongs:
                         collected_string = ""
                         for kong in kongs:
-                            if kong in player.items: collected_string += kong[0:1]
+                            if kong in player.inventory: collected_string += kong[0:1]
                             else: collected_string += "__"
                         return f"{item} Kong ({collected_string})"
                     if item in moves.keys():
@@ -616,7 +616,7 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                         return f"{item} ({count}/{required})"
                 case "DOOM 1993":
                     if item.endswith(" - Complete"):
-                        count = len([i for i in player.items if i.endswith(" - Complete")])
+                        count = len([i for i in player.inventory if i.endswith(" - Complete")])
                         required = 0
                         for episode in 1, 2, 3, 4:
                             if settings[f"Episode {episode}"] is True:
@@ -624,7 +624,7 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                         return f"{item} ({count}/{required})"
                 case "DOOM II":
                     if item.endswith(" - Complete"):
-                        count = len([i for i in player.items if i.endswith(" - Complete")])
+                        count = len([i for i in player.inventory if i.endswith(" - Complete")])
                         required = 0
                         if settings["Episode 1"] is True:
                             required = required + 11 # MAP01-MAP11
@@ -638,11 +638,11 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                 case "gzDoom":
                     item_regex = re.compile(r"^([a-zA-Z]+) \((\S+)\)$")
                     if item.startswith("Level Access"):
-                        count = len([i for i in player.items if i.startswith("Level Access")])
+                        count = len([i for i in player.inventory if i.startswith("Level Access")])
                         total = len(settings['Included Levels'])
                         return f"{item} ({count}/{total})"
                     if item.startswith("Level Clear"):
-                        count = len([i for i in player.items if i.startswith("Level Clear")])
+                        count = len([i for i in player.inventory if i.startswith("Level Clear")])
                         required = settings['Win Conditions']['nrof-maps']
                         if required == "all":
                             required = len(settings['Included Levels'])
@@ -654,9 +654,9 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                         keys = [f"{color}{key}" for color in ["Blue","Yellow","Red"] for key in ["Skull", "Card"]]
                         map_keys = sorted([i for i in item_table['gzDoom'].keys() if (i.endswith(f"({map})") and any([key in i for key in keys]))])
                         for i in map_keys:
-                            if i in player.items: collected_string += i[0]
+                            if i in player.inventory: collected_string += i[0]
                             else: collected_string += "_"
-                        if f"Level Access ({map})" not in player.items:
+                        if f"Level Access ({map})" not in player.inventory:
                             collected_string = f"~~{collected_string}~~" # Strikethrough keys if not found
                         return f"{item} ({collected_string})"
                 case "Here Comes Niko!":
@@ -690,7 +690,7 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                         return f"{item} ({count}/{required})"
                     if item == "Progressive Wallet":
                         capacities = ["99", "200", "500", "999"]
-                        return f"{item} ({capacities[player.items[item].count]} Capacity)"
+                        return f"{item} ({capacities[player.inventory[item].count]} Capacity)"
                 case "Pizza Tower":
                     if item == "Toppin":
                         total = settings['Toppin Count']
@@ -699,7 +699,7 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                 case "Simon Tatham's Portable Puzzle Collection":
                     # Tracking total access to puzzles instead of completion percentage, that's for the locations
                     total = settings['Puzzle Count']
-                    count = len(player.items)
+                    count = len(player.inventory)
                     return f"{item} ({count}/{total})"
                 case "Sonic Adventure 2 Battle":
                     if item == "Emblem":
@@ -730,7 +730,7 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                         "MP": ["Sacred Geometry", "Vintage", "Dusty"]
                     }
                     if item == "Flask Shard":
-                        flask_progress = player.items[item].count % 3
+                        flask_progress = player.inventory[item].count % 3
                         return f"{item} ({"Gained Flask!" if flask_progress == 0 else f"{flask_progress}/3"})"
                     if item == "Fairy":
                         required = 20
@@ -749,7 +749,7 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                                 break
                         return f"{item} ({count}/{next_req})"
                     if item in ["Blue Questagon", "Red Questagon", "Green Questagon"]:
-                        count = len(i for i in ["Blue Questagon", "Red Questagon", "Green Questagon"] if i in player.items)
+                        count = len(i for i in ["Blue Questagon", "Red Questagon", "Green Questagon"] if i in player.inventory)
                         required = 3
                         return f"{item} ({count}/{required})"
                     if item == "Sword Upgrade":
@@ -772,12 +772,12 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                         parts = ["Bottom Left", "Bottom Right", "Top Left", "Top Right"]
                         jewel = next(j for j in jewels if j in item)
                         #
-                        jewel_count = len([i for i in player.items if f"{jewel} Piece" in i])
+                        jewel_count = len([i for i in player.inventory if f"{jewel} Piece" in i])
                         jewel_required = 4
                         jewels_complete = len(
                             [j for j in jewels
                             if len([f"{part} {j} Piece" for part in parts
-                                if f"{part} {j} Piece" in player.items]) == 4 ])
+                                if f"{part} {j} Piece" in player.inventory]) == 4 ])
                         jewels_required = settings['Required Jewels']
                         return f"{item} ({jewel_count}/{jewel_required}P|{jewels_complete}/{jewels_required}C)"
                 case _:
