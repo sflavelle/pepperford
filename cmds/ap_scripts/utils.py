@@ -496,7 +496,7 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
     if bool(player.settings):
         settings = player.settings
         game = player.game
-        count = player.items[item].count
+        count = player.get_item_count(item)
 
         try:
             match game:
@@ -610,6 +610,10 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                         return f"{item} Kong ({collected_string})"
                     if item in moves.keys():
                         return moves[item]
+                case "Donkey Kong Country 3":
+                    if item == "DK Coin":
+                        required = settings['DK Coins for Gyrocopter']
+                        return f"{item} ({count}/{required})"
                 case "DOOM 1993":
                     if item.endswith(" - Complete"):
                         count = len([i for i in player.items if i.endswith(" - Complete")])
@@ -687,6 +691,11 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                     if item == "Progressive Wallet":
                         capacities = ["99", "200", "500", "999"]
                         return f"{item} ({capacities[player.items[item].count]} Capacity)"
+                case "Pizza Tower":
+                    if item == "Toppin":
+                        total = settings['Toppin Count']
+                        required = max([settings[f'Floor {num} Boss Toppins'] for num in range(1, 6)])
+                        return f"{item} ({count}/{required})"
                 case "Simon Tatham's Portable Puzzle Collection":
                     # Tracking total access to puzzles instead of completion percentage, that's for the locations
                     total = settings['Puzzle Count']
