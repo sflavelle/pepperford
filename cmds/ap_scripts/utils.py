@@ -126,7 +126,7 @@ def handle_hint_update(self):
 class Player(dict):
     name = None
     game = None
-    items = []
+    inventory: list = []
     locations = {}
     hints = {}
     online = False
@@ -142,7 +142,7 @@ class Player(dict):
     def __init__(self,name,game):
         self.name = name
         self.game = game
-        self.items = []
+        self.inventory = []
         self.locations = {}
         self.hints = {
             "sending": [],
@@ -160,7 +160,7 @@ class Player(dict):
         return {
             "name": self.name,
             "game": self.game,
-            "items": [i.to_dict() for i in self.items],
+            "items": [i.to_dict() for i in self.inventory],
             "locations": {k: v.to_dict() for k, v in self.locations.items()},
             "hints": {k: [i.to_dict() for i in v] for k, v in self.hints.items()},
             "online": self.online,
