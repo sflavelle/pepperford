@@ -218,7 +218,14 @@ def process_spoiler_log(seed_url):
                     item_location = item_location.lstrip()
                     if item_location == item and sender == receiver:
                         continue # Most likely an event, can be skipped
-                    ItemObject = Item(game.players[sender],game.players[receiver],item,item_location)
+                    if ItemObject.is_location_checkable() is False:
+                        # If the item is not checkable, we don't need to store it
+                        # But we can't delete it just yet until the checkable database is more complete
+                        # TODO uncomment this when this is safer to do
+                        # del ItemObject
+                        # continue
+                        pass
+
                     ItemObject.db_add_location()
                     if sender not in game.spoiler_log: game.spoiler_log.update({sender: {}})
                     game.spoiler_log[sender].update({item_location: ItemObject})
@@ -427,6 +434,9 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
                         sqlcon.commit()
                     send_chat("Archipelago", message)
                     message_buffer.append(message)
+            if start_time is None:
+                start_time = to_epoch(timestamp)
+                logger.info(f"Start time set to {start_time} (epoch)")
         elif match := regex_patterns['messages'].match(line):
             timestamp, sender, message = match.groups()
             if msg_webhook:
@@ -437,7 +447,7 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
                         send_chat(sender, message)
 
         elif match := regex_patterns['joins'].match(line):
-            timestamp, player, verb, playergame, version, tags = match.groups()
+            timestamp, player, verb, playergame, client_version, tags = match.groups()
             try:
                 tags_str = tags
                 tags = ast.literal_eval(tags_str)

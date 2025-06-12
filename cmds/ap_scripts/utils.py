@@ -109,7 +109,7 @@ def handle_hint_update(self):
 class Player(dict):
     name = None
     game = None
-    items = {}
+    items = []
     locations = {}
     hints = {}
     online = False
@@ -125,7 +125,7 @@ class Player(dict):
     def __init__(self,name,game):
         self.name = name
         self.game = game
-        self.items = {}
+        self.items = []
         self.locations = {}
         self.hints = {
             "sending": [],
@@ -143,7 +143,7 @@ class Player(dict):
         return {
             "name": self.name,
             "game": self.game,
-            "items": {k: v.to_dict() for k, v in self.items.items()},
+            "items": {i.to_dict() for i in self.items},
             "locations": {k: v.to_dict() for k, v in self.locations.items()},
             "hints": {k: [i.to_dict() for i in v] for k, v in self.hints.items()},
             "online": self.online,
@@ -202,6 +202,10 @@ class Player(dict):
         # This method will be called whenever hints are updated
         logger.info(f"Hints for player {self.name} have been updated.")
         handle_hint_update(self)
+
+    def get_item_count(self, item_name: str) -> int:
+        """Get the count of a specific item in the player's inventory."""
+        return sum(1 for item in self.items if item.name == item_name)
 
 class Item(dict):
     """An Archipelago item in the multiworld"""
@@ -266,16 +270,15 @@ class Item(dict):
         }
 
     def collect(self):
+        """Mark this item as collected and add it to the receiver's inventory."""
         self.found = True
+        self.receiver.items.append(self)
 
     def hint(self):
         self.hinted = True
 
     def spoil(self):
         self.spoiled = True
-
-    def get_count(self) -> int:
-        return 1
 
     def location_is_checkable(self) -> bool:
         if not isinstance(self.sender, Player):
