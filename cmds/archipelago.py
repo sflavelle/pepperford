@@ -489,7 +489,9 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                 pass
 
         msg_lines.append(f"This game is {round(game_table['collection_percentage'],2)}% complete. ({game_table['collected_locations']} out of {game_table['total_locations']} locations checked.)")
-        
+        if game_table['running'] is False:
+            msg_lines.append("The game is currently spun down - visit the room page to bring it back up.")
+
         msg_lines.append("")
 
         for player in game_table['players'].values():

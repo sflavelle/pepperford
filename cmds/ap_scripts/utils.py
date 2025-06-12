@@ -46,6 +46,7 @@ class Game(dict):
     room_id = None
     version_generator = None
     version_server = None
+    running: bool = False
     world_settings = {}
     spoiler_log = {}
     players = {}

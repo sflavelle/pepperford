@@ -419,10 +419,12 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
                     'items': defaultdict(list)
                 }
         elif match := regex_patterns['room_shutdown'].match(line):
+            game.running = False
             if not skip_msg:
                 logger.info("Room has spun down due to inactivity.")
         elif match := regex_patterns['room_spinup'].match(line):
             timestamp, address = match.groups()
+            game.running = True
             if address != seed_address:
                 seed_address = address
                 logger.info(f"Seed URI has changed: {address}")
