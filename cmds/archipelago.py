@@ -497,6 +497,8 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
         for player in game_table['players'].values():
             if player['goaled'] is True:
                 msg_lines.append(f"**{player['name']} ({player['game']})**: finished their game. Last online <t:{int(player['last_online'])}:R>.")
+            elif player['released'] is True and player['goaled'] is False:
+                msg_lines.append(f"**{player['name']} ({player['game']})**: released from the game. Last online <t:{int(player['last_online'])}:R>.")
             else:
                 msg_lines.append(f"**{player['name']} ({player['game']})**: {round(player['collection_percentage'], 2)}% complete. ({player['collected_locations']}/{player['total_locations']} checks.) Last online <t:{int(player['last_online'])}:R>.")
 
