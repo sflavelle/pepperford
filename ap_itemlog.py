@@ -265,7 +265,7 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
         'messages': re.compile(r'\[(.*?)\]: Notice \(all\): (.*?): (.+)$'),
         'room_shutdown': re.compile(r'\[(.*?)\]: Shutting down due to inactivity.$'),
         'room_spinup': re.compile(r'\[(.*?)\]: Hosting game at (.+?)$'),
-        'joins': re.compile(r'\[(.*?)\]: Notice \(all\): (.*?) \(Team #\d\) (?:playing|viewing|tracking) (.+?) has joined. Client\(([0-9\.]+)\), (?P<tags>.+)\.$'),
+        'joins': re.compile(r'\[(.*?)\]: Notice \(all\): (.*?) \(Team #\d\) (playing|viewing|tracking) (.+?) has joined. Client\(([0-9\.]+)\), (?P<tags>.+)\.$'),
         'parts': re.compile(r'\[(.*?)\]: Notice \(all\): (.*?) \(Team #\d\) has left the game\. Client\(([0-9\.]+)\), (?P<tags>.+)\.$'),
     }
 
@@ -437,7 +437,7 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
                         send_chat(sender, message)
 
         elif match := regex_patterns['joins'].match(line):
-            timestamp, player, playergame, version, tags = match.groups()
+            timestamp, player, verb, playergame, version, tags = match.groups()
             try:
                 tags_str = tags
                 tags = ast.literal_eval(tags_str)
@@ -445,9 +445,10 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
             except json.JSONDecodeError:
                 logger.error(f"Failed to parse player tags. {player}: {tags_str}")
                 tags = tags_str
-            if not skip_msg and "TextOnly" not in tags: logger.info(f"{player} ({playergame}) is online.")
-            game.players[player].set_online(True, timestamp)
-            if "Tracker" in tags:
+            if not skip_msg and verb == "playing":
+                logger.info(f"{player} ({playergame}) is online.")
+                game.players[player].set_online(True, timestamp)
+            if "Tracker" in tags or verb == "tracking":
                 if not skip_msg:
                     message = f"{player} is checking what is in logic."
                     message_buffer.append(message)
