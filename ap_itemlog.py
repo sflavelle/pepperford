@@ -222,7 +222,7 @@ def process_spoiler_log(seed_url):
 
                     if item_location == item and sender == receiver:
                         continue # Most likely an event, can be skipped
-                    if ItemObject.is_location_checkable() is False:
+                    if ItemObject.is_location_checkable is False:
                         # If the item is not checkable, we don't need to store it
                         # But we can't delete it just yet until the checkable database is more complete
                         # TODO uncomment this when this is safer to do
