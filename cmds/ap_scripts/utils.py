@@ -612,7 +612,7 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                         return moves[item]
                 case "Donkey Kong Country 3":
                     if item == "DK Coin":
-                        required = settings['DK Coins for Gyrocopter']
+                        required = settings['Dk Coins For Gyrocopter']
                         return f"{item} ({count}/{required})"
                 case "DOOM 1993":
                     if item.endswith(" - Complete"):
