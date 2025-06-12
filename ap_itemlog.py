@@ -176,6 +176,7 @@ def process_spoiler_log(seed_url):
                     return key, value_str
                 
                 key, value_str = parse_line(line)
+                if key.startswith("Player "): continue  # Skip player header lines
                 game.players[working_player].settings[key] = parse_to_type(value_str)
 
                 # Try to parse as a list (comma-separated, not inside brackets)
@@ -636,10 +637,10 @@ def watch_log(url, interval):
                 game.pushdb(cursor, 'pepper.ap_all_rooms', 'last_line', len(current_lines))
                 sqlcon.commit()
             process_new_log_lines(new_lines)
-            if message_buffer:
-                send_to_discord('\n'.join(message_buffer))
-                logger.info(f"sent {len(message_buffer)} messages to webhook")
-                message_buffer.clear()
+        if message_buffer:
+            send_to_discord('\n'.join(message_buffer))
+            logger.info(f"sent {len(message_buffer)} messages to webhook")
+            message_buffer.clear()
             previous_lines = current_lines
 
 def process_releases():
@@ -649,7 +650,7 @@ def process_releases():
     while True:
         time.sleep(10)
         while len(release_buffer) > 0:
-            time.sleep(2)
+            time.sleep(INTERVAL)
             send_release_messages()
 
 # Flask stuff
