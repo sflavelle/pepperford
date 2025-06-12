@@ -291,7 +291,7 @@ class Item(dict):
     def collect(self):
         """Mark this item as collected and add it to the receiver's inventory."""
         self.found = True
-        self.receiver.items.append(self)
+        self.receiver.inventory.append(self)
 
     def hint(self):
         self.hinted = True
