@@ -563,6 +563,7 @@ def fetch_log(url):
 
 def handle_milestone_message(message):
     # message_buffer.append(message)
+    pass
 
 event_emitter.on("milestone", handle_milestone_message)
 
