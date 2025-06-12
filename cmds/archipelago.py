@@ -545,7 +545,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
             # So they see all of the items they received
             player_last_online = player.get('last_online', 0)
 
-            for item in player['inventory']:
+            for item in player['items']:
                 if item['received_timestamp'] > player_last_online and item['classification'] not in ["trap", "filler", "currency"]:
                     offline_items.append({
                         "Slot": slot,
