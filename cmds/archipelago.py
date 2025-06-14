@@ -533,9 +533,8 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
             linked_slots = [row[0] for row in cursor.fetchall()]
         if len(linked_slots) == 0:
             return await newpost.edit(content="None of your Archipelago slots are linked to this game.")
-
-        # Build the received items table
-        offline_items = []
+        
+        player_table = {}
 
         for slot in linked_slots:
             player = game_table['players'][slot]
@@ -544,35 +543,54 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
             # If they were never online, set a default timestamp of 0
             # So they see all of the items they received
             player_last_online = player.get('last_online', 0)
+            is_player_goaled = player.get('goaled', False)
+            is_player_released = player.get('released', False)
+
+            player_table[slot] = {
+                "name": player['name'],
+                "game": player['game'],
+                "last_online": player_last_online if player_last_online is not None else 0,
+                "goaled": is_player_goaled,
+                "released": is_player_released,
+                "offline_items": [],
+            }
 
             for item in player['items']:
-                if item['received_timestamp'] > player_last_online and item['classification'] not in ["trap", "filler", "currency"]:
-                    offline_items.append({
-                        "Slot": slot,
-                        "Item": item['name'],
-                        "Sender": item['sender'],
-                        "Receiver": item['receiver'],
-                        "Classification": item['classification'],
-                        "Location": item['location'],
-                        "Timestamp": int(item['received_timestamp']),
-                    })
+                try:
+                    if item.get('received_timestamp', 0) > player_last_online and item['classification'] not in ["trap", "filler", "currency"]:
+                        player_table[slot]['offline_items'].append({
+                            "Item": item['name'],
+                            "Sender": item['sender'],
+                            "Receiver": item['receiver'],
+                            "Classification": item['classification'],
+                            "Location": item['location'],
+                            "Timestamp": int(item['received_timestamp']),
+                        })
+                except TypeError:
+                    # received_timestamp or player_last_online is probably None
+                    logger.warning(f"Received item for {slot} has invalid timestamp data: {item['name']} - {item.get('received_timestamp', 'None')} vs {player_last_online}")
+                    continue
 
-        if len(offline_items) == 0:
+        if all(len(player_table[slot]['offline_items']) == 0 for slot in linked_slots):
             return await newpost.edit(content="You have not received any items since you last played.")
         
         # Format the received items table
         items_list = "## Received Items:\n"
         # Group items by slot and sort by timestamp
-        items_by_slot = defaultdict(list)
-        for item in sorted(offline_items, key=lambda x: (x["Slot"], x["Timestamp"])):
-            items_by_slot[item["Slot"]].append(item)
-
-        for slot, items in items_by_slot.items():
-            items_list += f"\n### {slot}\n"
-            for item in sorted(items, key=lambda x: x["Timestamp"]):
-                items_list += (
-                    f"- <t:{item['Timestamp']}:R> - **{item['Item']}** from {item['Sender']} at {item['Location']}\n"
-                )
+        for slot in linked_slots:
+            last_online = player_table[slot]['last_online']
+            if last_online == 0:
+                items_list += f"\n### {slot} (Never logged in)\n"
+            else:
+                items_list += f"\n### {slot} (Last online <t:{int(last_online)}:R>)\n"
+            offline_items = sorted(player_table[slot]['offline_items'], key=lambda x: x['Timestamp'])
+            if not offline_items:
+                items_list += "No new items received since last played.\n"
+            else:
+                for item in offline_items:
+                    items_list += (
+                        f"- <t:{item['Timestamp']}:R>: **{item['Item']}** from {item['Sender']} ({item['Location']})\n"
+                    )
 
         await newpost.edit(content=items_list)
 
