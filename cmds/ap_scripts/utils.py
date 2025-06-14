@@ -252,7 +252,7 @@ class Item(dict):
         self.name = item
         self.game = receiver.game
         self.location = location
-        self.is_location_checkable = self.location_is_checkable()
+        self.is_location_checkable = self.get_location_checkable()
         self.location_entrance = entrance
         self.location_costs, self.location_info = handle_location_hinting(self.receiver, self)
         self.classification = self.set_item_classification(self)
@@ -303,7 +303,7 @@ class Item(dict):
     def spoil(self):
         self.spoiled = True
 
-    def location_is_checkable(self) -> bool:
+    def get_location_checkable(self) -> bool:
         if not isinstance(self.sender, Player):
             return False # Archipelago starting items, etc
         match self.game:
@@ -341,7 +341,7 @@ class Item(dict):
             cursor.execute("SELECT * FROM archipelago.game_locations WHERE game = %s AND location = %s;", (self.sender.game, self.location))
             game, location, is_checkable = cursor.fetchone()
             if is_checkable != is_check and is_check == True:
-                logger.info(f"Request to update checkable status for {self.sender.game}: {self.location} (to: {str(is_check)})")
+                logger.debug(f"Request to update checkable status for {self.sender.game}: {self.location} (to: {str(is_check)})")
                 cursor.execute("UPDATE archipelago.game_locations set is_checkable = %s WHERE game = %s AND location = %s;", (str(is_check), game, location))
         except TypeError:
             logger.debug("Nothing found for this location, likely")
@@ -350,6 +350,8 @@ class Item(dict):
         finally:
             sqlcon.commit()
         logger.debug(f"locationsdb: classified {self.sender.game}: {self.location} as {is_checkable}")
+        self.is_location_checkable = self.get_location_checkable()
+
 
     def set_item_classification(self, player: Player = None):
         """Refer to the itemdb and see whether the provided Item has a classification.

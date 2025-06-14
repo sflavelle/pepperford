@@ -645,7 +645,7 @@ def watch_log(url, interval):
             process_new_log_lines(new_lines)
             if message_buffer:
                 send_to_discord('\n'.join(message_buffer))
-                logger.info(f"sent {len(message_buffer)} messages to webhook")
+                logger.debug(f"sent {len(message_buffer)} messages to webhook")
                 message_buffer.clear()
                 previous_lines = current_lines
 
