@@ -655,7 +655,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                                  "classification": h['classification'],
                                  "entrance": h['location_entrance'],
                                  "costs": h['location_costs'],
-                                } for h in game_table['players'][slot]['hints']['sending'] if (h['classification'] not in ["trap", "filler", "currency"] and not all(game_table['players'][h['receiver']]['released'],game_table['players'][h['receiver']]['goaled']))}
+                                } for h in game_table['players'][slot]['hints']['sending'] if (h['classification'] not in ["trap", "filler", "currency"] and not all([game_table['players'][h['receiver']]['released'],game_table['players'][h['receiver']]['goaled']]))}
                 hint_table[slot].update({
                     h['location']: {"item": h['name'],
                                  "sender": h['sender'],
