@@ -96,6 +96,7 @@ class Game(dict):
             "version_generator": self.version_generator,
             "version_server": self.version_server,
             "world_settings": self.world_settings,
+            "start_timestamp": self.start_timestamp,
             "running": self.running,
             "spoiler_log": {k: {lk: lv.to_dict() for lk, lv in v.items()} for k, v in self.spoiler_log.items()},
             "players": {k: v.to_dict() for k, v in self.players.items()},
