@@ -647,7 +647,7 @@ def watch_log(url, interval):
                 send_to_discord('\n'.join(message_buffer))
                 logger.debug(f"sent {len(message_buffer)} messages to webhook")
                 message_buffer.clear()
-                previous_lines = current_lines
+            previous_lines = current_lines
 
 def process_releases():
     global release_buffer
