@@ -543,8 +543,8 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
             # If they were never online, set a default timestamp of 0
             # So they see all of the items they received
             player_last_online = player['last_online'] if player['last_online'] is not None else 0
-            is_player_goaled = player.get('goaled', False)
-            is_player_released = player.get('released', False)
+            is_player_goaled = player['goaled']
+            is_player_released = player['released']
 
             player_table[slot] = {
                 "name": player['name'],
@@ -579,7 +579,18 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                                 "Classification": item['classification'],
                                 "Location": item['location'],
                                 "Timestamp": int(item['received_timestamp']),
-                            }) 
+                            })
+                    elif item['received_timestamp'] is None and player_last_online is None:
+                        # This is probably a starting item
+                        if item['classification'] not in ["trap", "filler", "currency"]:
+                            player_table[slot]['offline_items'].append({
+                                "Item": item['name'],
+                                "Sender": item['sender'],
+                                "Receiver": item['receiver'],
+                                "Classification": item['classification'],
+                                "Location": item['location'],
+                                "Timestamp": int(game_table['start_timestamp']),
+                            })
                     else:
                         # we tried; log the error and skip the item
                         logger.warning(f"Received item for {slot} has invalid timestamp data: {item['name']} - {item.get('received_timestamp', 'None')} vs {player_last_online}")
