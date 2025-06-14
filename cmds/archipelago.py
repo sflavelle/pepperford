@@ -582,6 +582,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                             })
                     elif item['received_timestamp'] is None and player_last_online is None:
                         # This is probably a starting item
+                        item['received_timestamp'] = game_table['start_timestamp']
                         if item['classification'] not in ["trap", "filler", "currency"]:
                             player_table[slot]['offline_items'].append({
                                 "Item": item['name'],
@@ -589,7 +590,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                                 "Receiver": item['receiver'],
                                 "Classification": item['classification'],
                                 "Location": item['location'],
-                                "Timestamp": int(game_table['start_timestamp']),
+                                "Timestamp": int(item['received_timestamp']),
                             })
                     else:
                         # we tried; log the error and skip the item
