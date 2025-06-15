@@ -654,8 +654,42 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                                 items_list += (
                                     f"- <t:{item['Timestamp']}:R>: **{item['Item']}** from {item['Sender']}\n"
                                 )
+                try: 
+                    await newpost.edit(content=items_list)
+                except discord.errors.HTTPException as e:
+                    # Alright, we tried; just get the last 15 items received
+                    # (split between players) and note that we couldn't get everything
+                    MAX_ITEMS = 15
+                    PLAYER_ITEMS = MAX_ITEMS // len(linked_slots)
 
-                await newpost.edit(content=items_list)
+                    items_list = "## Received Items:\n"
+
+                    for slot in linked_slots:
+                        last_online = player_table[slot]['last_online']
+                        if player_table[slot]['online'] is True:
+                            items_list += f"\n### {slot} (You're online right now!)\n"
+                        if last_online == 0:
+                            items_list += f"\n### {slot} (Never logged in)\n"
+                        else:
+                            items_list += f"\n### {slot} (Last online <t:{int(last_online)}:R>)\n"
+                        
+                        if player_table[slot]['goaled'] or player_table[slot]['released']:
+                            items_list += "-# Finished playing (goaled or released)."
+                            continue
+                        
+                        offline_items = sorted(player_table[slot]['offline_items'], key=lambda x: x['Timestamp'])[0-PLAYER_ITEMS:]
+                        if not offline_items:
+                            items_list += "No new items received since last played.\n"
+                        else:
+                            for item in offline_items:
+                                if item['Classification'] == "progression":
+                                    items_list += (
+                                        f"- <t:{item['Timestamp']}:R>: **{item['Item']}** from {item['Sender']}\n"
+                                    )
+                    try: 
+                        await newpost.edit(content=items_list)
+                    except discord.errors.HTTPException as e:
+                        raise
             else:
                 logger.error(f"Couldn't post received items!",e,exc_info=True)
                 await newpost.edit(content=f"Error: {e}\nShare this message with <@49288117307310080>:\n{"".join(traceback.format_exception(type(e), e, e.__traceback__))}")
