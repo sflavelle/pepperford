@@ -663,6 +663,8 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                     PLAYER_ITEMS = MAX_ITEMS // len(linked_slots)
 
                     items_list = "## Received Items:\n"
+                    items_list += ("-# Note: There were too many items received to safely post - "
+                    f"this list only shows the latest {PLAYER_ITEMS} items received per player.")
 
                     for slot in linked_slots:
                         last_online = player_table[slot]['last_online']
