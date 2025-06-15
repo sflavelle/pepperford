@@ -565,6 +565,9 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                                 required = len(parts)
                                 count = len([i for i in player.inventory if i in parts])
                                 return f"{item} ({relic} {count}/{required})"
+                case "A Short Hike":
+                    if item == "Seashell":
+                        return f"{item} ({count})"
                 case "Archipela-Go!":
                     if settings['Goal'] == "Long Macguffin" and len(item) == 1:
                         items = list("Archipela-Go!")
@@ -697,6 +700,9 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                     if item == "Progressive Wallet":
                         capacities = ["99", "200", "500", "999"]
                         return f"{item} ({capacities[player.get_item_count(item)]} Capacity)"
+                    if item == "Piece of Heart":
+                        if count % 4 == 0:
+                            return f"{item} (+1 Heart Container)"
                 case "Pizza Tower":
                     if item == "Toppin":
                         total = settings['Toppin Count']
