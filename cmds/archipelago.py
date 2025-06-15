@@ -608,7 +608,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                 last_online = player_table[slot]['last_online']
                 if player_table[slot]['online'] is True:
                     items_list += f"\n### {slot} (You're online right now!)\n"
-                if last_online == 0:
+                elif last_online == 0:
                     items_list += f"\n### {slot} (Never logged in)\n"
                 else:
                     items_list += f"\n### {slot} (Last online <t:{int(last_online)}:R>)\n"
@@ -637,7 +637,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                     last_online = player_table[slot]['last_online']
                     if player_table[slot]['online'] is True:
                         items_list += f"\n### {slot} (You're online right now!)\n"
-                    if last_online == 0:
+                    elif last_online == 0:
                         items_list += f"\n### {slot} (Never logged in)\n"
                     else:
                         items_list += f"\n### {slot} (Last online <t:{int(last_online)}:R>)\n"
@@ -671,7 +671,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                         last_online = player_table[slot]['last_online']
                         if player_table[slot]['online'] is True:
                             items_list += f"\n### {slot} (You're online right now!)\n"
-                        if last_online == 0:
+                        elif last_online == 0:
                             items_list += f"\n### {slot} (Never logged in)\n"
                         else:
                             items_list += f"\n### {slot} (Last online <t:{int(last_online)}:R>)\n"
