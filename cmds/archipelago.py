@@ -650,9 +650,10 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                         items_list += "No new items received since last played.\n"
                     else:
                         for item in offline_items:
-                            items_list += (
-                                f"- <t:{item['Timestamp']}:R>: **{item['Item']}** from {item['Sender']}\n"
-                            )
+                            if item['Classification'] == "progression":
+                                items_list += (
+                                    f"- <t:{item['Timestamp']}:R>: **{item['Item']}** from {item['Sender']}\n"
+                                )
 
                 await newpost.edit(content=items_list)
             else:
