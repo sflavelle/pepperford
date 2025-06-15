@@ -625,6 +625,8 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
         except discord.errors.HTTPException as e:
             if len(items_list) > 2000:
                 # Exceeds Discord message limit, try making the list again without location
+                items_list = "## Received Items:\n"
+                
                 for slot in linked_slots:
                     last_online = player_table[slot]['last_online']
                     if player_table[slot]['online'] is True:
