@@ -622,7 +622,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                         )
 
             await newpost.edit(content=items_list)
-        except Exception as e:
+        except discord.errors.HTTPException as e:
             if len(items_list) > 2000:
                 # Exceeds Discord message limit, try making the list again without location
                 for slot in linked_slots:
@@ -633,6 +633,11 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                         items_list += f"\n### {slot} (Never logged in)\n"
                     else:
                         items_list += f"\n### {slot} (Last online <t:{int(last_online)}:R>)\n"
+                    
+                    if player_table[slot]['goaled'] or player_table[slot]['released']:
+                        items_list += "-# Finished playing (goaled or released)."
+                        continue
+                    
                     offline_items = sorted(player_table[slot]['offline_items'], key=lambda x: x['Timestamp'])
                     if not offline_items:
                         items_list += "No new items received since last played.\n"
