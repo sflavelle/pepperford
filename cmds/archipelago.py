@@ -603,24 +603,49 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
         # Format the received items table
         items_list = "## Received Items:\n"
         # Group items by slot and sort by timestamp
-        for slot in linked_slots:
-            last_online = player_table[slot]['last_online']
-            if player_table[slot]['online'] is True:
-                items_list += f"\n### {slot} (You're online right now!)\n"
-            if last_online == 0:
-                items_list += f"\n### {slot} (Never logged in)\n"
-            else:
-                items_list += f"\n### {slot} (Last online <t:{int(last_online)}:R>)\n"
-            offline_items = sorted(player_table[slot]['offline_items'], key=lambda x: x['Timestamp'])
-            if not offline_items:
-                items_list += "No new items received since last played.\n"
-            else:
-                for item in offline_items:
-                    items_list += (
-                        f"- <t:{item['Timestamp']}:R>: **{item['Item']}** from {item['Sender']} ({item['Location']})\n"
-                    )
+        try: 
+            for slot in linked_slots:
+                last_online = player_table[slot]['last_online']
+                if player_table[slot]['online'] is True:
+                    items_list += f"\n### {slot} (You're online right now!)\n"
+                if last_online == 0:
+                    items_list += f"\n### {slot} (Never logged in)\n"
+                else:
+                    items_list += f"\n### {slot} (Last online <t:{int(last_online)}:R>)\n"
+                offline_items = sorted(player_table[slot]['offline_items'], key=lambda x: x['Timestamp'])
+                if not offline_items:
+                    items_list += "No new items received since last played.\n"
+                else:
+                    for item in offline_items:
+                        items_list += (
+                            f"- <t:{item['Timestamp']}:R>: **{item['Item']}** from {item['Sender']} ({item['Location']})\n"
+                        )
 
-        await newpost.edit(content=items_list)
+            await newpost.edit(content=items_list)
+        except Exception as e:
+            if len(items_list) > 2000:
+                # Exceeds Discord message limit, try making the list again without location
+                for slot in linked_slots:
+                    last_online = player_table[slot]['last_online']
+                    if player_table[slot]['online'] is True:
+                        items_list += f"\n### {slot} (You're online right now!)\n"
+                    if last_online == 0:
+                        items_list += f"\n### {slot} (Never logged in)\n"
+                    else:
+                        items_list += f"\n### {slot} (Last online <t:{int(last_online)}:R>)\n"
+                    offline_items = sorted(player_table[slot]['offline_items'], key=lambda x: x['Timestamp'])
+                    if not offline_items:
+                        items_list += "No new items received since last played.\n"
+                    else:
+                        for item in offline_items:
+                            items_list += (
+                                f"- <t:{item['Timestamp']}:R>: **{item['Item']}** from {item['Sender']}\n"
+                            )
+
+                await newpost.edit(content=items_list)
+            else:
+                logger.error(f"Couldn't post received items!",e,exc_info=True)
+                await newpost.edit(content=f"Error: {e}\nShare this message with <@49288117307310080>:\n{"".join(traceback.format_exception(type(e), e, e.__traceback__))}")
 
 
     @aproom.command()
