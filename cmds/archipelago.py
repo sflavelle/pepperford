@@ -630,6 +630,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
         except discord.errors.HTTPException as e:
             if len(items_list) > 2000:
                 # Exceeds Discord message limit, try making the list again without location
+                # and only post progression/unclassified items
                 items_list = "## Received Items:\n"
 
                 for slot in linked_slots:
@@ -650,7 +651,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                         items_list += "No new items received since last played.\n"
                     else:
                         for item in offline_items:
-                            if item['Classification'] == "progression":
+                            if item['Classification'] in ["progression", None]:
                                 items_list += (
                                     f"- <t:{item['Timestamp']}:R>: **{item['Item']}** from {item['Sender']}\n"
                                 )
@@ -684,7 +685,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                             items_list += "No new items received since last played.\n"
                         else:
                             for item in offline_items:
-                                if item['Classification'] == "progression":
+                                if item['Classification'] in ["progression", None]:
                                     items_list += (
                                         f"- <t:{item['Timestamp']}:R>: **{item['Item']}** from {item['Sender']}\n"
                                     )
