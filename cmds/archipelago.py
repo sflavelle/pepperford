@@ -22,6 +22,7 @@ from discord.ext.commands._types import BotT
 
 # from cmds.ap_scripts.archilogger import ItemLog
 from cmds.ap_scripts.emitter import event_emitter
+from cmds.ap_scripts.utils import build_game_state
 from collections import defaultdict
 
 cfg = None
@@ -484,7 +485,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
             try:
                 cursor.execute("SELECT room_id, host, port from pepper.ap_all_rooms WHERE active = 'true' AND guild = %s;", (interaction.guild_id,))
                 room_id, host, port = cursor.fetchone()
-                msg_lines.append(f"**Room ID** [{room_id}](https://{host}/room/{room_id}) (`{host}:{port}`)")
+                msg_lines.append(f"**Room ID** [{room_id}](<https://{host}/room/{room_id}>) (`{host}:{port}`)")
             except psql.Error as e:
                 pass
 
@@ -735,6 +736,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
         hint_table = {}
         for slot in linked_slots:
             if slot in game_table['players']:
+                if game_table['players'][slot]['goaled'] or game_table['players'][slot]['released']: continue
                 hint_table[slot] = {}
                 for item in game_table['players'][slot]['hints']['sending']:
                     if item['found'] is True: continue
