@@ -735,22 +735,32 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
         hint_table = {}
         for slot in linked_slots:
             if slot in game_table['players']:
-                hint_table[slot] = {
-                    h['location']: {"item": h['name'],
-                                 "sender": h['sender'],
-                                 "receiver": h['receiver'],
-                                 "classification": h['classification'],
-                                 "entrance": h['location_entrance'],
-                                 "costs": h['location_costs'],
-                                } for h in game_table['players'][slot]['hints']['sending'] if (h['classification'] not in ["trap", "filler", "currency"] and not all([game_table['players'][h['receiver']]['released'],game_table['players'][h['receiver']]['goaled']]))}
-                hint_table[slot].update({
-                    h['location']: {"item": h['name'],
-                                 "sender": h['sender'],
-                                 "receiver": h['receiver'],
-                                 "classification": h['classification'],
-                                 "entrance": h['location_entrance'],
-                                 "costs": h['location_costs'],
-                                } for h in game_table['players'][slot]['hints']['receiving'] if h['found'] is False and h['classification'] not in ["trap", "filler", "currency"]})
+                hint_table[slot] = {}
+                for item in game_table['players'][slot]['hints']['sending']:
+                    if item['found'] is True: continue
+                    if item['classification'] in ["trap", "filler", "currency"]: continue
+                    if any([game_table['players'][item['receiver']]['released'],game_table['players'][item['receiver']]['goaled']]): continue
+                    hint_table[slot].update({
+                        item['location']: {"item": item['name'],
+                                    "sender": item['sender'],
+                                    "receiver": item['receiver'],
+                                    "classification": item['classification'],
+                                    "entrance": item['location_entrance'],
+                                    "costs": item['location_costs'],
+                                    } })
+                for item in game_table['players'][slot]['hints']['receiving']:
+                    if item['found'] is True: continue
+                    if item['classification'] in ["trap", "filler", "currency"]: continue
+                    if item['sender'] in linked_slots: continue
+                    if any([game_table['players'][item['receiver']]['released'],game_table['players'][item['receiver']]['goaled']]): continue
+                    hint_table[slot].update({
+                        item['location']: {"item": item['name'],
+                                    "sender": item['sender'],
+                                    "receiver": item['receiver'],
+                                    "classification": item['classification'],
+                                    "entrance": item['location_entrance'],
+                                    "costs": item['location_costs'],
+                                    } })
 
         # Format the hint table
         hint_table_list = []
