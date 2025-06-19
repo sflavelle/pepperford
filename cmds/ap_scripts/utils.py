@@ -4,6 +4,9 @@ import re
 import psycopg2 as psql
 import logging
 import yaml
+import discord
+
+from typing import Iterable, Any
 
 from cmds.ap_scripts.emitter import event_emitter
 from zoneinfo import ZoneInfo
@@ -226,6 +229,16 @@ class Player(dict):
     def get_item_count(self, item_name: str) -> int:
         """Get the count of a specific item in the player's inventory."""
         return sum(1 for item in self.inventory if item.name == item_name)
+    
+    def get_collected_items(self, items: Iterable[Any]) -> list:
+        """For a list of items requested, return the items that are present in the inventory."""
+        collected_items = []
+
+        for collected_item in self.inventory:
+            if collected_item.name in items:
+                collected_items.append(collected_item)
+        
+        return collected_items
 
 class Item(dict):
     """An Archipelago item in the multiworld"""
@@ -403,7 +416,7 @@ class Item(dict):
                         # Progression in certain settings, otherwise useful/filler
                         if self.game == "gzDoom":
                             # Weapons : extra copies can be filler
-                            if isinstance(self, CollectedItem) and self.get_count() > 1:
+                            if isinstance(self, Item) and player.get_item_count(self.name) > 1:
                                 response = "filler"
                         if self.game == "Here Comes Niko!":
                             if self.name == "Snail Money" and (self.receiver.settings["Enable Achievements"] == "all_achievements" or self.receiver.settings['Snail Shop'] is True):
@@ -902,3 +915,68 @@ def handle_location_hinting(player: Player, item: Item) -> tuple[list[str], str]
     if bool(requirements):
         logger.info(f"Updating item's location {item.location} with requirements: {requirements}")
     return (requirements, extra_info)
+
+def build_game_state(game: dict, player_str: str) -> discord.Embed:
+    """For Discord: Use the tracked game state to build a human-readable view
+    of a player slot's progress toward their goal."""
+
+    player: Player = game['players'][player_str]
+    player_game = player['game']
+
+    readable_state = discord.Embed(
+        title = f"{player_str} ({player_game})",
+        description = None
+    )
+
+    if player['goaled']:
+        readable_state.description = "This slot is victorious."
+    if player['released']:
+        readable_state.description = "This slot has released."
+
+    match player_game:
+        case "A Hat in Time":
+            hats = ["Sprint Hat", "Brewing Hat", "Ice Hat", "Dweller Mask", "Time Stop Hat"]
+            collected_hats = player.get_collected_items(hats)
+            time_pieces = player.get_item_count("Time Piece")
+            time_pieces_required: int
+
+            goal = player['settings']['End Goal']
+            goal_str: str
+            match goal:
+                case "Finale":
+                    goal_str = "Defeat Mustache Girl"
+                    time_pieces_required = player.settings['Chapter 5 Cost']
+                case "Rush Hour":
+                    goal_str = "Escape Nyakuza Metro's Rush Hour"
+                    time_pieces_required = player.settings['Chapter 7 Cost']
+                case "Seal The Deal":
+                    goal_str = "Seal the Deal with Snatcher"
+                case _:
+                    goal_str = goal
+            readable_state.description = f"Your goal is to **{goal_str}**."
+            if goal == "Finale" or goal == "Rush Hour":
+                readable_state.add_field(name="Time Pieces", value=f"{time_pieces} found\n{time_pieces_required} required", inline = True)
+            readable_state.add_field(name="Found Hats", value="\n".join([hat.name for hat in collected_hats]), inline = True)
+
+            if goal == "Rush Hour":
+                metro_tickets = ["Yellow", "Pink", "Green", "Blue"]
+                collected_tickets = player.get_collected_items([f"Metro Ticket - {color}" for color in metro_tickets])
+                readable_state.add_field(name="Found Tickets", value="\n".join([ticket.name for ticket in collected_tickets]), inline = True)
+
+            world_costs = {
+                "Kitchen": player['settings']['Chapter 1 Cost'],
+                "Machine Room": player['settings']['Chapter 2 Cost'],
+                "Bedroom": player['settings']['Chapter 3 Cost'],
+                "Boiler Room": player['settings']['Chapter 4 Cost'],
+                "Attic": player['settings']['Chapter 5 Cost'],
+                "Laundry": player['settings']['Chapter 6 Cost'],
+                "Lab": player['settings']['Chapter 7 Cost'],
+            }
+            accessible_worlds = [k for k, v in world_costs.items() if time_pieces > v]
+            readable_state.add_field(name="Accessible Telescopes", value = "\n".join(accessible_worlds))
+
+
+        case _:
+            pass
+
+    return readable_state
