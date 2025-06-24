@@ -547,7 +547,7 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                     if item.startswith("Metro Ticket"):
                         required = 4
                         tickets = ["Yellow", "Green", "Blue", "Pink"]
-                        collected = [ticket for ticket in tickets if f"Metro Ticket - {ticket}" in player.inventory]
+                        collected = [player.get_collected_items(f"Metro Ticket - {ticket}" for ticket in tickets)]
                         return f"{item} ({''.join([key[0] for key in collected]) if len(collected) > 0 else "0"}/{required})"
                     if item.startswith("Relic"):
                         relics = {
@@ -585,7 +585,7 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                         for relic, parts in relics.items():
                             if any(part == item for part in parts):
                                 required = len(parts)
-                                count = len([i for i in player.inventory if i in parts])
+                                count = len(player.get_collected_items(parts))
                                 return f"{item} ({relic} {count}/{required})"
                 case "A Short Hike":
                     if item == "Seashell":
@@ -593,7 +593,7 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                 case "Archipela-Go!":
                     if settings['Goal'] == "Long Macguffin" and len(item) == 1:
                         items = list("Archipela-Go!")
-                        collected = [i for i in player.inventory if i in items]
+                        collected = [player.get_collected_items(items)]
                         collected_string = ""
                         for i in items:
                             if i in collected: collected_string += i
@@ -764,7 +764,7 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                         "MP": ["Sacred Geometry", "Vintage", "Dusty"]
                     }
                     if item == "Flask Shard":
-                        flask_progress = player.inventory[item].count % 3
+                        flask_progress = player.get_item_count(item) % 3
                         return f"{item} ({"Gained Flask!" if flask_progress == 0 else f"{flask_progress}/3"})"
                     if item == "Fairy":
                         required = 20
