@@ -932,6 +932,9 @@ def build_game_state(game: dict, player_str: str) -> discord.Embed:
     player: Player = game['players'][player_str]
     player_game = player['game']
 
+    goal: str
+    goal_str: str
+
     readable_state = discord.Embed(
         title = f"{player_str} ({player_game})",
         description = None
@@ -950,7 +953,6 @@ def build_game_state(game: dict, player_str: str) -> discord.Embed:
             time_pieces_required: int
 
             goal = player['settings']['End Goal']
-            goal_str: str
             match goal:
                 case "Finale":
                     goal_str = "Defeat Mustache Girl"
@@ -962,7 +964,6 @@ def build_game_state(game: dict, player_str: str) -> discord.Embed:
                     goal_str = "Seal the Deal with Snatcher"
                 case _:
                     goal_str = goal
-            readable_state.description = f"Your goal is to **{goal_str}**."
             if goal == "Finale" or goal == "Rush Hour":
                 readable_state.add_field(name="Time Pieces", value=f"{time_pieces} found\n{time_pieces_required} required", inline = True)
             readable_state.add_field(name="Found Hats", value="\n".join([hat.name for hat in collected_hats]), inline = True)
@@ -983,9 +984,51 @@ def build_game_state(game: dict, player_str: str) -> discord.Embed:
             }
             accessible_worlds = [k for k, v in world_costs.items() if time_pieces > v]
             readable_state.add_field(name="Accessible Telescopes", value = "\n".join(accessible_worlds))
+        
+        case "Here Comes Niko!":
+            coins = player.get_item_count("Coin")
+            coins_required: int
 
+            goal = player['settings']['Completion Goal']
+            match goal:
+                case "Hired":
+                    goal_str = "Get Hired as a Professional Friend"
+                    coins_required = player['settings']['Elevator Cost']
+                case _:
+                    goal_str = goal
+
+            # TODO Match Abilities
+
+        case "Ocarina of Time":
+            max_hearts = 20
+            starting_hearts = 3
+            heart_containers = player.get_item_count("Heart Container")
+            heart_pieces = player.get_item_count("Piece of Heart")
+            completed_heart_pieces = heart_pieces // 4
+            partial_hearts = heart_pieces % 4
+
+            current_hearts = starting_hearts + heart_containers + completed_heart_pieces
+
+            # TODO Get main inventory
+        
+        case "TUNIC":
+            treasures = {
+                "DEF": ["Secret Legend", "Phonomath"],
+                "POTION": ["Spring Falls", "Just Some Pals", "Back To Work"],
+                "SP": ["Forever Friend", "Mr Mayor", "Power Up", "Regal Weasel"],
+                "MP": ["Sacred Geometry", "Vintage", "Dusty"]
+            }
+
+            logical_att = player.get_item_count("ATT Offering")
+            logical_def = player.get_item_count("DEF Offering") + len(player.get_collected_items(treasures['DEF']))
+            logical_hp = player.get_item_count("HP Offering")
+            logical_sp = player.get_item_count("SP Offering") + len(player.get_collected_items(treasures['SP']))
+            logical_mp = player.get_item_count("MP Offering") + len(player.get_collected_items(treasures['MP']))
+            logical_potion = player.get_item_count("POTION Offering") + len(player.get_collected_items(treasures['POTION']))
 
         case _:
             pass
+
+    readable_state.description = f"Your goal is to **{goal_str}**."
 
     return readable_state
