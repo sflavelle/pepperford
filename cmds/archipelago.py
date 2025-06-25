@@ -65,6 +65,14 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
     def __init__(self, bot):
         self.ctx = bot
 
+    messages = {
+        "no_slots_linked": 
+            """None of your linked Archipelago slots are linked to this game.
+            **Maybe you haven't linked a slot to your Discord account yet?**
+            Use `/archipelago room link_slot` to link any of your slots in this game,
+            and then try using this command again.""",
+    }
+
     async def cog_command_error(self, ctx: Context[BotT], error: Exception) -> None:
         await ctx.reply(f"Command error: {error}",ephemeral=True)
 
@@ -385,7 +393,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
             # sqlcon.commit()
 
         logger.info(f"Linked {slot_name} to {user.display_name} ({user.id}) in {interaction.guild.name} ({interaction.guild.id})")
-        return await interaction.response.send_message(f"Linked {slot_name} to {user.display_name} ({user.id})!",ephemeral=True)
+        return await interaction.response.send_message(f"Linked **{slot_name}** to **{user.display_name}**!",ephemeral=True)
 
     @aproom.command()
     @is_aphost()
@@ -533,7 +541,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
             )
             linked_slots = [row[0] for row in cursor.fetchall()]
         if len(linked_slots) == 0:
-            return await newpost.edit(content="None of your Archipelago slots are linked to this game.")
+            return await newpost.edit(content=self.messages['no_slots_linked'])
         
         player_table = {}
 
@@ -727,7 +735,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
             )
             linked_slots = [row[0] for row in cursor.fetchall()]
         if len(linked_slots) == 0:
-            return await newpost.edit(content="None of your Archipelago slots are linked to this game.")
+            return await newpost.edit(content=self.messages['no_slots_linked'])
 
         # Get the game table
         game_table = requests.get(f"http://localhost:42069/inspectgame", timeout=10).json()
