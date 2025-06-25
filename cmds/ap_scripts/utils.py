@@ -818,6 +818,12 @@ def handle_location_tracking(game: Game, player: Player, item: Item):
                                  * (settings['Target Completion Percentage'] / 100))
                 count = player.collected_locations
                 return f"{location} ({count}/{required})"
+            case "Trackmania":
+                if location.endswith("Target Time"):
+                    total = len([l for l in player.locations if l.location.endswith("Target Time")])
+                    required = round(total * (settings['Series Medal Percentage'] / 100))
+                    count = len([l for l in player.locations if l.location.endswith("Target Time") and l.found is True])
+                    return f"{location} ({count}/{required})"
             case _:
                 return location
     return location
