@@ -281,6 +281,42 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
         'parts': re.compile(r'\[(.*?)\]: Notice \(all\): (.*?) \(Team #\d\) has left the game\. Client\(([0-9\.]+)\), (?P<tags>.+)\.$'),
     }
 
+    def live_classification(item: Item):
+
+        response = item.classification
+        setting = item.receiver.settings
+
+        if response == "conditional progression":
+            # Progression in certain settings, otherwise useful/filler
+            if item.game == "gzDoom":
+                # Weapons : extra copies can be filler
+                if isinstance(item, Item) and player.get_item_count(item.name) > 1:
+                    response = "filler"
+            if item.game == "Here Comes Niko!":
+                if item.name == "Snail Money" and (setting["Enable Achievements"] == "all_achievements" or setting['Snail Shop'] is True):
+                    response = "progression"
+                else: response = "filler"
+            if item.game == "Ocarina of Time":
+                if item.name == "Gold Skulltula Token":
+                    if item.count > 50: # No more checks after 50
+                        response = "filler"
+                    else: response = "progression"
+            if item.game == "Trackmania":
+                medals = ["Bronze Medal", "Silver Medal", "Gold Medal", "Author Medal"]
+                # From TMAP docs: 
+                # "The quicket medal equal to or below target difficulty is made the progression medal."
+                target_difficulty = setting['Target Time Difficulty']
+                progression_medal_lookup = target_difficulty // 100
+                progression_medal = medals[progression_medal_lookup]
+                filler_medals = [item for i, item in enumerate(medals) if i != progression_medal_lookup]
+                if item.name == progression_medal: response = "progression"
+                elif item.name in filler_medals: response = "filler"
+            # After checking everything, if not re-classified, it's probably progression
+            if response == "conditional progression": response = "progression"
+
+            item.classification = response
+        return item
+
     for line in new_lines:
         if match := regex_patterns['sent_items'].match(line):
             timestamp, sender, item, receiver, item_location = match.groups()
@@ -316,6 +352,9 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
             Item.db_add_location(True)
             game.players[sender].update_locations(game)
             game.update_locations()
+
+            # Live-Classify if the item is Conditional Progression
+            Item = live_classification(Item)
 
             if not skip_msg: logger.info(f"{sender}: ({str(game.players[sender].collected_locations)}/{str(game.players[sender].total_locations)}/{str(round(game.players[sender].collection_percentage,2))}%) {item_location} -> {receiver}'s {item} ({Item.classification})")
 

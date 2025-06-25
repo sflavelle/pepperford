@@ -412,34 +412,6 @@ class Item(dict):
                 try:
                     cursor.execute("SELECT classification FROM archipelago.item_classifications WHERE game = %s AND item = %s;", (self.game, self.name))
                     response = cursor.fetchone()[0]
-                    if response == "conditional progression":
-                        # Progression in certain settings, otherwise useful/filler
-                        if self.game == "gzDoom":
-                            # Weapons : extra copies can be filler
-                            if isinstance(self, Item) and player.get_item_count(self.name) > 1:
-                                response = "filler"
-                        if self.game == "Here Comes Niko!":
-                            if self.name == "Snail Money" and (self.receiver.settings["Enable Achievements"] == "all_achievements" or self.receiver.settings['Snail Shop'] is True):
-                                response = "progression"
-                            else: response = "filler"
-                        if self.game == "Ocarina of Time":
-                            if self.name == "Gold Skulltula Token":
-                                if self.count > 50: # No more checks after 50
-                                    response = "filler"
-                                else: response = "progression"
-                        if self.game == "Trackmania":
-                            medals = ["Bronze Medal", "Silver Medal", "Gold Medal", "Author Medal"]
-                            # From TM docs: "The quicket medal equal to or below target difficulty is made the progression medal."
-                            target_difficulty = self.receiver.settings['Target Time Difficulty']
-                            progression_medal_lookup = target_difficulty // 100
-                            progression_medal = medals[progression_medal_lookup]
-                            filler_medals = [item for i, item in enumerate(medals) if i != progression_medal_lookup]
-                            if self.name == progression_medal: response = "progression"
-                            elif self.name in filler_medals: response = "filler"
-                        # After checking everything, if not re-classified, it's probably progression
-                        if response == "conditional progression": response = "progression"
-                    elif response not in permitted_values:
-                        response = None
                 except TypeError:
                     logger.debug("Nothing found for this item, likely")
                     logger.info(f"itemsdb: adding {self.game}: {self.name} to the db")
