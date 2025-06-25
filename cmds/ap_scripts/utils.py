@@ -728,6 +728,18 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                             settings['Max Number of Yoshi Eggs']
                             * (settings['Required Percentage of Yoshi Eggs'] / 100))
                         return f"{item} ({count}/{required})"
+                case "Trackmania":
+                    medals = ["Bronze Medal", "Silver Medal", "Gold Medal", "Author Medal"]
+                    # From TMAP docs: 
+                    # "The quicket medal equal to or below target difficulty is made the progression medal."
+                    target_difficulty = settings['Target Time Difficulty']
+                    progression_medal_lookup = target_difficulty // 100
+                    progression_medal = medals[progression_medal_lookup]
+
+                    if item == progression_medal:
+                        total = len([l for l in player.locations.values() if l.location.endswith("Target Time")])
+                        required = round(total * (settings['Series Medal Percentage'] / 100))
+                        return f"{item} ({count}/{required})"
                 case "TUNIC":
                     treasures = {
                         "DEF": ["Secret Legend", "Phonomath"],
@@ -818,12 +830,12 @@ def handle_location_tracking(game: Game, player: Player, item: Item):
                                  * (settings['Target Completion Percentage'] / 100))
                 count = player.collected_locations
                 return f"{location} ({count}/{required})"
-            case "Trackmania":
-                if location.endswith("Target Time"):
-                    total = len([l for l in player.locations.values() if l.location.endswith("Target Time")])
-                    required = round(total * (settings['Series Medal Percentage'] / 100))
-                    count = len([l for l in player.locations.values() if l.location.endswith("Target Time") and l.found is True])
-                    return f"{location} ({count}/{required})"
+            # case "Trackmania":
+            #     if location.endswith("Target Time"):
+            #         total = len([l for l in player.locations.values() if l.location.endswith("Target Time")])
+            #         required = round(total * (settings['Series Medal Percentage'] / 100))
+            #         count = len([l for l in player.locations.values() if l.location.endswith("Target Time") and l.found is True])
+            #         return f"{location} ({count}/{required})"
             case _:
                 return location
     return location
