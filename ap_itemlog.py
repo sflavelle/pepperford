@@ -281,7 +281,7 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
         'parts': re.compile(r'\[(.*?)\]: Notice \(all\): (.*?) \(Team #\d\) has left the game\. Client\(([0-9\.]+)\), (?P<tags>.+)\.$'),
     }
 
-    def live_classification(item: Item):
+    def live_classification(item):
 
         response = item.classification
         setting = item.receiver.settings
