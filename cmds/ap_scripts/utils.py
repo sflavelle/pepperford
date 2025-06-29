@@ -710,6 +710,18 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                     if item == "Piece of Heart":
                         if count % 4 == 0:
                             return f"{item} (+1 Heart Container)"
+                case "Pokemon Mystery Dungeon Explorers of Sky":
+                    sky_paths = [ "1st Station Pass", "2nd Station Pass", "3rd Station Pass", "4th Station Pass",
+                        "5th Station Pass", "6th Station Pass", "7th Station Pass", "8th Station Pass",
+                        "9th Station Pass", "Sky Peak Summit Pass" ]
+                    instruments = ["Icy Flute", "Fiery Drum", "Terra Cymbal", "Aqua-Monica", "Rock Horn", "Grass Corner",
+                                   "Sky Melodica", "Stellar Symphony", "Null Bagpipes", "Glimmer Harp", "Toxic Sax",
+                                   "Biting Bass", "Knockout Bell", "Spectral Chimes", "Liar's Lyre", "Charge Synth",
+                                   "Norma-ccordion", "Psychic Cello", "Dragu-teki", "Steel Guitar"]
+                    seal_unlocks = [ "Ice Aegis Cave", "Rock Aegis Cave", "Steel Aegis Cave", "Aegis Cave Pit" ]
+
+                    if item == "Progressive Sky Path":
+                        return f"{item} ({sky_paths[count-1]})"
                 case "Pizza Tower":
                     if item == "Toppin":
                         total = settings['Toppin Count']
