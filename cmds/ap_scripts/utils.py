@@ -638,6 +638,9 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                         if settings["Secret Levels"] is True:
                             required = required + 2 # Wolfenstein/Grosse
                         return f"{item} ({count}/{required})"
+                case "Final Fantasy Mystic Quest":
+                    if item == "Sky Fragment":
+                        return f"{item} ({count})"
                 case "gzDoom":
                     item_regex = re.compile(r"^([a-zA-Z]+) \((\S+)\)$")
                     if item.startswith("Level Access"):
@@ -678,6 +681,14 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                 case "Hollow Knight":
                     # There'll probably be something here later
                     return item.replace("_", " ").replace("-"," - ")
+                case "Jigsaw":
+                    if item.endswith("Puzzle Pieces"):
+                        starting_pieces: int = int(player.items[0].name.split()[0])
+                        pieces_per_item: int = int(item.split()[0])
+                        item_count: int = player.get_item_count(item)
+
+                        total_pieces = starting_pieces + (pieces_per_item * item_count)
+                        return f"{item} ({total_pieces} Available)"
                 case "Muse Dash":
                     if item == "Music Sheet":
                         song_count = settings['Starting Song Count'] + settings['Additional Song Count']
@@ -727,6 +738,9 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                         required = round(
                             settings['Max Number of Yoshi Eggs']
                             * (settings['Required Percentage of Yoshi Eggs'] / 100))
+                        return f"{item} ({count}/{required})"
+                    if item == "Boss Token":
+                        required = settings['Bosses Required']
                         return f"{item} ({count}/{required})"
                 case "Trackmania":
                     medals = ["Bronze Medal", "Silver Medal", "Gold Medal", "Author Medal"]
@@ -783,6 +797,15 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                         required = 60
                         if count < 20: required = 20
                         return f"{item} ({count}/{required})"
+                case "Void Stranger":
+                    if item == "Greed Coin":
+                        required = 15
+                        return f"{item} ({count}/{required})"
+                    if item == "Locust Idol" or item == "Lucky Locust Idol":
+                        OneCount = player.get_item_count("Locust Idol")
+                        ThreeCount = Player.get_item_count("Lucky Locust Idol")
+                        count = OneCount + (ThreeCount * 3)
+                        return f"{item} ({count})"
                 case "Wario Land 4":
                     if item.endswith("Piece"):
                         # Gather up all the jewels
