@@ -166,7 +166,7 @@ class Player(dict):
         return {
             "name": self.name,
             "game": self.game,
-            "items": [i.to_dict() for i in self.inventory],
+            "inventory": [i.to_dict() for i in self.inventory],
             "locations": {k: v.to_dict() for k, v in self.locations.items()},
             "hints": {k: [i.to_dict() for i in v] for k, v in self.hints.items()},
             "online": self.online,
@@ -683,7 +683,7 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                     return item.replace("_", " ").replace("-"," - ")
                 case "Jigsaw":
                     if item.endswith("Puzzle Pieces"):
-                        starting_pieces_item = next((item for item in player.items if item.location == "Starting Items" and item.name.endswith("Puzzle Pieces")), None)
+                        starting_pieces_item = next((item for item in player.inventory.values() if item.location == "Starting Items" and item.name.endswith("Puzzle Pieces")), None)
 
                         starting_pieces: int = int(starting_pieces_item.name.split()[0]) if starting_pieces_item else 0
                         pieces_per_item: int = int(item.split()[0])
