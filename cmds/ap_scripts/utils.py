@@ -684,10 +684,10 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                 case "Jigsaw":
                     if item.endswith("Puzzle Pieces"):
                         starting_pieces_item = None
-                        for item in player.inventory:
-                            if item.location == "Starting Items" and item.sender == "Archipelago":
-                                if item.name.endswith("Puzzle Pieces"):
-                                    starting_pieces_item = item
+                        for i in player.inventory:
+                            if i.location == "Starting Items" and i.sender == "Archipelago":
+                                if i.name.endswith("Puzzle Pieces"):
+                                    starting_pieces_item = i
                                     break
 
                         starting_pieces: int = int(starting_pieces_item.name.split()[0]) if starting_pieces_item else 0
