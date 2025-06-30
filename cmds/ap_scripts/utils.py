@@ -683,7 +683,7 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                     return item.replace("_", " ").replace("-"," - ")
                 case "Jigsaw":
                     if item.endswith("Puzzle Pieces"):
-                        starting_pieces_item = next((item for item in player.inventory if item.location == "Starting Items" and item.name.endswith("Puzzle Pieces")), None)
+                        starting_pieces_item = next((item for item in player.inventory if item.location == "Starting Items"), None)
 
                         starting_pieces: int = int(starting_pieces_item.name.split()[0]) if starting_pieces_item else 0
                         pieces_per_item: int = int(item.split()[0])
