@@ -685,7 +685,7 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                     if item.endswith("Puzzle Pieces"):
                         starting_pieces_item = None
                         for i in player.inventory:
-                            if i.location == "Starting Items" and i.sender == "Archipelago":
+                            if i.sender == "Archipelago":
                                 if i.name.endswith("Puzzle Pieces"):
                                     starting_pieces_item = i
                                     break
