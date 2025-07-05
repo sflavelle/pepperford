@@ -22,7 +22,6 @@ from discord.ext.commands._types import BotT
 
 # from cmds.ap_scripts.archilogger import ItemLog
 from cmds.ap_scripts.emitter import event_emitter
-from cmds.ap_scripts.utils import build_game_state
 from collections import defaultdict
 
 cfg = None
