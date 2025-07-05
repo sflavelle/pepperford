@@ -234,6 +234,15 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
         """Set the description of an item using a Discord popup window."""
         cursor = sqlcon.cursor()
 
+        existing_description = None
+
+        # Check if a description already exists
+        cursor.execute("SELECT description FROM archipelago.item_classifications WHERE game = %s AND item = %s", (game, item))
+        result = cursor.fetchone()
+        if result and result[0]:
+            # If a description already exists, we'll put it as the modal placeholder
+            existing_description = result[0]
+
         class DescriptionForm(discord.ui.Modal):
             """A Discord modal for setting an item's description."""
             def __init__(self, game: str, item: str):
@@ -242,10 +251,10 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                 self.item = item
 
             description = discord.ui.TextInput(label="Description",
-                                                style=discord.TextStyle.paragraph,
-                                                placeholder=f"Enter the description for {item} here.",
-                                                required=True,
-                                                max_length=500)
+                            style=discord.TextStyle.paragraph,
+                            placeholder=existing_description if existing_description else f"Enter the description for {item} here.",
+                            required=True,
+                            max_length=500)
 
             async def on_submit(self, interaction: discord.Interaction):
                 description = self.description.value
