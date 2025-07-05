@@ -255,8 +255,15 @@ def process_spoiler_log(seed_url):
                     item, receiver = match.groups()
                     game.players[receiver].inventory.append(game.get_or_create_item("Archipelago",game.players[receiver],item,"Starting Items",received_timestamp=start_time))
             case "Jigsaw Info":
-                key, value_str = parse_line(line)
-                game.players[working_player].settings[key] = parse_to_type(value_str)
+                try:
+                    key, value_str = parse_line(line)
+                    game.players[working_player].settings[key] = parse_to_type(value_str)
+                except ValueError as e:
+                    if line.startswith("Spoiler and info for [Jigsaw]"):
+                        # Not a problem, just the header
+                        continue
+                    else:
+                        raise e
             case _:
                 continue
 
