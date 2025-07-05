@@ -913,7 +913,7 @@ def handle_location_tracking(game: Game, player: Player, item: Item):
                     required = int(dimensions[0]) * int(dimensions[1])
                     return f"{location} (of {required})"
             case "Simon Tatham's Portable Puzzle Collection":
-                required = round(settings['Puzzle Count']
+                required = round(settings['puzzle count']
                                  * (settings['Target Completion Percentage'] / 100))
                 count = player.collected_locations
                 return f"{location} ({count}/{required})"
@@ -1111,7 +1111,7 @@ def handle_state_tracking(player: Player):
                     goal_str = "Become Champion of the Hoenn League"
 
         case "Simon Tatham's Portable Puzzle Collection":
-            required = round(settings['Puzzle Count']
+            required = round(settings['puzzle count']
                                 * (settings['Target Completion Percentage'] / 100))
             count = player.collected_locations
             goal_str = f"Solve {required} puzzles"
