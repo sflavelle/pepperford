@@ -158,7 +158,11 @@ class Player(dict):
             self.stats = {}
 
         def to_dict(self):
-            return {"goal_str": self.goal_str} + {k: v for k, v in self.stats.items()}
+            
+            dict_stats = self.stats.copy()
+            dict_stats['goal_str'] = self.goal_str if self.goal_str else "No fancy goal string available"
+
+            return dict_stats
 
         def set_stat(self, stat_name: str, value: Any):
             """Update a game-specific stat for the player."""
