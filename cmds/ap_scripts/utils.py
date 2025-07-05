@@ -157,6 +157,9 @@ class Player(dict):
             super().__init__()
             self.stats = {}
 
+        def to_dict(self):
+            return {"goal_str": self.goal_str} + {k: v for k, v in self.stats.items()}
+
         def set_stat(self, stat_name: str, value: Any):
             """Update a game-specific stat for the player."""
             if stat_name not in self.stats:
@@ -195,6 +198,7 @@ class Player(dict):
             "online": self.online,
             "last_online": self.last_online,
             "tags": self.tags,
+            "stats": self.stats.to_dict(),
             "settings": dict(self.settings) if self.settings else {},
             "goaled": self.goaled,
             "released": self.released,
