@@ -173,7 +173,7 @@ def process_spoiler_log(seed_url):
                     def parse_line(line):
                         current_key, value = line.strip().split(':', 1)
                         value_str = value.lstrip()
-                        key = current_key.strip().replace("_", " ").title()
+                        key = current_key.strip().replace("_", " ")
 
                         return key, value_str
                     
