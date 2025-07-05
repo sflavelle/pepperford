@@ -918,7 +918,7 @@ def handle_location_tracking(game: Game, player: Player, item: Item):
             case "Jigsaw":
                 if location.startswith("Merge"):
                     count = player.collected_locations
-                    dimensions = settings['Puzzle dimension'].split("x")
+                    dimensions = settings['Puzzle dimension'].split("×")
                     required = int(dimensions[0]) * int(dimensions[1])
                     return f"{location} (of {required})"
             case "Simon Tatham's Portable Puzzle Collection":
@@ -1130,7 +1130,7 @@ def handle_state_tracking(player: Player):
                 case "Yoshi Egg Hunt":
                     eggs = player.get_item_count("Yoshi Egg")
                     required = round(settings['Max Number of Yoshi Eggs'] * (settings['Required Percentage of Yoshi Eggs'] / 100))
-                    goal_str = f"Collect {required} Yoshi Eggs"
+                    goal_str = f"Return {required} Yoshi Eggs to Yoshi's House"
 
                     player.stats.set_stat("collected_eggs", eggs)
                     player.stats.set_stat("required_eggs", required)
