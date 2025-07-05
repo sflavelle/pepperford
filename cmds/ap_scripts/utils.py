@@ -139,11 +139,31 @@ class Player(dict):
     last_online = None
     tags = []
     settings = None
+    stats: 'PlayerState' # Game-specific stats
     goaled = False
     released = False
     collected_locations: int = 0
     total_locations: int = 0
     collection_percentage: float = 0.0
+
+    class PlayerState(dict):
+        """A class to hold the player's state in the game.
+        Uses the player's inventory to calculate stats base on the game and required goal."""
+
+        goal_str: str = None
+
+        def __init__(self):
+            super().__init__()
+
+        def set_stat(self, stat_name: str, value: Any):
+            """Update a game-specific stat for the player."""
+            if stat_name not in self.stats:
+                self.stats[stat_name] = value
+            elif isinstance(self.stats[stat_name], (int, float)) and isinstance(value, (int, float)):
+                self.stats[stat_name] += value
+            else:
+                self.stats[stat_name] = value
+
 
     def __init__(self,name,game):
         self.name = name
@@ -225,6 +245,9 @@ class Player(dict):
         # This method will be called whenever hints are updated
         logger.info(f"Hints for player {self.name} have been updated.")
         handle_hint_update(self)
+
+    def on_item_collected(self, item: Item):
+        handle_state_tracking(self)
 
     def get_item_count(self, item_name: str) -> int:
         """Get the count of a specific item in the player's inventory."""
@@ -956,25 +979,13 @@ def handle_location_hinting(player: Player, item: Item) -> tuple[list[str], str]
         logger.info(f"Updating item's location {item.location} with requirements: {requirements}")
     return (requirements, extra_info)
 
-def build_game_state(game: dict, player_str: str) -> discord.Embed:
-    """For Discord: Use the tracked game state to build a human-readable view
-    of a player slot's progress toward their goal."""
+def handle_state_tracking(player: Player):
+    """Use the tracked game state to build a summary of the player's progress."""
 
-    player: Player = game['players'][player_str]
-    player_game = player['game']
+    player_game = player.game
 
     goal: str
     goal_str: str
-
-    readable_state = discord.Embed(
-        title = f"{player_str} ({player_game})",
-        description = None
-    )
-
-    if player['goaled']:
-        readable_state.description = "This slot is victorious."
-    if player['released']:
-        readable_state.description = "This slot has released."
 
     match player_game:
         case "A Hat in Time":
@@ -996,13 +1007,12 @@ def build_game_state(game: dict, player_str: str) -> discord.Embed:
                 case _:
                     goal_str = goal
             if goal == "Finale" or goal == "Rush Hour":
-                readable_state.add_field(name="Time Pieces", value=f"{time_pieces} found\n{time_pieces_required} required", inline = True)
-            readable_state.add_field(name="Found Hats", value="\n".join([hat.name for hat in collected_hats]), inline = True)
+                player.stats.set_stat("time_pieces_required", time_pieces_required)
+            player.stats.set_stat("found_hats", [hat.name for hat in collected_hats])
 
             if goal == "Rush Hour":
                 metro_tickets = ["Yellow", "Pink", "Green", "Blue"]
-                collected_tickets = player.get_collected_items([f"Metro Ticket - {color}" for color in metro_tickets])
-                readable_state.add_field(name="Found Tickets", value="\n".join([ticket.name for ticket in collected_tickets]), inline = True)
+                player.stats.set_stat("collected_tickets", [item.name for item in player.get_collected_items([f"Metro Ticket - {color}" for color in metro_tickets]) ])
 
             world_costs = {
                 "Kitchen": player['settings']['Chapter 1 Cost'],
@@ -1013,8 +1023,7 @@ def build_game_state(game: dict, player_str: str) -> discord.Embed:
                 "Laundry": player['settings']['Chapter 6 Cost'],
                 "Lab": player['settings']['Chapter 7 Cost'],
             }
-            accessible_worlds = [k for k, v in world_costs.items() if time_pieces > v]
-            readable_state.add_field(name="Accessible Telescopes", value = "\n".join(accessible_worlds))
+            player.stats.set_stat("accessible_worlds",[k for k, v in world_costs.items() if time_pieces > v])
         
         case "Here Comes Niko!":
             coins = player.get_item_count("Coin")
@@ -1025,10 +1034,26 @@ def build_game_state(game: dict, player_str: str) -> discord.Embed:
                 case "Hired":
                     goal_str = "Get Hired as a Professional Friend"
                     coins_required = player['settings']['Elevator Cost']
+                case "Employee":
+                    goal_str = "Become Employee of the Month"
+                    coins_required = 76
                 case _:
                     goal_str = goal
 
-            # TODO Match Abilities
+            movement_abilities = [
+                "Textbox",
+                "Swim Course",
+                "Apple Basket",
+                "Safety Helmet",
+                "Bug Net",
+                "Soda Repair",
+                "Parasol Repair",
+                "AC Repair",
+            ]
+
+            player.stats.set_stat("coins", coins)
+            player.stats.set_stat("coins_required", coins_required)
+            player.stats.set_stat("movement_abilities", [ability.name for ability in player.get_collected_items(movement_abilities)])
 
         case "Ocarina of Time":
             max_hearts = 20
@@ -1039,6 +1064,7 @@ def build_game_state(game: dict, player_str: str) -> discord.Embed:
             partial_hearts = heart_pieces % 4
 
             current_hearts = starting_hearts + heart_containers + completed_heart_pieces
+            player.stats.set_stat("current_hearts", current_hearts)
 
             # TODO Get main inventory
         
@@ -1050,16 +1076,16 @@ def build_game_state(game: dict, player_str: str) -> discord.Embed:
                 "MP": ["Sacred Geometry", "Vintage", "Dusty"]
             }
 
-            logical_att = player.get_item_count("ATT Offering")
-            logical_def = player.get_item_count("DEF Offering") + len(player.get_collected_items(treasures['DEF']))
-            logical_hp = player.get_item_count("HP Offering")
-            logical_sp = player.get_item_count("SP Offering") + len(player.get_collected_items(treasures['SP']))
-            logical_mp = player.get_item_count("MP Offering") + len(player.get_collected_items(treasures['MP']))
-            logical_potion = player.get_item_count("POTION Offering") + len(player.get_collected_items(treasures['POTION']))
+            for stat in ["ATT", "DEF", "HP", "SP", "MP", "POTION"]:
+                player.stats.set_stat(
+                    f"logical_{stat.lower()}", 
+                    player.get_item_count(f"{stat} Offering") + 
+                    (len(player.get_collected_items(treasures[stat])) if stat in treasures else 0)
+
+            seal_questagons = player.get_collected_items["Red Questagon", "Green Questagon", "Blue Questagon"]
+            gold_questagons = player.get_item_count("Gold Questagon")
 
         case _:
             pass
 
-    readable_state.description = f"Your goal is to **{goal_str}**."
-
-    return readable_state
+    player.stats.goal_str = goal_str
