@@ -268,6 +268,8 @@ class Player(dict):
             logger.error(f"Attempted to collect a non-Item object: {item}")
 
     def on_item_collected(self, item):
+        if item is not None:
+            pass # TODO: Handle item collection logic here, e.g., updating stats, notifying other players, etc.
         handle_state_tracking(self)
 
     def get_item_count(self, item_name: str) -> int:
@@ -1096,11 +1098,16 @@ def handle_state_tracking(player: Player):
                     eggs = player.get_item_count("Yoshi Egg")
                     required = round(settings['Max Number of Yoshi Eggs'] * (settings['Required Percentage of Yoshi Eggs'] / 100))
                     goal_str = f"Collect {required} Yoshi Eggs"
-                    
+
                     player.stats.set_stat("collected_eggs", eggs)
                     player.stats.set_stat("required_eggs", required)
-                case _:
-                    pass
+                case "Bowser":
+                    boss_tokens = player.get_item_count("Boss Token")
+                    required = settings['Bosses Required']
+                    player.stats.set_stat("collected_boss_tokens", boss_tokens)
+                    player.stats.set_stat("required_boss_tokens", required)
+
+                    goal_str = f"Defeat {required} Bosses, and then Bowser"
 
             movement_abilities = [
                 "Climb",

@@ -686,6 +686,7 @@ def watch_log(url, interval):
     logger.info(f"Initial log lines: {len(previous_lines)}")
     for p in game.players.values():
         p.update_locations(game)
+        p.on_item_collected(None)
     game.update_locations()
     logger.info(f"Total Checks: {game.total_locations}")
     logger.info(f"Checks Collected: {game.collected_locations}")
