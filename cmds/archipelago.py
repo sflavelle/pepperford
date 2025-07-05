@@ -226,6 +226,37 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                 pass
 
     @is_aphost()
+    @db.command(name='set_item_description')
+    @app_commands.describe(game="The game that contains the item",
+                           item="The item to act on")
+    @app_commands.autocomplete(game=db_game_complete,item=db_item_complete)
+    async def db_set_item_description(self, interaction: discord.Interaction, game: str, item: str):
+        """Set the description of an item using a Discord popup window."""
+        cursor = sqlcon.cursor()
+
+        class DescriptionForm(discord.ui.Modal):
+            """A Discord modal for setting an item's description."""
+            def __init__(self, game: str, item: str):
+                super().__init__(title=f"Set description for {game}'s {item}")
+                self.game = game
+                self.item = item
+
+            description = discord.ui.TextInput(label="Description",
+                                                style=discord.TextStyle.paragraph,
+                                                placeholder=f"Enter the description for {item} here.",
+                                                required=True,
+                                                max_length=500)
+
+            async def on_submit(self, interaction: discord.Interaction):
+                description = self.description.value
+                cursor.execute("UPDATE archipelago.item_classifications SET description = %s WHERE game = %s AND item = %s",
+                               (description, self.game, self.item))
+                await interaction.response.send_message(f"Description for {self.game}'s '{self.item}' has been set.", ephemeral=True)
+
+        # Create the modal and send it to the user
+        interaction.response.send_modal(DescriptionForm(game, item))
+
+    @is_aphost()
     @db.command(name='update_location_checkability')
     @app_commands.describe(game="The game that contains the location",
                            location="The location to act on (wildcards: ? one, % many)",
@@ -505,11 +536,14 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
         for player in game_table['players'].values():
             last_online = lambda player: f"Last online <t:{int(player['last_online'])}:R>." if player['last_online'] is not None else "Never logged in."
             if player['goaled'] is True:
-                msg_lines.append(f"**{player['name']} ({player['game']})**: finished their game. {last_online(player)}")
+                msg_lines.append(f"- **{player['name']} ({player['game']})**: finished their game with {round(player['collection_percentage'], 2)}% checks collected. {last_online(player)}")
             elif player['released'] is True and player['goaled'] is False:
-                msg_lines.append(f"**{player['name']} ({player['game']})**: released from the game. Last online {last_online(player)}")
+                msg_lines.append(f"- **{player['name']} ({player['game']})**: released from the game. Last online {last_online(player)}")
             else:
-                msg_lines.append(f"**{player['name']} ({player['game']})**: {round(player['collection_percentage'], 2)}% complete. ({player['collected_locations']}/{player['total_locations']} checks.) {last_online(player)}")
+                msg_lines.append(f"- **{player['name']} ({player['game']})**: {round(player['collection_percentage'], 2)}% complete. ({player['collected_locations']}/{player['total_locations']} checks.) {last_online(player)}")
+            if player['stats']['goal_str'] is not None:
+                msg_lines.append(f"  - Goal: {player['stats']['goal_str']}.")
+            
 
         await newpost.edit(content="\n".join(msg_lines))
 

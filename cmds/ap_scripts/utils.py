@@ -160,7 +160,7 @@ class Player(dict):
         def to_dict(self):
             
             dict_stats = self.stats.copy()
-            dict_stats['goal_str'] = self.goal_str if self.goal_str else "No fancy goal string available"
+            dict_stats['goal_str'] = self.goal_str if self.goal_str else None
 
             return dict_stats
 
@@ -795,7 +795,7 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                             settings['Max Number of Yoshi Eggs']
                             * (settings['Required Percentage of Yoshi Eggs'] / 100))
                         return f"{item} ({count}/{required})"
-                    if item == "Boss Token":
+                    if item == "Boss Token" and settings['Goal'] == "Bowser":
                         required = settings['Bosses Required']
                         return f"{item} ({count}/{required})"
                 case "Trackmania":
@@ -1006,8 +1006,8 @@ def handle_state_tracking(player: Player):
     player_game = player.game
     settings = player.settings
 
-    goal: str
-    goal_str: str
+    goal: str = ""
+    goal_str: str = ""
 
     match player_game:
         case "A Hat in Time":
@@ -1089,6 +1089,26 @@ def handle_state_tracking(player: Player):
             player.stats.set_stat("current_hearts", current_hearts)
 
             # TODO Get main inventory
+
+        case "Super Mario World":
+            match settings['Goal']:
+                case "Yoshi Egg Hunt":
+                    eggs = player.get_item_count("Yoshi Egg")
+                    required = round(settings['Max Number of Yoshi Eggs'] * (settings['Required Percentage of Yoshi Eggs'] / 100))
+                    goal_str = f"Collect {required} Yoshi Eggs"
+                case _:
+                    pass
+
+                movement_abilities = [
+                    "Climb",
+                    "Swim",
+                    "Progressive Powerup",
+                ] + [f"{color} Switch Palace" for color in ["Red", "Green", "Yellow", "Blue"]]
+        
+            player.stats.set_stat("collected_eggs", eggs)
+            player.stats.set_stat("required_eggs", required)
+            player.stats.set_stat("movement_abilities", 
+                                  [ability.name for ability in player.get_collected_items(movement_abilities)])
         
         case "TUNIC":
             if settings['Hexagon Quest'] is True:
