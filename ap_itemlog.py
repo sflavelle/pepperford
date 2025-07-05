@@ -716,7 +716,7 @@ def watch_log(url, interval):
 
     # Get the last line number we processed from the database
     with sqlcon.cursor() as cursor:
-        previous_lines = game.pulldb(cursor, 'pepper.ap_all_rooms', 'last_line')
+        previous_lines = int(game.pulldb(cursor, 'pepper.ap_all_rooms', 'last_line'))
 
     logger.info("Ready!")
     while True:
