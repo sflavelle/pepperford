@@ -683,9 +683,15 @@ def watch_log(url, interval):
         process_spoiler_log(seed_url)
     previous_lines = fetch_log(url)
     logger.info("Parsing existing log lines before we start watching it...")
-    process_new_log_lines(previous_lines, True) # Read for hints etc
+
+    # Get the last line number we processed from the database
+    with sqlcon.cursor() as cursor:
+        last_line = int(game.pulldb(cursor, 'pepper.ap_all_rooms', 'last_line'))
+
+    process_new_log_lines(previous_lines[:last_line], True) # Read for hints etc
     release_buffer = {}
-    logger.info(f"Initial log lines: {len(previous_lines)}")
+    logger.info(f"Initial log lines: {len(previous_lines[:last_line])}")
+    logger.info(f"Log lines queued up for processing: {len(previous_lines[last_line:])}")
     for p in game.players.values():
         p.update_locations(game)
         p.on_item_collected(None)
@@ -716,9 +722,6 @@ def watch_log(url, interval):
     # classification_thread = threading.Thread(target=save_classifications)
     # classification_thread.start()
 
-    # Get the last line number we processed from the database
-    with sqlcon.cursor() as cursor:
-        last_line = int(game.pulldb(cursor, 'pepper.ap_all_rooms', 'last_line'))
 
     logger.info("Ready!")
     while True:
