@@ -1081,6 +1081,7 @@ def handle_state_tracking(player: Player):
                     f"logical_{stat.lower()}", 
                     player.get_item_count(f"{stat} Offering") + 
                     (len(player.get_collected_items(treasures[stat])) if stat in treasures else 0)
+                )
 
             seal_questagons = player.get_collected_items["Red Questagon", "Green Questagon", "Blue Questagon"]
             gold_questagons = player.get_item_count("Gold Questagon")
