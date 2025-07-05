@@ -279,6 +279,38 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
             finally:
                 pass
 
+    # Uncomment this command when the itemlog is running off Pepper too
+    # So we can crossreference the itemlog message with the mentioned items/etc
+
+    # @app_commands.context_menu(name="AP: Explain Item")
+    # async def explain_item(self, interaction: discord.Interaction, msg: discord.Message):
+    #     """Explain an item in the current Archipelago room."""
+    #     if not self.ctx.extras.get('ap_rooms'):
+    #         self.ctx.extras['ap_rooms'] = {}
+    #         self.fetch_guild_room(interaction.guild_id)
+    #         if not self.ctx.extras['ap_rooms'].get(interaction.guild_id):
+    #             return await interaction.response.send_message("No Archipelago room is currently set for this server.",ephemeral=True)
+
+    #     room = self.ctx.extras['ap_rooms'].get(interaction.guild_id)
+    #     if not room:
+    #         return await interaction.response.send_message("No Archipelago room is currently set for this server.",ephemeral=True)
+
+    #     game = room['game']
+    #     item_name = item.content.strip()
+
+    #     with sqlcon.cursor() as cursor:
+    #         cursor.execute("SELECT classification, description FROM archipelago.item_classifications WHERE game = %s AND item = %s", (game, item_name))
+    #         result = cursor.fetchone()
+
+    #     if result:
+    #         embed = discord.Embed(title=f"{item_name} ({game})")
+    #         embed.add_field(name="Classification", value=result[0].title(), inline=False)
+    #         embed.add_field(name="Description", value=result[1] if result[1] else "No description available.", inline=False)
+    #     else:
+    #         msg = f"No classification found for **{item_name}** in **{game}**."
+
+        return await interaction.response.send_message(msg, ephemeral=True)
+
     @is_aphost()
     @app_commands.default_permissions(manage_messages=True)
     @db.command()
