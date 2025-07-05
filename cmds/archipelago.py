@@ -226,6 +226,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                 pass
 
     @is_aphost()
+    @app_commands.default_permissions(send_messages=True)
     @db.command(name='set_item_description')
     @app_commands.describe(game="The game that contains the item",
                            item="The item to act on")
@@ -246,13 +247,13 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
         class DescriptionForm(discord.ui.Modal):
             """A Discord modal for setting an item's description."""
             def __init__(self, game: str, item: str):
-                super().__init__(title=f"Set description for {game}'s {item}")
+                super().__init__(title=f"{item} ({game})"[:45])  # Title must be under 45 characters
                 self.game = game
                 self.item = item
 
             description = discord.ui.TextInput(label="Description",
                             style=discord.TextStyle.paragraph,
-                            placeholder=existing_description if existing_description else f"Enter the description for {item} here.",
+                            placeholder=existing_description if bool(existing_description) else f"Enter the description for {item} here.",
                             required=True,
                             max_length=500)
 
