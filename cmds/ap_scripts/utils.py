@@ -996,6 +996,7 @@ def handle_state_tracking(player: Player):
     """Use the tracked game state to build a summary of the player's progress."""
 
     player_game = player.game
+    settings = player.settings
 
     goal: str
     goal_str: str
@@ -1007,14 +1008,14 @@ def handle_state_tracking(player: Player):
             time_pieces = player.get_item_count("Time Piece")
             time_pieces_required: int
 
-            goal = player['settings']['End Goal']
+            goal = settings['End Goal']
             match goal:
                 case "Finale":
                     goal_str = "Defeat Mustache Girl"
-                    time_pieces_required = player.settings['Chapter 5 Cost']
+                    time_pieces_required = settings['Chapter 5 Cost']
                 case "Rush Hour":
                     goal_str = "Escape Nyakuza Metro's Rush Hour"
-                    time_pieces_required = player.settings['Chapter 7 Cost']
+                    time_pieces_required = settings['Chapter 7 Cost']
                 case "Seal The Deal":
                     goal_str = "Seal the Deal with Snatcher"
                 case _:
@@ -1042,11 +1043,11 @@ def handle_state_tracking(player: Player):
             coins = player.get_item_count("Coin")
             coins_required: int
 
-            goal = player['settings']['Completion Goal']
+            goal = settings['Completion Goal']
             match goal:
                 case "Hired":
                     goal_str = "Get Hired as a Professional Friend"
-                    coins_required = player['settings']['Elevator Cost']
+                    coins_required = settings['Elevator Cost']
                 case "Employee":
                     goal_str = "Become Employee of the Month"
                     coins_required = 76
@@ -1082,8 +1083,8 @@ def handle_state_tracking(player: Player):
             # TODO Get main inventory
         
         case "TUNIC":
-            if player.settings['Hexagon Quest'] is True:
-                required = player.settings['Gold Hexagons Required']
+            if settings['Hexagon Quest'] is True:
+                required = settings['Gold Hexagons Required']
                 gold_questagons = player.get_item_count("Gold Questagon")
                 goal_str = f"Collect {required} Hexagons and Return to the Heir"
             else:
