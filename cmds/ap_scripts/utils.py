@@ -683,14 +683,7 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                     return item.replace("_", " ").replace("-"," - ")
                 case "Jigsaw":
                     if item.endswith("Puzzle Pieces"):
-                        starting_pieces_item = None
-                        for i in player.inventory:
-                            if i.sender == "Archipelago":
-                                if i.name.endswith("Puzzle Pieces"):
-                                    starting_pieces_item = i
-                                    break
-
-                        starting_pieces: int = int(starting_pieces_item.name.split()[0]) if starting_pieces_item else 0
+                        starting_pieces: int = int(settings['Precollected pieces']) if settings['Precollected pieces'] else 0
                         pieces_per_item: int = int(item.split()[0])
                         item_count: int = player.get_item_count(item)
 
@@ -867,6 +860,12 @@ def handle_location_tracking(game: Game, player: Player, item: Item):
             case "Hollow Knight":
                 # There'll probably be something here later
                 return location.replace("_", " ").replace("-"," - ")
+            case "Jigsaw":
+                if location.startswith("Merge"):
+                    count = player.collected_locations
+                    dimensions = settings['Puzzle dimension'].split("x")
+                    required = int(dimensions[0]) * int(dimensions[1])
+                    return f"{location} (of {required})"
             case "Simon Tatham's Portable Puzzle Collection":
                 required = round(settings['Puzzle Count']
                                  * (settings['Target Completion Percentage'] / 100))

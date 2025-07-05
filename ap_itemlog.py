@@ -149,6 +149,15 @@ def process_spoiler_log(seed_url):
             logger.info("Parsing starting items")
         if line in ["Entrances:","Medallions:","Fairy Fountain Bottle Fill:", "Shops:"]:
             parse_mode = None
+        if line.startswith("Spoiler and info for [Jigsaw]"):
+            parse_mode = "Jigsaw Info"
+            working_player_num = 0
+            try:
+                working_player_num = int(line.rsplit(' ', 1)[-1].strip())
+                working_player = game.players[list(game.players.keys())[working_player_num]].name
+            except (ValueError, IndexError):
+                logger.error(f"Error parsing Jigsaw player number from line: {line}")
+                working_player = None
 
         match parse_mode:
             case "Seed Info":
@@ -244,6 +253,9 @@ def process_spoiler_log(seed_url):
                 if match := regex_patterns['starting_item'].match(line):
                     item, receiver = match.groups()
                     game.players[receiver].inventory.append(game.get_or_create_item("Archipelago",game.players[receiver],item,"Starting Items",received_timestamp=start_time))
+            case "Jigsaw Info":
+                key, value_str = parse_line(line)
+                game.players[working_player].settings[key] = parse_to_type(value_str)
             case _:
                 continue
 
