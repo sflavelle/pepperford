@@ -153,7 +153,7 @@ def process_spoiler_log(seed_url):
             parse_mode = "Jigsaw Info"
             working_player_num = 0
             try:
-                working_player_num = int(line.rsplit(' ', 1)[-1].strip())
+                working_player_num = int(line.rsplit(' ', 1)[-1].strip()) - 1
                 working_player = game.players[list(game.players.keys())[working_player_num]].name
                 logger.info(f"Parsing Jigsaw settings for player {working_player}")
             except (ValueError, IndexError):
