@@ -1096,7 +1096,7 @@ def handle_state_tracking(player: Player):
                     goal_str = settings['Goal']
 
         case "Jigsaw":
-            dimensions = settings['Puzzle dimension'].split("x")
+            dimensions = settings['Puzzle dimension'].split("×")
             required = int(dimensions[0]) * int(dimensions[1])
             goal_str = f"Complete a {settings['Puzzle dimension']} ({required} piece) Puzzle"
 
