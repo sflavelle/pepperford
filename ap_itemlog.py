@@ -115,7 +115,8 @@ def process_spoiler_log(seed_url):
 
     regex_patterns = {
         'location': re.compile(r'(.+) \((.+?)\): (.+) \((.+?)\)$'),
-        'starting_item': re.compile(r'^(.+) \((.+?)\)$')
+        'starting_item': re.compile(r'^(.+) \((.+?)\)$'),
+        'pokemon_locations': re.compile(r'^Wild Pokemon \((.+?)\):$')
     }
 
     def parse_to_type(value):
@@ -159,6 +160,11 @@ def process_spoiler_log(seed_url):
             except (ValueError, IndexError):
                 logger.error(f"Error parsing Jigsaw player number from line: {line}")
                 working_player = None
+        if match := regex_patterns['pokemon_locations'].match(line):
+            parse_mode = "Pokemon Locations"
+            working_player = match.group(1)
+            game.players[working_player].settings['Wild Pokemon Locations'] = {}
+            logger.info(f"Parsing Pokemon locations for player {working_player}")
 
         match parse_mode:
             case "Seed Info":
@@ -264,6 +270,16 @@ def process_spoiler_log(seed_url):
                         continue
                     else:
                         raise e
+            case "Pokemon Locations":
+                # Some Pkmn games list the locations of wild Pokemon in the spoiler log
+                if match := regex_patterns['location'].match(line):
+                    try:
+                        key, value_str = parse_line(line)
+                        game.players[working_player].settings['Wild Pokemon Locations'][key] = parse_to_type(value_str)
+                    except ValueError as e:
+                        logger.error(f"Error parsing Pokemon location line: {line}")
+                        logger.error(f"Error: {e}")
+                        continue
             case _:
                 continue
 
