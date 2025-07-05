@@ -734,7 +734,7 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                         return f"{item} ({count}/{required})"
                 case "Simon Tatham's Portable Puzzle Collection":
                     # Tracking total access to puzzles instead of completion percentage, that's for the locations
-                    total = settings['Puzzle Count']
+                    total = settings['puzzle count']
                     count = len(player.inventory)
                     return f"{item} ({count}/{total})"
                 case "Sonic Adventure 2 Battle":
