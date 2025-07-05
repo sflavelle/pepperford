@@ -1082,6 +1082,15 @@ def handle_state_tracking(player: Player):
             # TODO Get main inventory
         
         case "TUNIC":
+            if player.settings['Hexagon Quest'] is True:
+                required = player.settings['Gold Hexagons Required']
+                gold_questagons = player.get_item_count("Gold Questagon")
+                goal_str = f"Collect {required} Hexagons and Return to the Heir"
+            else:
+                seal_questagons = player.get_collected_items(["Red Questagon", "Green Questagon", "Blue Questagon"]) 
+                player.stats.set_stat("collected_seal_questagons", [q.name for q in seal_questagons])
+                goal_str = "Claim Your Rightful Place"
+
             treasures = {
                 "DEF": ["Secret Legend", "Phonomath"],
                 "POTION": ["Spring Falls", "Just Some Pals", "Back To Work"],
@@ -1096,8 +1105,6 @@ def handle_state_tracking(player: Player):
                     (len(player.get_collected_items(treasures[stat])) if stat in treasures else 0)
                 )
 
-            seal_questagons = player.get_collected_items["Red Questagon", "Green Questagon", "Blue Questagon"]
-            gold_questagons = player.get_item_count("Gold Questagon")
 
         case _:
             pass
