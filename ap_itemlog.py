@@ -668,6 +668,8 @@ def watch_log(url, interval):
     global players
     global game
 
+    last_line = 0
+
     logger.info("Fetching room info.")
     for player in requests.get(api_url).json()["players"]:
         game.players[player[0]] = Player(
@@ -716,14 +718,14 @@ def watch_log(url, interval):
 
     # Get the last line number we processed from the database
     with sqlcon.cursor() as cursor:
-        previous_lines = int(game.pulldb(cursor, 'pepper.ap_all_rooms', 'last_line'))
+        last_line = int(game.pulldb(cursor, 'pepper.ap_all_rooms', 'last_line'))
 
     logger.info("Ready!")
     while True:
         time.sleep(interval)
         current_lines = fetch_log(url)
-        if len(current_lines) > len(previous_lines):
-            new_lines = current_lines[len(previous_lines):]
+        if len(current_lines) > last_line:
+            new_lines = current_lines[last_line:]
             with sqlcon.cursor() as cursor:
                 game.pushdb(cursor, 'pepper.ap_all_rooms', 'last_line', len(current_lines))
                 sqlcon.commit()
@@ -732,7 +734,7 @@ def watch_log(url, interval):
                 send_to_discord('\n'.join(message_buffer))
                 logger.debug(f"sent {len(message_buffer)} messages to webhook")
                 message_buffer.clear()
-            previous_lines = current_lines
+            last_line = len(current_lines)
 
 def process_releases():
     global release_buffer
