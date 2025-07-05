@@ -246,7 +246,7 @@ class Player(dict):
         logger.info(f"Hints for player {self.name} have been updated.")
         handle_hint_update(self)
 
-    def on_item_collected(self, item: Item):
+    def on_item_collected(self, item):
         handle_state_tracking(self)
 
     def get_item_count(self, item_name: str) -> int:
