@@ -125,6 +125,15 @@ class Game(dict):
         except Exception as e:
             logger.error(f"Error pushing to database: {e}")
 
+    def pulldb(self, cursor, database: str, column: str):
+        """Pull a value from the database for this game."""
+        try:
+            cursor.execute(f"SELECT {column} FROM {database} WHERE room_id = %s", (self.room_id,))
+            return cursor.fetchone()[0]
+        except Exception as e:
+            logger.error(f"Error pulling from database: {e}")
+            return None
+
 def handle_hint_update(self):
     pass
 

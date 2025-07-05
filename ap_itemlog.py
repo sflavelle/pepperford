@@ -714,6 +714,10 @@ def watch_log(url, interval):
     # classification_thread = threading.Thread(target=save_classifications)
     # classification_thread.start()
 
+    # Get the last line number we processed from the database
+    with sqlcon.cursor() as cursor:
+        previous_lines = game.pulldb(cursor, 'pepper.ap_all_rooms', 'last_line')
+
     logger.info("Ready!")
     while True:
         time.sleep(interval)
