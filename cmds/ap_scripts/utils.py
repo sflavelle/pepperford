@@ -1099,11 +1099,11 @@ def handle_state_tracking(player: Player):
                 case _:
                     pass
 
-                movement_abilities = [
-                    "Climb",
-                    "Swim",
-                    "Progressive Powerup",
-                ] + [f"{color} Switch Palace" for color in ["Red", "Green", "Yellow", "Blue"]]
+            movement_abilities = [
+                "Climb",
+                "Swim",
+                "Progressive Powerup",
+            ] + [f"{color} Switch Palace" for color in ["Red", "Green", "Yellow", "Blue"]]
         
             player.stats.set_stat("collected_eggs", eggs)
             player.stats.set_stat("required_eggs", required)
