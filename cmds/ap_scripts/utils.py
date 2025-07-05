@@ -1096,6 +1096,9 @@ def handle_state_tracking(player: Player):
                     eggs = player.get_item_count("Yoshi Egg")
                     required = round(settings['Max Number of Yoshi Eggs'] * (settings['Required Percentage of Yoshi Eggs'] / 100))
                     goal_str = f"Collect {required} Yoshi Eggs"
+                    
+                    player.stats.set_stat("collected_eggs", eggs)
+                    player.stats.set_stat("required_eggs", required)
                 case _:
                     pass
 
@@ -1105,8 +1108,6 @@ def handle_state_tracking(player: Player):
                 "Progressive Powerup",
             ] + [f"{color} Switch Palace" for color in ["Red", "Green", "Yellow", "Blue"]]
         
-            player.stats.set_stat("collected_eggs", eggs)
-            player.stats.set_stat("required_eggs", required)
             player.stats.set_stat("movement_abilities", 
                                   [ability.name for ability in player.get_collected_items(movement_abilities)])
         
