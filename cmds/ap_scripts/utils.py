@@ -151,9 +151,11 @@ class Player(dict):
         Uses the player's inventory to calculate stats base on the game and required goal."""
 
         goal_str: str = None
+        stats: dict = {}
 
         def __init__(self):
             super().__init__()
+            self.stats = {}
 
         def set_stat(self, stat_name: str, value: Any):
             """Update a game-specific stat for the player."""
