@@ -1079,6 +1079,19 @@ def handle_state_tracking(player: Player):
             player.stats.set_stat("coins_required", coins_required)
             player.stats.set_stat("movement_abilities", [ability.name for ability in player.get_collected_items(movement_abilities)])
 
+        case "Kingdom Hearts 2":
+            match settings['Goal']:
+                case "Three Proofs":
+                    goal_str = "Collect the Three Proofs of Connection, Nonexistence and Peace"
+                case _:
+                    goal_str = settings['Goal']
+
+        case "Jigsaw":
+            dimensions = settings['Puzzle dimension'].split("x")
+            required = int(dimensions[0]) * int(dimensions[1])
+            goal_str = f"Complete a {settings['Puzzle dimension']} ({required} piece) Puzzle"
+
+
         case "Ocarina of Time":
             max_hearts = 20
             starting_hearts = 3
@@ -1091,6 +1104,17 @@ def handle_state_tracking(player: Player):
             player.stats.set_stat("current_hearts", current_hearts)
 
             # TODO Get main inventory
+
+        case "Pokemon Emerald":
+            match settings['Goal']:
+                case "Champion":
+                    goal_str = "Become Champion of the Hoenn League"
+
+        case "Simon Tatham's Portable Puzzle Collection":
+            required = round(settings['Puzzle Count']
+                                * (settings['Target Completion Percentage'] / 100))
+            count = player.collected_locations
+            goal_str = f"Solve {required} puzzles"
 
         case "Super Mario World":
             match settings['Goal']:
