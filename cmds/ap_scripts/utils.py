@@ -178,6 +178,7 @@ class Player(dict):
         self.goaled = False
         self.released = False
         self.milestones = set()
+        self.stats = Player.PlayerState()
 
     def __str__(self):
         return self.name
