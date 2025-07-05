@@ -246,6 +246,16 @@ class Player(dict):
         logger.info(f"Hints for player {self.name} have been updated.")
         handle_hint_update(self)
 
+    def collect_item(self, item):
+        """Collect an item and add it to the player's inventory."""
+        if isinstance(item, Item):
+            item.found = True
+            item.collect()
+            # Item.collect already adds itself to the inventory
+            self.on_item_collected(item)
+        else:
+            logger.error(f"Attempted to collect a non-Item object: {item}")
+
     def on_item_collected(self, item):
         handle_state_tracking(self)
 
