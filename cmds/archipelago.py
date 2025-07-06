@@ -253,7 +253,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
 
             description = discord.ui.TextInput(label="Description",
                             style=discord.TextStyle.paragraph,
-                            placeholder=existing_description if bool(existing_description) else f"Enter the description for {item} here.",
+                            placeholder=existing_description[:96] + "..." if bool(existing_description) else f"Enter the description for {item} here.",
                             required=True,
                             max_length=500)
 
