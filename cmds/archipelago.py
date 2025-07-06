@@ -265,6 +265,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
 
         # Create the modal and send it to the user
         await interaction.response.send_modal(DescriptionForm(game, item))
+        logger.info(f"User {interaction.user.display_name} ({interaction.user.id}) set description for {game}'s {item}.")
 
     @is_aphost()
     @db.command(name='update_location_checkability')
