@@ -262,10 +262,11 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                 cursor.execute("UPDATE archipelago.item_classifications SET description = %s WHERE game = %s AND item = %s",
                                (description, self.game, self.item))
                 await interaction.response.send_message(f"Description for {self.game}'s '{self.item}' has been set.", ephemeral=True)
+                logger.info(f"User {interaction.user.display_name} ({interaction.user.id}) set description for {game}'s {item}.")
 
         # Create the modal and send it to the user
         await interaction.response.send_modal(DescriptionForm(game, item))
-        logger.info(f"User {interaction.user.display_name} ({interaction.user.id}) set description for {game}'s {item}.")
+
 
     @is_aphost()
     @db.command(name='update_location_checkability')
