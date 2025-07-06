@@ -2,6 +2,7 @@ import datetime
 import json
 import time
 import regex as re
+import random
 import os
 import sys
 import ast
@@ -417,15 +418,29 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
                         logger.error(f"Couldn't do tracking for item {item} or location {location}:", e, exc_info=True)
 
                 # Update the message appropriately
-                if sender == receiver:
-                    message = f"**{sender}** found **their own {
-                        "hinted " if bool(game.spoiler_log[sender][item_location].hinted) else ""
-                        }{item}** ({location})"
-                elif bool(game.spoiler_log[sender][item_location].hinted):
-                    message = f"{dim_if_goaled(receiver)}{sender} found **{receiver}'s hinted {item}** ({location})"
+                if Item.classification == "trap":
+                    trap_messages = [
+                        "$s slapped **$r** around a bit with **a large $t**",
+                        "**$r is a FOOL!** ($s sent them a **$t**)",
+                        "**$r**: Congratulations On Your **$t**! Love, $s",
+                        "$s, did **$r** *really* deserve that **$t**?",
+                        "$s definitely *did not* send **$r** a **$t**",
+                        "Hey **$r**, is this a good time for a **$t** from $s?",
+                    ]
+
+                    message = random.choice(trap_messages)
+                    message = message.replace("$s", sender).replace("$r", receiver).replace("$t", item) + f" ({location})"
+                    if not skip_msg: message_buffer.append(message.replace("_", r"\_"))
                 else:
-                    message = f"{dim_if_goaled(receiver)}{sender} sent **{item}** to **{receiver}** ({location})"
-                if not skip_msg: message_buffer.append(message.replace("_",r"\_"))
+                    if sender == receiver:
+                        message = f"**{sender}** found **their own {
+                            "hinted " if bool(game.spoiler_log[sender][item_location].hinted) else ""
+                            }{item}** ({location})"
+                    elif bool(game.spoiler_log[sender][item_location].hinted):
+                        message = f"{dim_if_goaled(receiver)}{sender} found **{receiver}'s hinted {item}** ({location})"
+                    else:
+                        message = f"{dim_if_goaled(receiver)}{sender} sent **{item}** to **{receiver}** ({location})"
+                    if not skip_msg: message_buffer.append(message.replace("_",r"\_"))
 
                 # Handle completion milestones
                 # if game.players[sender].collection_percentage == 100 and game.players[sender].is_finished() is False:
