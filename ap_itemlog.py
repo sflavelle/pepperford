@@ -419,14 +419,22 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
 
                 # Update the message appropriately
                 if Item.classification == "trap":
-                    trap_messages = [
-                        "$s slapped **$r** around a bit with **a large $t**",
-                        "**$r is a FOOL!** ($s sent them a **$t**)",
-                        "**$r**: Congratulations On Your **$t**! Love, $s",
-                        "$s, did **$r** *really* deserve that **$t**?",
-                        "$s definitely *did not* send **$r** a **$t**",
-                        "Hey **$r**, is this a good time for a **$t** from $s?",
-                    ]
+                    trap_messages = []
+                    if sender == receiver:
+                        trap_messages = [
+                            "**$s** needed more challenge, and collected **their own $t**",
+                            "**$s** thought it was progression, but it was I, **$t**!",
+                            "**$s** is a FOOL! (collected a **$t**)",
+                        ]
+                    else:
+                        trap_messages = [
+                            "$s slapped **$r** around a bit with **a large $t**",
+                            "**$r is a FOOL!** ($s sent them a **$t**)",
+                            "**$r**: Congratulations On Your **$t**! Love, $s",
+                            "$s, did **$r** *really* deserve that **$t**?",
+                            "$s definitely *did not* send **$r** a **$t**",
+                            "Hey **$r**, is this a good time for a **$t** from $s?",
+                        ]
 
                     message = random.choice(trap_messages)
                     message = message.replace("$s", sender).replace("$r", receiver).replace("$t", item) + f" ({location})"
