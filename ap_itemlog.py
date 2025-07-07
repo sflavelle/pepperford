@@ -593,12 +593,21 @@ def send_chat(sender, message):
 
 
 def send_to_discord(message):
+    global room_id
+
     payload = {
         "content": message
     }
     try:
         response = requests.post(webhook_url, json=payload, timeout=5)
         response.raise_for_status()
+
+        # log the message to a file
+
+        os.makedirs('logs', exist_ok=True)  # Ensure logs directory exists
+        with open(f'logs/{room_id}.md', 'a', encoding='UTF-8') as log_file:
+            log_file.write(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} - {message}\n")
+
     except requests.RequestException as e:
         logging.error(f"Error sending message to Discord: {e}")
 
