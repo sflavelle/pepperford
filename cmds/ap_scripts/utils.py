@@ -1115,7 +1115,7 @@ def handle_state_tracking(player: Player):
 
             match settings['Triforce Hunt']:
                 case True:
-                    goal_pieces = settings['Triforce Goal']
+                    goal_pieces = settings['Required Triforce Pieces']
                     goal_str = f"Collect {goal_pieces} Triforce Pieces from around Hyrule"
 
                     triforce_pieces = player.get_item_count("Triforce Piece")
