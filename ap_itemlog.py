@@ -737,8 +737,12 @@ def watch_log(url, interval):
     logger.info(f"Total Players: {len(game.players)}")
     logger.info(f"Seed Address: {seed_address}")
     with sqlcon.cursor() as cursor:
-        game.pushdb(cursor, 'pepper.ap_all_rooms', 'port', seed_address.split(":")[1])
-        sqlcon.commit()
+        try: 
+            game.pushdb(cursor, 'pepper.ap_all_rooms', 'port', seed_address.split(":")[1])
+            sqlcon.commit()
+        except AttributeError:
+            # Seed Address not processed/set yet
+            pass
 
     message_buffer.clear() # Clear buffer in case we have any old messages
 
