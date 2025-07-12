@@ -781,7 +781,8 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                         required = max([settings[f'Floor {num} Boss Toppins'] for num in range(1, 6)])
                         return f"{item} ({count}/{required})"
                 case "Simon Tatham's Portable Puzzle Collection":
-                    # Tracking total access to puzzles instead of completion percentage, that's for the locations
+                    # Tracking total access to puzzles instead of completion percentage
+                    # that's for the locations
                     total = settings['puzzle count']
                     count = len(player.inventory)
                     return f"{item} ({count}/{total})"
@@ -1111,6 +1112,15 @@ def handle_state_tracking(player: Player):
 
             current_hearts = starting_hearts + heart_containers + completed_heart_pieces
             player.stats.set_stat("current_hearts", current_hearts)
+
+            match settings['Triforce Hunt']:
+                case True:
+                    goal_pieces = settings['Triforce Goal']
+                    goal_str = f"Collect {goal_pieces} Triforce Pieces from around Hyrule"
+
+                    triforce_pieces = player.get_item_count("Triforce Piece")
+                case False:
+                    goal_str = "Defeat Ganon and Save Hyrule"
 
             # TODO Get main inventory
 

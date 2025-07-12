@@ -717,7 +717,11 @@ def watch_log(url, interval):
 
     # Get the last line number we processed from the database
     with sqlcon.cursor() as cursor:
-        last_line = int(game.pulldb(cursor, 'pepper.ap_all_rooms', 'last_line'))
+        try:
+            last_line = int(game.pulldb(cursor, 'pepper.ap_all_rooms', 'last_line'))
+        except TypeError:
+            # Last Line probably hasn't been set yet; this room is new
+            pass
 
     process_new_log_lines(previous_lines[:last_line], True) # Read for hints etc
     release_buffer = {}
