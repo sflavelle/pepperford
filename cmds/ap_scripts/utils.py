@@ -794,6 +794,9 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                     if item == "Cat":
                         total = 169
                         return f"{item} ({count}/{total})"
+                    if item == "Strange Cat":
+                        total = 17
+                        return f"{item} ({count}/{total})"
                 case "Super Mario 64":
                     if item == "Power Star":
                         required = round(
