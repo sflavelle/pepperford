@@ -565,9 +565,9 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
                 logger.info(f"{player} ({playergame}) is online.")
                 game.players[player].set_online(True, timestamp)
             if "Tracker" in tags or verb == "tracking":
-                if not skip_msg:
-                    message = f"{player} is checking what is in logic."
-                    message_buffer.append(message)
+                # if not skip_msg:
+                #     message = f"{player} is checking what is in logic."
+                #     message_buffer.append(message)
 
         elif match := regex_patterns['parts'].match(line):
             timestamp, player, version, tags = match.groups()
