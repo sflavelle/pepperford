@@ -960,7 +960,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
             logger.info("Starting saved itemlog processes.")
             for log in cfg['bot']['archipelago']['itemlogs']:
                 logger.info(f"Starting itemlog for guild ID {log['guild']}")
-                logger.info(f"Info: {json.dumps(log)}")
+                # logger.info(f"Info: {json.dumps(log)}")
                 env = os.environ.copy()
 
                 env['LOG_URL'] = log['log_url']
