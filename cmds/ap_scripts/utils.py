@@ -1066,7 +1066,7 @@ def handle_state_tracking(player: Player):
             goal = settings['Goal Area']
 
             required_strawberries = settings['Total Strawberries'] * (settings['Strawberries Required Percentage'] / 100)
-            goal_with_strawbs = lambda string: string + f" (with {required_strawberries} Strawberries)"
+            goal_with_strawbs = lambda string: string + f" (with {int(required_strawberries)} Strawberries)"
 
             match goal:
                 case "The Summit A":
@@ -1223,11 +1223,11 @@ def handle_state_tracking(player: Player):
 
         # MANUAL GAMES
         case "Manual_PokemonPlatinum_Linneus":
-            match goal:
+            match settings['Goal']:
                 case "Pokemon League - Become Champion":
                     goal_str = "Become Champion of the Sinnoh League"
                 case _:
-                    goal_str = goal
+                    goal_str = settings['Goal']
 
         case _:
             pass
