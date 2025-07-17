@@ -5,3 +5,4 @@ config.yaml
 facts.db
 **__pycache__
 apitems.db
+inspectgame.json

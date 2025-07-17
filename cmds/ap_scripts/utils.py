@@ -1061,6 +1061,32 @@ def handle_state_tracking(player: Player):
                 "Lab": player['settings']['Chapter 7 Cost'],
             }
             player.stats.set_stat("accessible_worlds",[k for k, v in world_costs.items() if time_pieces > v])
+
+        case "Celeste (Open World)":
+            goal = settings['Goal Area']
+
+            required_strawberries = settings['Total Strawberries'] * (settings['Strawberries Required Percentage'] / 100)
+            goal_with_strawbs = lambda string: string + f" (with {required_strawberries} Strawberries)"
+
+            match goal:
+                case "The Summit A":
+                    goal_str = goal_with_strawbs("Reach the Summit of Mount Celeste")
+                case "The Summit B":
+                    goal_str = goal_with_strawbs("Take a Harder Path to Mount Celeste's Summit")
+                case "The Summit C":
+                    goal_str = goal_with_strawbs("Reach Celeste's Hardest Peak")
+                case "Core A":
+                    goal_str = goal_with_strawbs("Reach the Heart of the Mountain")
+                case "Core B":
+                    goal_str = goal_with_strawbs("Understand the Heart of the Mountain")
+                case "Core C":
+                    goal_str = goal_with_strawbs("Conquer the Heart of the Mountain")
+                case "Empty Space":
+                    goal_str = goal_with_strawbs("Reach Acceptance?")
+                case "Farewell":
+                    goal_str = goal_with_strawbs("Bid Farewell")
+                case "Farewell Golden":
+                    goal_str = goal_with_strawbs("Conquer Farewell's Hardest Challenge")
         
         case "Here Comes Niko!":
             coins = player.get_item_count("Coin")
@@ -1138,6 +1164,13 @@ def handle_state_tracking(player: Player):
             count = player.collected_locations
             goal_str = f"Solve {required} puzzles"
 
+        case "Super Cat Planet":
+            match settings['Goal Ending']:
+                case "Crows":
+                    goal_str = "Evade Crows and Rescue the King of the Cats"
+                case "Final Boss":
+                    goal_str = "Best the Dark Angel"
+
         case "Super Mario World":
             match settings['Goal']:
                 case "Yoshi Egg Hunt":
@@ -1188,6 +1221,13 @@ def handle_state_tracking(player: Player):
                     (len(player.get_collected_items(treasures[stat])) if stat in treasures else 0)
                 )
 
+        # MANUAL GAMES
+        case "Manual_PokemonPlatinum_Linneus":
+            match goal:
+                case "Pokemon League - Become Champion":
+                    goal_str = "Become Champion of the Sinnoh League"
+                case _:
+                    goal_str = goal
 
         case _:
             pass
