@@ -1223,11 +1223,11 @@ def handle_state_tracking(player: Player):
 
         # MANUAL GAMES
         case "Manual_PokemonPlatinum_Linneus":
-            match settings['Goal']:
+            match settings['goal']:
                 case "Pokemon League - Become Champion":
                     goal_str = "Become Champion of the Sinnoh League"
                 case _:
-                    goal_str = settings['Goal']
+                    goal_str = settings['goal']
 
         case _:
             pass
