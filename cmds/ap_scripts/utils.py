@@ -238,7 +238,18 @@ class Player(dict):
 
     def update_locations(self, game: Game):
         self.locations = {l.location: l for l in game.spoiler_log[self.name].values()}
-        self.total_locations = len([l for l in self.locations.values() if l.is_location_checkable is True])
+
+        location_count = len(self.locations)
+        checkable_location_count = len([l for l in self.locations.values() if l.is_location_checkable is True])
+
+        if (checkable_location_count / location_count) < 0.8:
+            # If the amount of checkable locations does not pass a certain threshold,
+            # The world has likely not been fully played through to determine checkability
+            # In this case just use the unfiltered total location count
+            self.total_locations = location_count
+        else:
+            self.total_locations = checkable_location_count
+
         if not (self.goaled or self.released):
             self.collected_locations = len([l for l in self.locations.values() if l.found is True])
             self.collection_percentage = (self.collected_locations / self.total_locations) * 100 if self.total_locations > 0 else 0.0
