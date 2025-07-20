@@ -422,15 +422,15 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
                     trap_messages = []
 
                     def trapmsg_substvars(string: str, sender: str, receiver: str, trap: str):
-                        message = message.replace("$s", sender)
-                        message = message.replace("$r", receiver)
+                        string = string.replace("$s", sender)
+                        string = string.replace("$r", receiver)
 
                         # Full trap name
-                        message = message.replace("$t", trap)
+                        string = string.replace("$t", trap)
                         # Trap name without the 'Trap' suffix
-                        message = message.replace("$T", trap.replace(" Trap","")) 
+                        string = string.replace("$T", trap.replace(" Trap","")) 
 
-                        return message
+                        return string
 
                     if sender == receiver:
                         trap_messages = [
