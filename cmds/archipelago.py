@@ -582,7 +582,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
             if player['goaled'] is True:
                 msg_lines.append(f"- **{player['name']} ({player['game']})**: finished their game with {round(player['collection_percentage'], 2)}% checks collected.")
             elif player['released'] is True and player['goaled'] is False:
-                msg_lines.append(f"- **{player['name']} ({player['game']})**: released from the game. Last online {last_online(player)}")
+                msg_lines.append(f"- **{player['name']} ({player['game']})**: released from the game.")
             else:
                 msg_lines.append(f"- **{player['name']} ({player['game']})**: {round(player['collection_percentage'], 2)}% complete. ({player['collected_locations']}/{player['total_locations']} checks.) {last_online(player)}")
             if player['stats']['goal_str'] is not None:
