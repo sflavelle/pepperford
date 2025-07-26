@@ -18,12 +18,6 @@ from word2number import w2n
 from flask import Flask, jsonify, Response
 import psycopg2 as psql
 
-# setup logging
-logger = logging.getLogger('ap_itemlog')
-handler = logging.StreamHandler()
-handler.setFormatter(logging.Formatter('[%(name)s %(process)d][%(levelname)s] %(message)s'))
-logger.setLevel(logging.INFO)
-logger.addHandler(handler)
 
 with open('config.yaml', 'r', encoding='UTF-8') as file:
     cfg = yaml.safe_load(file)
@@ -72,6 +66,15 @@ if bool(seed_url):
     spoiler_url = f"https://{hostname}/dl_spoiler/{seed_id}"
 
 seed_address = None
+
+# setup logging
+logger = logging.getLogger('ap_itemlog')
+handler = logging.StreamHandler()
+handler.setFormatter(logging.Formatter('[%(name)s %(process)d][%(levelname)s] %(message)s'))
+logfile = logging.FileHandler(f"logs/room_{room_id}.log",encoding="UTF-8")
+logger.setLevel(logging.INFO)
+logger.addHandler(handler)
+logger.addHandler(logfile)
 
 # Time interval between checks (in seconds)
 INTERVAL = 60
@@ -440,7 +443,7 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
                         ]
                     else:
                         trap_messages = [
-                            "$s slapped **$r** around a bit with **a large $t**",
+                            "$s slapped **$r** around a bit with **a large $T**",
                             "**$r**: Congratulations On Your **$t**! Love, $s",
                             "$s, did **$r** *really* deserve that **$t**?",
                             "$s definitely *did not* send **$r** a **$t**",
@@ -618,7 +621,7 @@ def send_to_discord(message):
     try:
         response = requests.post(webhook_url, json=payload, timeout=5)
         response.raise_for_status()
-        log_to_file(message)  # Log the message to a file
+        # log_to_file(message)  # Log the message to a file
     except requests.RequestException as e:
         logging.error(f"Error sending message to Discord: {e}")
 
