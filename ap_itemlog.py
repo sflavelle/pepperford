@@ -72,6 +72,7 @@ logger = logging.getLogger('ap_itemlog')
 handler = logging.StreamHandler()
 handler.setFormatter(logging.Formatter('[%(name)s %(process)d][%(levelname)s] %(message)s'))
 logfile = logging.FileHandler(f"logs/room_{room_id}.log",encoding="UTF-8")
+logfile.setFormatter(logging.Formatter('[%(asctime)s][%(levelname)s] %(message)s'))
 logger.setLevel(logging.INFO)
 logger.addHandler(handler)
 logger.addHandler(logfile)
@@ -874,7 +875,7 @@ if __name__ == "__main__":
     flask_thread = threading.Thread(target=run_flask, daemon=True)
     flask_thread.start()
 
-    logger.info(f"logging messages from AP Room ID {room_id} to webhook {webhook_url}")
+    logger.info(f"logging messages from AP Room ID {room_id}")
 
     release_thread = threading.Thread(target=process_releases)
     release_thread.start()
