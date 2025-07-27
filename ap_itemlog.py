@@ -516,7 +516,9 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
             # Balatro shop items are hinted as soon as they appear and are usually bought right away, so skip their hints
             if Item.game == "Balatro" and any([Item.location.startswith(shop) for shop in ['Shop Item', 'Consumable Item']]): continue
 
-            if not skip_msg and game.players[receiver].is_finished() is False and not Item.found: message_buffer.append(message)
+            if not skip_msg and game.players[receiver].is_finished() is False and not Item.found:
+                message_buffer.append(message)
+                logger.info(f"[HINT] {sender}: {item_location} -> {receiver}'s {item} ({Item.classification})")
 
 
         elif match := regex_patterns['goals'].match(line):

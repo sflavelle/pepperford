@@ -274,7 +274,7 @@ class Player(dict):
 
     def on_hints_updated(self):
         # This method will be called whenever hints are updated
-        logger.info(f"Hints for player {self.name} have been updated.")
+        logger.debug(f"Hints for player {self.name} have been updated.")
         handle_hint_update(self)
 
     def collect_item(self, item):
