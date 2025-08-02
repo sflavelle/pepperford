@@ -551,10 +551,11 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                 return await newpost.edit(content="No Archipelago room is currently set for this server.")
 
         room = self.ctx.extras['ap_rooms'].get(interaction.guild_id)
+        api_port = room['flask_port']
         if not room:
             return await newpost.edit(content="No Archipelago room is currently set for this server.")
 
-        game_table = requests.get(f"http://localhost:42069/inspectgame", timeout=10).json()
+        game_table = requests.get(f"http://localhost:{api_port}/inspectgame", timeout=10).json()
 
         if not game_table:
             return await newpost.edit(content="Couldn't fetch the game table from the running Archipelago game.")
@@ -605,10 +606,11 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                 return await newpost.edit(content="No Archipelago room is currently set for this server.")
 
         room = self.ctx.extras['ap_rooms'].get(interaction.guild_id)
+        api_port = room['flask_port']
         if not room:
             return await newpost.edit(content="No Archipelago room is currently set for this server.")
 
-        game_table = requests.get(f"http://localhost:42069/inspectgame", timeout=10).json()
+        game_table = requests.get(f"http://localhost:{api_port}/inspectgame", timeout=10).json()
 
         linked_slots = []
         with sqlcon.cursor() as cursor:
@@ -799,6 +801,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                 return await newpost.edit(content="No Archipelago room is currently set for this server.")
 
         room = self.ctx.extras['ap_rooms'].get(interaction.guild_id)
+        api_port = room['flask_port']
         if not room:
             return await newpost.edit(content="No Archipelago room is currently set for this server.")
 
@@ -815,7 +818,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
             return await newpost.edit(content=self.messages['no_slots_linked'])
 
         # Get the game table
-        game_table = requests.get(f"http://localhost:42069/inspectgame", timeout=10).json()
+        game_table = requests.get(f"http://localhost:{api_port}/inspectgame", timeout=10).json()
 
         # Build the hint table
         hint_table = {}
@@ -929,7 +932,8 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                         'version': result[6],
                         'last_line': result[7],
                         'last_activity': result[8],
-                        'port': result[9]
+                        'port': result[9],
+                        'flask_port': result[10],
                     }
                     self.ctx.extras['ap_rooms'][guild_id] = roomdict
                     return roomdict

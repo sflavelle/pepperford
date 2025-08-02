@@ -8,6 +8,7 @@ import sys
 import ast
 import logging
 from collections import defaultdict
+import socket
 import requests
 import fnmatch
 import threading
@@ -869,8 +870,22 @@ def get_checkable_locations(found: bool = False):
     return jsonify(locationtable)
 
 def run_flask():
-    # Listen only on localhost by default for safety
-    webview.run(host='127.0.0.1', port=42069, debug=False, use_reloader=False)
+    # Dynamically select an available port starting from 42069
+    port = 42069
+    while True:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            try:
+                s.bind(('127.0.0.1', port))
+                s.close()
+                break
+            except OSError:
+                port += 1
+    # Store the selected port in the database for use elsewhere
+    if sqlcon:
+        with sqlcon.cursor() as cursor:
+            game.pushdb(cursor, 'pepper.ap_all_rooms', 'flask_port', port)
+            sqlcon.commit()
+    webview.run(host='127.0.0.1', port=port, debug=False, use_reloader=False)
 
 if __name__ == "__main__":
 
