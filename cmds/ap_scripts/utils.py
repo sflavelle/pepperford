@@ -242,7 +242,7 @@ class Player(dict):
         location_count = len(self.locations)
         checkable_location_count = len([l for l in self.locations.values() if l.is_location_checkable is True])
 
-        if (checkable_location_count / location_count) < 0.8:
+        if (checkable_location_count / location_count) < 0.95:
             # If the amount of checkable locations does not pass a certain threshold,
             # The world has likely not been fully played through to determine checkability
             # In this case just use the unfiltered total location count
