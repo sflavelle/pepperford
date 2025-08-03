@@ -816,6 +816,9 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                         )
                         return f"{item} ({count}/{required})"
                 case "Super Mario World":
+                    if item == "Progressive Powerup":
+                        prog_powerup = ["Super Mushroom", "Fire Flower", "Cape Feather"]
+                        return f"{item} ({prog_powerup[count-1]})"
                     if item == "Yoshi Egg" and settings['Goal'] == "Yoshi Egg Hunt":
                         required = round(
                             settings['Max Number of Yoshi Eggs']
