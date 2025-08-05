@@ -451,7 +451,7 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
                             "$s, did **$r** *really* deserve that **$t**?",
                             "$s definitely *did not* send **$r** a **$t**",
                             "**$r**, is this a good time for a **$t** from $s?",
-                            "**$r** received a demo of what it's like to get a **$t**",
+                            "**$r** received a demo of what it's like to get a **$t** from $s",
                         ]
 
                     message = random.choice(trap_messages)
