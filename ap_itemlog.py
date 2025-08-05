@@ -883,7 +883,7 @@ def run_flask():
                 # Check if the port is already in use by another seed in the database
                 if sqlcon:
                     with sqlcon.cursor() as cursor:
-                        cursor.execute("SELECT COUNT(*) FROM pepper.ap_all_rooms WHERE flask_port = %s", (port,))
+                        cursor.execute("SELECT COUNT(*) FROM pepper.ap_all_rooms WHERE flask_port = %s AND room_id != %s", (port, room_id))
                         if cursor.fetchone()[0] == 0:
                             pass
                         else: raise ValueError(f"Port {port} is already in use by another seed in the database.")
@@ -894,7 +894,7 @@ def run_flask():
                 port += 1
 
     logger.info(f"Starting Flask webview on port {port}...")
-    
+
     # Store the selected port in the database for use elsewhere
     if sqlcon:
         with sqlcon.cursor() as cursor:
