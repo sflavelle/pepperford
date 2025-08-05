@@ -888,8 +888,13 @@ def run_flask():
                             pass
                         else: raise ValueError(f"Port {port} is already in use by another seed in the database.")
                 break
-            except OSError|ValueError:
+            except OSError:
                 port += 1
+            except ValueError:
+                port += 1
+
+    logger.info(f"Starting Flask webview on port {port}...")
+    
     # Store the selected port in the database for use elsewhere
     if sqlcon:
         with sqlcon.cursor() as cursor:
