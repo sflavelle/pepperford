@@ -442,14 +442,16 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
                             "**$s** needed more challenge, and collected **their own $t**",
                             "**$s** thought it was progression, but it was I, **$t**!",
                             "**$s** is a FOOL! (collected a **$t**)",
+                            "**$s** was **$T'd!**",
                         ]
                     else:
                         trap_messages = [
-                            "$s slapped **$r** around a bit with **a large $T**",
+                            "$s slapped **$r** around a bit with **a large $t**",
                             "**$r**: Congratulations On Your **$t**! Love, $s",
                             "$s, did **$r** *really* deserve that **$t**?",
                             "$s definitely *did not* send **$r** a **$t**",
                             "**$r**, is this a good time for a **$t** from $s?",
+                            "**$r** received a demo of what it's like to get a **$t**",
                         ]
 
                     message = random.choice(trap_messages)
