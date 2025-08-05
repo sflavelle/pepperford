@@ -879,8 +879,16 @@ def run_flask():
             try:
                 s.bind(('127.0.0.1', port))
                 s.close()
+
+                # Check if the port is already in use by another seed in the database
+                if sqlcon:
+                    with sqlcon.cursor() as cursor:
+                        cursor.execute("SELECT COUNT(*) FROM pepper.ap_all_rooms WHERE flask_port = %s", (port,))
+                        if cursor.fetchone()[0] == 0:
+                            pass
+                        else: raise ValueError(f"Port {port} is already in use by another seed in the database.")
                 break
-            except OSError:
+            except OSError|ValueError:
                 port += 1
     # Store the selected port in the database for use elsewhere
     if sqlcon:
