@@ -23,6 +23,7 @@ from discord.ext.commands._types import BotT
 # from cmds.ap_scripts.archilogger import ItemLog
 from cmds.ap_scripts.emitter import event_emitter
 from collections import defaultdict
+import time
 
 cfg = None
 
@@ -915,8 +916,16 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
     """
 
     def fetch_guild_room(self, guild_id: int) -> dict:
-        if self.ctx.extras['ap_rooms'].get(guild_id, {}):
-            return self.ctx.extras['ap_rooms'].get(guild_id, {})
+        room = self.ctx.extras['ap_rooms'].get(guild_id, {})
+        if room and room.get('last_activity'):
+            if time.time() - room['last_activity'] < 3600:
+                return room
+            else:
+            # Expire cache after 1 hour
+            self.ctx.extras['ap_rooms'][guild_id] = {}
+            return False
+        elif room:
+            return room
         else:
             with sqlcon.cursor() as cursor:
                 cursor.execute("SELECT * FROM pepper.ap_all_rooms WHERE guild = %s and active = 'true' LIMIT 1", (guild_id,))
