@@ -921,9 +921,9 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
             if time.time() - room['last_activity'] < 3600:
                 return room
             else:
-            # Expire cache after 1 hour
-            self.ctx.extras['ap_rooms'][guild_id] = {}
-            return False
+                # Expire cache after 1 hour
+                self.ctx.extras['ap_rooms'][guild_id] = {}
+                return False
         elif room:
             return room
         else:
