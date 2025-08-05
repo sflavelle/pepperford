@@ -784,6 +784,8 @@ def watch_log(url, interval):
 
 
     logger.info("Ready!")
+    flask_thread = threading.Thread(target=run_flask, daemon=True)
+    flask_thread.start()
     while True:
         time.sleep(interval)
         current_lines = fetch_log(url)
@@ -903,9 +905,6 @@ def run_flask():
     webview.run(host='127.0.0.1', port=port, debug=False, use_reloader=False)
 
 if __name__ == "__main__":
-
-    flask_thread = threading.Thread(target=run_flask, daemon=True)
-    flask_thread.start()
 
     logger.info(f"logging messages from AP Room ID {room_id}")
 
