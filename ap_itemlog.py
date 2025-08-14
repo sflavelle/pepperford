@@ -529,12 +529,12 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
             if sender not in game.players: game.players[sender] = {"goaled": True}
             game.players[sender].goaled = True
 
-            logger.info(f"{sender} has finished their game.")
-
             message = f"**{sender} has finished!** That's {len([p for p in game.players.values() if p.is_goaled()])}/{len(game.players)} goaled! ({len([p for p in game.players.values() if p.is_finished()])}/{len(game.players)} including releases)"
             if game.players[sender].collected_locations == game.players[sender].total_locations:
                 message += f"\n**Wow!** {sender} 100%ed their game before finishing, too!"
-            if not skip_msg: message_buffer.append(message)
+            if not skip_msg: 
+                logger.info(f"{sender} has finished their game.")
+                message_buffer.append(message)
         elif match := regex_patterns['releases'].match(line):
             timestamp, sender = match.groups()
             game.players[sender].released = True
