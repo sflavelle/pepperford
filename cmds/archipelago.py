@@ -978,7 +978,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
 
                 env['LOG_URL'] = log['log_url']
                 env['WEBHOOK_URL'] = log['webhook']
-                env['SESSION_COOKIE'] = cfg['bot']['archipelago']['session_cookie']
+                env['SESSION_COOKIE'] = log['session_cookie']
                 env['SPOILER_URL'] = log['spoiler_url'] if log['spoiler_url'] else None
                 env['MSGHOOK_URL'] = log['msghook'] if log['msghook'] else None
 
