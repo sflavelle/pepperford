@@ -155,7 +155,7 @@ class Quotes(commands.GroupCog, group_name="quote"):
           if str(interaction.guild_id) in qcfg['voting'] and qcfg['voting'][str(interaction.guild_id)] is True:
             qmsg = await interaction.original_response()
 
-            newkarma = await karma_helper(interaction, qid, karma)
+            newkarma = await karma_helper(interaction, qmsg, qid, karma)
             karmadiff = newkarma[1] - karma
             
             try:
@@ -220,7 +220,7 @@ class Quotes(commands.GroupCog, group_name="quote"):
               if str(interaction.guild_id) in qcfg['voting'] and qcfg['voting'][str(interaction.guild_id)] is True:
                 qmsg = await interaction.original_response()
 
-                newkarma = await karma_helper(interaction, qid, karma)
+                newkarma = await karma_helper(interaction, qmsg, qid, karma)
                 karmadiff = newkarma[1] - karma
                 
                 try:

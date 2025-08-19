@@ -135,14 +135,13 @@ def update_karma(qid,karma):
 
 
     
-async def karma_helper(interaction: discord.Interaction, qid, karma):
+async def karma_helper(interaction: discord.Interaction, message: discord.InteractionMessage, qid, karma):
     # config vars
     timeout = cfg['sanford']['quoting']['vote_timeout']
     # Let's allow the quote to be voted on
     thumbsUp, thumbsDown = "👍", "👎"
     
-    imsg = await interaction.original_response()
-    msg = await imsg.fetch()
+    msg = await message.fetch()
     
     await msg.add_reaction(thumbsUp)
     await msg.add_reaction(thumbsDown)
