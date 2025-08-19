@@ -12,6 +12,7 @@ with open('config.yaml', 'r') as file:
 # setup logging
 logger = logging.getLogger('discord.quotes.helpers')
 
+qcfg = cfg['bot']['quoting']
 sqlcfg = cfg['bot']['psql']
 
 def format_quote(content,timestamp,authorID=None,authorName=None,bot=None,source=None,format: str='plain'):
@@ -137,7 +138,7 @@ def update_karma(qid,karma):
     
 async def karma_helper(interaction: discord.Interaction, message: discord.InteractionMessage, qid, karma):
     # config vars
-    timeout = cfg['sanford']['quoting']['vote_timeout']
+    timeout = qcfg['vote_timeout']
     # Let's allow the quote to be voted on
     thumbsUp, thumbsDown = "👍", "👎"
     
