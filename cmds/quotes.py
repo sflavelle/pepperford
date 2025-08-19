@@ -333,4 +333,4 @@ async def quote_save(interaction: discord.Interaction, message: discord.Message)
 async def setup(bot):
     logger.info("Loading Quotes cog extension.")
     await bot.add_cog(Quotes(bot))
-    await bot.tree.add_command(quote_save)
+    bot.tree.add_command(quote_save)
