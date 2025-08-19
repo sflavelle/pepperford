@@ -140,11 +140,11 @@ class Quotes(commands.GroupCog, group_name="quote"):
         if bool(authorAvatar): quoteview.set_thumbnail(url=authorAvatar.url)
         else: quoteview.set_thumbnail(url="https://cdn.thegeneral.chat/sanford/special-avatars/sanford-quote-noicon.png")
         
-        if cfg['voting'] is True and qcfg['voting'][str(interaction.guild_id)] is True and interaction.is_guild_integration(): quoteview.set_footer(text=f"Score: {'+' if karma > 0 else ''}{karma}. Voting is open for {qvote_timeout} minutes.")
+        if qcfg['voting'] is True and qcfg['voting'][str(interaction.guild_id)] is True and interaction.is_guild_integration(): quoteview.set_footer(text=f"Score: {'+' if karma > 0 else ''}{karma}. Voting is open for {qvote_timeout} minutes.")
         # Send the resulting quote
         await newpost.edit(allowed_mentions=discord.AllowedMentions.none(),embed=quoteview)
         
-        if cfg['voting'] is True and qcfg['voting'][str(interaction.guild_id)] is True and interaction.is_guild_integration():
+        if qcfg['voting'] is True and qcfg['voting'][str(interaction.guild_id)] is True and interaction.is_guild_integration():
             qmsg = await interaction.original_response()
 
             newkarma = await karma_helper(interaction, qid, karma)
