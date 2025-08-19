@@ -5,16 +5,12 @@ import yaml
 import re
 import asyncio
 import logging
-from systemd.journal import JournalHandler
 
 with open('config.yaml', 'r') as file:
     cfg = yaml.safe_load(file)
 
 # setup logging
-logger = logging.getLogger('helpers')
-handler = JournalHandler()
-logger.setLevel(logging.DEBUG)
-logger.addHandler(handler)
+logger = logging.getLogger('discord.quotes.helpers')
 
 def format_quote(content,timestamp,authorID=None,authorName=None,bot=None,source=None,format: str='plain'):
     quote_string_id = '''"{0}"

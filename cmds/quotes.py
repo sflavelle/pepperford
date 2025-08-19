@@ -49,7 +49,8 @@ except psql.OperationalError:
     # TODO Disable commands that need SQL connectivity
     sqlcon = False
 
-qvote_timeout = cfg['sanford']['quoting']['vote_timeout']
+qcfg = cfg['bot']['quoting']
+qvote_timeout = qcfg['vote_timeout']
 
 class Quotes(commands.GroupCog, group_name="quote"):
     """Save or recall memorable messages."""
@@ -139,11 +140,11 @@ class Quotes(commands.GroupCog, group_name="quote"):
         if bool(authorAvatar): quoteview.set_thumbnail(url=authorAvatar.url)
         else: quoteview.set_thumbnail(url="https://cdn.thegeneral.chat/sanford/special-avatars/sanford-quote-noicon.png")
         
-        if cfg['sanford']['quoting']['voting'] == True and interaction.is_guild_integration(): quoteview.set_footer(text=f"Score: {'+' if karma > 0 else ''}{karma}. Voting is open for {qvote_timeout} minutes.")
+        if cfg['voting'] is True and qcfg['voting'][str(interaction.guild_id)] is True and interaction.is_guild_integration(): quoteview.set_footer(text=f"Score: {'+' if karma > 0 else ''}{karma}. Voting is open for {qvote_timeout} minutes.")
         # Send the resulting quote
         await newpost.edit(allowed_mentions=discord.AllowedMentions.none(),embed=quoteview)
         
-        if cfg['sanford']['quoting']['voting'] == True and interaction.is_guild_integration():
+        if cfg['voting'] is True and qcfg['voting'][str(interaction.guild_id)] is True and interaction.is_guild_integration():
             qmsg = await interaction.original_response()
 
             newkarma = await karma_helper(interaction, qid, karma)
@@ -193,7 +194,7 @@ class Quotes(commands.GroupCog, group_name="quote"):
                 quote.add_field(name='Note',value=f'Value "{source}" for Source was not an URL and was therefore ignored.',inline=False)
             authorAvatar = author.display_avatar
             quote.set_thumbnail(url=authorAvatar.url)
-            if cfg['sanford']['quoting']['voting'] == True and interaction.is_guild_integration(): quote.set_footer(text=f"Score: {'+' if karma > 0 else ''}{karma}. Voting is open for {qvote_timeout} minutes.")
+            if qcfg['voting'] is True and qcfg['voting'][str(interaction.guild_id)] is True and interaction.is_guild_integration(): quote.set_footer(text=f"Score: {'+' if karma > 0 else ''}{karma}. Voting is open for {qvote_timeout} minutes.")
             await newpost.edit(
                 embed=quote,
                 allowed_mentions=discord.AllowedMentions.none(),
@@ -203,7 +204,7 @@ class Quotes(commands.GroupCog, group_name="quote"):
             if interaction.guild_id == 124680630075260928 and author.id not in cfg['mastodon']['exclude_users']:
                 post_new_quote(content, author.id, int(datetime.timestamp(timestamp)))
                 
-            if cfg['sanford']['quoting']['voting'] == True and interaction.is_guild_integration():
+            if qcfg['voting'] is True and qcfg['voting'][str(interaction.guild_id)] is True and interaction.is_guild_integration():
                 qmsg = await interaction.original_response()
                 
                 newkarma = await karma_helper(interaction, qid, karma)
