@@ -35,7 +35,7 @@ executor = ThreadPoolExecutor(max_workers=5)
 with open('config.yaml', 'r', encoding='UTF-8') as file:
     cfg = yaml.safe_load(file)
 
-sqlcfg = cfg['bot']['archipelago']['psql']
+sqlcfg = cfg['bot']['psql']
 try:
     sqlcon = psql.connect(
         dbname=sqlcfg['database'],

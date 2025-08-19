@@ -35,7 +35,7 @@ logger = logging.getLogger('discord.quotes')
 with open('config.yaml', 'r', encoding='UTF-8') as file:
     cfg = yaml.safe_load(file)
 
-sqlcfg = cfg['bot']['archipelago']['psql']
+sqlcfg = cfg['bot']['psql']
 try:
     sqlcon = psql.connect(
         dbname=sqlcfg['database'],
