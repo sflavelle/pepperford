@@ -64,7 +64,7 @@ class Quotes(commands.GroupCog, group_name="quote"):
     
     @app_commands.command(name="get")
     @app_commands.describe(	all_servers="When posting your own quotes in other servers, allow quotes from anywhere.")
-    async def quote_get(interaction: discord.Interaction, user: discord.User=None, all_servers: bool = False):
+    async def quote_get(self, interaction: discord.Interaction, user: discord.User=None, all_servers: bool = False):
         """Get a random quote!"""
 
         deferpost = await interaction.response.defer(thinking=True,)
@@ -161,7 +161,7 @@ class Quotes(commands.GroupCog, group_name="quote"):
 
     @app_commands.command(name="add")
     @app_commands.describe(author='User who said the quote',content='The quote itself',time='When the quote happened',source='URL where the quote came from, if applicable')
-    async def quote_addbyhand(interaction: discord.Interaction, author: discord.Member, content: str, time: str=datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f %z"), source: str = None):
+    async def quote_addbyhand(self, interaction: discord.Interaction, author: discord.Member, content: str, time: str=datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f %z"), source: str = None):
         """Create a quote manually, eg. for things said in VOIP"""
 
         deferpost = await interaction.response.defer(thinking=True,)
@@ -227,7 +227,7 @@ class Quotes(commands.GroupCog, group_name="quote"):
             await interaction.response.send_message(f'Error: {error}',ephemeral=True)
 
     @app_commands.context_menu(name='Save as quote!')
-    async def quote_save(interaction: discord.Interaction, message: discord.Message):
+    async def quote_save(self, interaction: discord.Interaction, message: discord.Message):
         
         deferpost = await interaction.response.defer(thinking=True,)
         newpost = await interaction.original_response()
