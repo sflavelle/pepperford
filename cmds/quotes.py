@@ -241,90 +241,90 @@ class Quotes(commands.GroupCog, group_name="quote"):
         except dateutil.parser._parser.ParserError as error:
             await interaction.response.send_message(f'Error: {error}',ephemeral=True)
 
-    # @app_commands.context_menu(name='Save as quote!')
-    # async def quote_save(self, interaction: discord.Interaction, message: discord.Message):
+@app_commands.context_menu(name='Save as quote!')
+async def quote_save(interaction: discord.Interaction, message: discord.Message):
+    
+    deferpost = await interaction.response.defer(thinking=True,)
+    newpost = await interaction.original_response()
+
+    try:
+        con = psycopg2.connect(
+            database = cfg['postgresql']['database'],
+            host = cfg['postgresql']['host'],
+            port = cfg['postgresql']['port'],
+            user = cfg['postgresql']['user'],
+            password = cfg['postgresql']['password'],
+        )
+        cur = con.cursor()
+
+        # Strip any mention from the beginning of the message
+        strippedcontent = None
+        if message.content.startswith('<@'):
+            strippedcontent = re.sub(r'^\s*<@!?[0-9]+>\s*', '', message.content)
+
+        # Check for duplicates first
+        cur.execute("SELECT 1 from bot.quotes WHERE msgID='" + str(message.id) + "'")
+        if cur.fetchone() is not None:
+            raise LookupError('This quote is already in the database.')
+        con.close()
+
+        sql_values = (
+            strippedcontent if bool(strippedcontent) else message.content,
+            message.author.id,
+            message.author.name,
+            interaction.user.id,
+            interaction.guild_id if bool(interaction.guild_id) else interaction.channel.id,
+            message.id,
+            int(datetime.timestamp(message.created_at)),
+            message.jump_url
+            )
+
+        qid,karma = insert_quote(sql_values)
+        if karma == None: karma = 1
+
+        quote = format_quote(message.content, authorID=message.author.id, timestamp=int(message.created_at.timestamp()), format='discord_embed')
+        quote.add_field(name='Status',value=f'[Quote]({message.jump_url}) saved successfully.')
         
-    #     deferpost = await interaction.response.defer(thinking=True,)
-    #     newpost = await interaction.original_response()
+        authorAvatar = message.author.display_avatar
+        quote.set_thumbnail(url=authorAvatar.url)
 
-    #     try:
-    #         con = psycopg2.connect(
-    #             database = cfg['postgresql']['database'],
-    #             host = cfg['postgresql']['host'],
-    #             port = cfg['postgresql']['port'],
-    #             user = cfg['postgresql']['user'],
-    #             password = cfg['postgresql']['password'],
-    #         )
-    #         cur = con.cursor()
+        logger.info("Quote saved successfully")
+        logger.debug(format_quote(message.content, authorName=message.author.name, timestamp=int(message.created_at.timestamp())),)
+        
+        if cfg['sanford']['quoting']['voting'] == True and interaction.is_guild_integration(): quote.set_footer(text=f"Score: {'+' if karma > 0 else ''}{karma}. Voting is open for {qvote_timeout} minutes.")
 
-    #         # Strip any mention from the beginning of the message
-    #         strippedcontent = None
-    #         if message.content.startswith('<@'):
-    #             strippedcontent = re.sub(r'^\s*<@!?[0-9]+>\s*', '', message.content)
-
-    #         # Check for duplicates first
-    #         cur.execute("SELECT 1 from bot.quotes WHERE msgID='" + str(message.id) + "'")
-    #         if cur.fetchone() is not None:
-    #             raise LookupError('This quote is already in the database.')
-    #         con.close()
-
-    #         sql_values = (
-    #             strippedcontent if bool(strippedcontent) else message.content,
-    #             message.author.id,
-    #             message.author.name,
-    #             interaction.user.id,
-    #             interaction.guild_id if bool(interaction.guild_id) else interaction.channel.id,
-    #             message.id,
-    #             int(datetime.timestamp(message.created_at)),
-    #             message.jump_url
-    #             )
-
-    #         qid,karma = insert_quote(sql_values)
-    #         if karma == None: karma = 1
-
-    #         quote = format_quote(message.content, authorID=message.author.id, timestamp=int(message.created_at.timestamp()), format='discord_embed')
-    #         quote.add_field(name='Status',value=f'[Quote]({message.jump_url}) saved successfully.')
+        await newpost.edit(
+            embed=quote,
+            allowed_mentions=discord.AllowedMentions.none(),
+            ephemeral=message.author.id == interaction.user.id and bool(interaction.guild_id)
+            )
+        
+        #if interaction.guild_id == 124680630075260928 and message.author.id not in cfg['mastodon']['exclude_users']:
+        #    post_new_quote(message.content, (sql_values[1] if message.webhook_id else message.author.id), int(message.created_at.timestamp()))
             
-    #         authorAvatar = message.author.display_avatar
-    #         quote.set_thumbnail(url=authorAvatar.url)
-
-    #         logger.info("Quote saved successfully")
-    #         logger.debug(format_quote(message.content, authorName=message.author.name, timestamp=int(message.created_at.timestamp())),)
+        if cfg['sanford']['quoting']['voting'] == True and interaction.is_guild_integration():
+            qmsg = await interaction.original_response()
             
-    #         if cfg['sanford']['quoting']['voting'] == True and interaction.is_guild_integration(): quote.set_footer(text=f"Score: {'+' if karma > 0 else ''}{karma}. Voting is open for {qvote_timeout} minutes.")
-
-    #         await newpost.edit(
-    #             embed=quote,
-    #             allowed_mentions=discord.AllowedMentions.none(),
-    #             ephemeral=message.author.id == interaction.user.id and bool(interaction.guild_id)
-    #             )
+            newkarma = await karma_helper(interaction, qid, karma)
+            karmadiff = newkarma[1] - karma
             
-    #         #if interaction.guild_id == 124680630075260928 and message.author.id not in cfg['mastodon']['exclude_users']:
-    #         #    post_new_quote(message.content, (sql_values[1] if message.webhook_id else message.author.id), int(message.created_at.timestamp()))
-                
-    #         if cfg['sanford']['quoting']['voting'] == True and interaction.is_guild_integration():
-    #             qmsg = await interaction.original_response()
-                
-    #             newkarma = await karma_helper(interaction, qid, karma)
-    #             karmadiff = newkarma[1] - karma
-                
-    #             try:
-    #                 quote.set_footer(text=f"Score: {'+' if newkarma[1] > 0 else ''}{newkarma[1]} ({'went up by +{karmadiff} pts'.format(karmadiff=karmadiff) if karmadiff > 0 else 'went down by {karmadiff} pts'.format(karmadiff=karmadiff) if karmadiff < 0 else 'did not change'} this time).")
-    #                 update_karma(qid,newkarma[1])
-    #                 await qmsg.edit(embed=quote)
-    #                 await qmsg.clear_reactions()
-    #             except Exception as error:
-    #                 quote.set_footer(text=f"Score: {'+' if karma > 0 else ''}{karma} (no change due to error: {error}")
-    #                 await qmsg.edit(embed=quote)
-            
+            try:
+                quote.set_footer(text=f"Score: {'+' if newkarma[1] > 0 else ''}{newkarma[1]} ({'went up by +{karmadiff} pts'.format(karmadiff=karmadiff) if karmadiff > 0 else 'went down by {karmadiff} pts'.format(karmadiff=karmadiff) if karmadiff < 0 else 'did not change'} this time).")
+                update_karma(qid,newkarma[1])
+                await qmsg.edit(embed=quote)
+                await qmsg.clear_reactions()
+            except Exception as error:
+                quote.set_footer(text=f"Score: {'+' if karma > 0 else ''}{karma} (no change due to error: {error}")
+                await qmsg.edit(embed=quote)
+        
 
-    #     except psycopg2.DatabaseError as error:
-    #         await interaction.response.send_message(f'Error: SQL Failed due to:\n```{str(error)}```',ephemeral=True)
-    #         logger.error("QUOTE SQL ERROR:")
-    #         logger.error(error, exc_info=1)
-    #     except LookupError as error:
-    #         await interaction.response.send_message('Good News! This quote was already saved.',ephemeral=True)
-    #         logger.info("Quote was already saved previously")
+    except psycopg2.DatabaseError as error:
+        await interaction.response.send_message(f'Error: SQL Failed due to:\n```{str(error)}```',ephemeral=True)
+        logger.error("QUOTE SQL ERROR:")
+        logger.error(error, exc_info=1)
+    except LookupError as error:
+        await interaction.response.send_message('Good News! This quote was already saved.',ephemeral=True)
+        logger.info("Quote was already saved previously")
 
     @commands.Cog.listener()
     async def on_ready(self):
@@ -333,3 +333,4 @@ class Quotes(commands.GroupCog, group_name="quote"):
 async def setup(bot):
     logger.info("Loading Quotes cog extension.")
     await bot.add_cog(Quotes(bot))
+    await bot.tree.add_command(quote_save)
