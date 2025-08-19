@@ -140,15 +140,19 @@ class Quotes(commands.GroupCog, group_name="quote"):
         if bool(authorAvatar): quoteview.set_thumbnail(url=authorAvatar.url)
         else: quoteview.set_thumbnail(url="https://cdn.thegeneral.chat/sanford/special-avatars/sanford-quote-noicon.png")
         
-        if qcfg['voting']['enable'] is True and qcfg['voting'][str(interaction.guild_id)] is True and interaction.is_guild_integration():
+        if qcfg['voting']['enable'] is True and interaction.is_guild_integration():
+          if str(interaction.guild_id) in qcfg['voting'] and qcfg['voting'][str(interaction.guild_id)] is True:
             quoteview.set_footer(text=f"Score: {'+' if karma > 0 else ''}{karma}. Voting is open for {qvote_timeout} minutes.")
+          else:
+            logger.warning(f"Did not enable voting for quote {qid} in guild {interaction.guild_id}. Guild voting: {qcfg['voting'][str(interaction.guild_id)] if str(interaction.guild_id) in qcfg['voting'] else 'not set'}")
         else:
-            logger.warning(f"Did not enable voting for quote {qid} in guild {interaction.guild_id}. Global Voting: {qcfg['voting']['enable']} and guild voting: {qcfg['voting'][str(interaction.guild_id)] if str(interaction.guild_id) in qcfg['voting'] else 'not set'}")
+            logger.warning(f"Did not enable voting for quote {qid} in guild {interaction.guild_id}. Global Voting: {qcfg['voting']['enable']}")
         # Send the resulting quote
         await newpost.edit(allowed_mentions=discord.AllowedMentions.none(),embed=quoteview)
         logger.info(f"Quote {qid} requested by {interaction.user} ({interaction.user.id}) in guild {interaction.guild_id} ({interaction.guild.name if interaction.guild else 'DM'})")
         
-        if qcfg['voting']['enable'] is True and qcfg['voting'][str(interaction.guild_id)] is True and interaction.is_guild_integration():
+        if qcfg['voting']['enable'] is True and interaction.is_guild_integration():
+          if str(interaction.guild_id) in qcfg['voting'] and qcfg['voting'][str(interaction.guild_id)] is True:
             qmsg = await interaction.original_response()
 
             newkarma = await karma_helper(interaction, qid, karma)
@@ -201,15 +205,19 @@ class Quotes(commands.GroupCog, group_name="quote"):
             authorAvatar = author.display_avatar
             quote.set_thumbnail(url=authorAvatar.url)
 
-            if qcfg['voting']['enable'] is True and qcfg['voting'][str(interaction.guild_id)] is True and interaction.is_guild_integration():
+            if qcfg['voting']['enable'] is True and interaction.is_guild_integration():
+              if str(interaction.guild_id) in qcfg['voting'] and qcfg['voting'][str(interaction.guild_id)] is True:
                 quote.set_footer(text=f"Score: {'+' if karma > 0 else ''}{karma}. Voting is open for {qvote_timeout} minutes.")
+              else:
+                logger.warning(f"Did not enable voting for quote {qid} in guild {interaction.guild_id}. Guild voting: {qcfg['voting'][str(interaction.guild_id)] if str(interaction.guild_id) in qcfg['voting'] else 'not set'}")
             else:
-                logger.warning(f"Did not enable voting for quote {qid} in guild {interaction.guild_id}. Global Voting: {qcfg['voting']['enable']} and guild voting: {qcfg['voting'][str(interaction.guild_id)] if str(interaction.guild_id) in qcfg['voting'] else 'not set'}")
+                logger.warning(f"Did not enable voting for quote {qid} in guild {interaction.guild_id}. Global Voting: {qcfg['voting']['enable']}")
             # Send the resulting quote
             await newpost.edit(allowed_mentions=discord.AllowedMentions.none(),embed=quote)
             logger.info(f"Quote {qid} requested by {interaction.user} ({interaction.user.id}) in guild {interaction.guild_id} ({interaction.guild.name if interaction.guild else 'DM'})")
             
-            if qcfg['voting']['enable'] is True and qcfg['voting'][str(interaction.guild_id)] is True and interaction.is_guild_integration():
+            if qcfg['voting']['enable'] is True and interaction.is_guild_integration():
+              if str(interaction.guild_id) in qcfg['voting'] and qcfg['voting'][str(interaction.guild_id)] is True:
                 qmsg = await interaction.original_response()
 
                 newkarma = await karma_helper(interaction, qid, karma)
