@@ -249,12 +249,12 @@ async def quote_save(interaction: discord.Interaction, message: discord.Message)
 
     try:
         con = psycopg2.connect(
-            database = cfg['postgresql']['database'],
-            host = cfg['postgresql']['host'],
-            port = cfg['postgresql']['port'],
-            user = cfg['postgresql']['user'],
-            password = cfg['postgresql']['password'],
-        )
+        database=sqlcfg['database'],
+        user=sqlcfg['user'],
+        password=sqlcfg['password'] if 'password' in sqlcfg else None,
+        host=sqlcfg['host'],
+        port=sqlcfg['port']
+    )
         cur = con.cursor()
 
         # Strip any mention from the beginning of the message
