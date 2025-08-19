@@ -12,6 +12,8 @@ with open('config.yaml', 'r') as file:
 # setup logging
 logger = logging.getLogger('discord.quotes.helpers')
 
+sqlcfg = cfg['bot']['psql']
+
 def format_quote(content,timestamp,authorID=None,authorName=None,bot=None,source=None,format: str='plain'):
     quote_string_id = '''"{0}"
     —<@{1}> / {2}'''
@@ -69,11 +71,11 @@ def format_quote(content,timestamp,authorID=None,authorName=None,bot=None,source
 
 def random_quote(gid: int = None,uid: int = None,sort_order: str = "random()"):
     con = psycopg2.connect(
-        database = cfg['postgresql']['database'],
-        host = cfg['postgresql']['host'],
-        port = cfg['postgresql']['port'],
-        user = cfg['postgresql']['user'],
-        password = cfg['postgresql']['password'],
+        database=sqlcfg['database'],
+        user=sqlcfg['user'],
+        password=sqlcfg['password'] if 'password' in sqlcfg else None,
+        host=sqlcfg['host'],
+        port=sqlcfg['port'],
 )
     cur = con.cursor()
     
@@ -97,11 +99,11 @@ def random_quote(gid: int = None,uid: int = None,sort_order: str = "random()"):
 
 def insert_quote(quote_data: tuple):
     con = psycopg2.connect(
-        database = cfg['postgresql']['database'],
-        host = cfg['postgresql']['host'],
-        port = cfg['postgresql']['port'],
-        user = cfg['postgresql']['user'],
-        password = cfg['postgresql']['password'],
+        database=sqlcfg['database'],
+        user=sqlcfg['user'],
+        password=sqlcfg['password'] if 'password' in sqlcfg else None,
+        host=sqlcfg['host'],
+        port=sqlcfg['port']
     )
     cur = con.cursor()
     
@@ -119,11 +121,11 @@ def insert_quote(quote_data: tuple):
 
 def update_karma(qid,karma):
     con = psycopg2.connect(
-        database = cfg['postgresql']['database'],
-        host = cfg['postgresql']['host'],
-        port = cfg['postgresql']['port'],
-        user = cfg['postgresql']['user'],
-        password = cfg['postgresql']['password'],
+        database=sqlcfg['database'],
+        user=sqlcfg['user'],
+        password=sqlcfg['password'] if 'password' in sqlcfg else None,
+        host=sqlcfg['host'],
+        port=sqlcfg['port']
     )
     cur = con.cursor()
     cur.execute("UPDATE sanford.quotes SET karma= %s WHERE id= %s", (karma, qid))
