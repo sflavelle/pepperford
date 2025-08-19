@@ -263,7 +263,7 @@ async def quote_save(interaction: discord.Interaction, message: discord.Message)
             strippedcontent = re.sub(r'^\s*<@!?[0-9]+>\s*', '', message.content)
 
         # Check for duplicates first
-        cur.execute("SELECT 1 from bot.quotes WHERE msgID='" + str(message.id) + "'")
+        cur.execute("SELECT 1 from sanford.quotes WHERE msgID='" + str(message.id) + "'")
         if cur.fetchone() is not None:
             raise LookupError('This quote is already in the database.')
         con.close()
@@ -291,40 +291,41 @@ async def quote_save(interaction: discord.Interaction, message: discord.Message)
         logger.info("Quote saved successfully")
         logger.debug(format_quote(message.content, authorName=message.author.name, timestamp=int(message.created_at.timestamp())),)
         
-        if cfg['sanford']['quoting']['voting'] == True and interaction.is_guild_integration(): quote.set_footer(text=f"Score: {'+' if karma > 0 else ''}{karma}. Voting is open for {qvote_timeout} minutes.")
-
-        await newpost.edit(
-            embed=quote,
-            allowed_mentions=discord.AllowedMentions.none(),
-            ephemeral=message.author.id == interaction.user.id and bool(interaction.guild_id)
-            )
+        if qcfg['voting']['enable'] is True and interaction.is_guild_integration():
+          if str(interaction.guild_id) in qcfg['voting'] and qcfg['voting'][str(interaction.guild_id)] is True:
+            quote.set_footer(text=f"Score: {'+' if karma > 0 else ''}{karma}. Voting is open for {qvote_timeout} minutes.")
+          else:
+            logger.warning(f"Did not enable voting for quote {qid} in guild {interaction.guild_id}. Guild voting: {qcfg['voting'][str(interaction.guild_id)] if str(interaction.guild_id) in qcfg['voting'] else 'not set'}")
+        else:
+            logger.warning(f"Did not enable voting for quote {qid} in guild {interaction.guild_id}. Global Voting: {qcfg['voting']['enable']}")
+        # Send the resulting quote
+        await newpost.edit(allowed_mentions=discord.AllowedMentions.none(),embed=quote)
+        logger.info(f"Quote {qid} requested by {interaction.user} ({interaction.user.id}) in guild {interaction.guild_id} ({interaction.guild.name if interaction.guild else 'DM'})")
         
-        #if interaction.guild_id == 124680630075260928 and message.author.id not in cfg['mastodon']['exclude_users']:
-        #    post_new_quote(message.content, (sql_values[1] if message.webhook_id else message.author.id), int(message.created_at.timestamp()))
-            
-        if cfg['sanford']['quoting']['voting'] == True and interaction.is_guild_integration():
+        if qcfg['voting']['enable'] is True and interaction.is_guild_integration():
+          if str(interaction.guild_id) in qcfg['voting'] and qcfg['voting'][str(interaction.guild_id)] is True:
             qmsg = await interaction.original_response()
-            
-            newkarma = await karma_helper(interaction, qid, karma)
+
+            newkarma = await karma_helper(interaction, qmsg, qid, karma)
             karmadiff = newkarma[1] - karma
             
             try:
                 quote.set_footer(text=f"Score: {'+' if newkarma[1] > 0 else ''}{newkarma[1]} ({'went up by +{karmadiff} pts'.format(karmadiff=karmadiff) if karmadiff > 0 else 'went down by {karmadiff} pts'.format(karmadiff=karmadiff) if karmadiff < 0 else 'did not change'} this time).")
                 update_karma(qid,newkarma[1])
+                logger.info(f"Quote {qid} karma updated to {newkarma[1]} in guild {interaction.guild_id}")
                 await qmsg.edit(embed=quote)
                 await qmsg.clear_reactions()
             except Exception as error:
                 quote.set_footer(text=f"Score: {'+' if karma > 0 else ''}{karma} (no change due to error: {error}")
+                logger.error(f"Error updating karma for quote {qid} in guild {interaction.guild_id}: {error}")
                 await qmsg.edit(embed=quote)
         
-
+        con.close()
     except psycopg2.DatabaseError as error:
-        await interaction.response.send_message(f'Error: SQL Failed due to:\n```{str(error)}```',ephemeral=True)
-        logger.error("QUOTE SQL ERROR:")
-        logger.error(error, exc_info=1)
-    except LookupError as error:
-        await interaction.response.send_message('Good News! This quote was already saved.',ephemeral=True)
-        logger.info("Quote was already saved previously")
+        await interaction.response.send_message(f'Error: SQL Failed due to:\n```{str(error.with_traceback)}```',ephemeral=True)
+        logger.error("QUOTE SQL ERROR:\n" + str(error.with_traceback))
+    except dateutil.parser._parser.ParserError as error:
+        await interaction.response.send_message(f'Error: {error}',ephemeral=True)
 
     @commands.Cog.listener()
     async def on_ready(self):
