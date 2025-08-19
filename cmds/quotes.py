@@ -200,12 +200,8 @@ class Quotes(commands.GroupCog, group_name="quote"):
                 allowed_mentions=discord.AllowedMentions.none(),
                 ephemeral=author.id == interaction.user.id
                 )
-            
-            if interaction.guild_id == 124680630075260928 and author.id not in cfg['mastodon']['exclude_users']:
-                post_new_quote(content, author.id, int(datetime.timestamp(timestamp)))
                 
             if qcfg['voting'] is True and qcfg['voting'][str(interaction.guild_id)] is True and interaction.is_guild_integration():
-                qmsg = await interaction.original_response()
                 
                 newkarma = await karma_helper(interaction, qid, karma)
                 karmadiff = newkarma[1] - karma
@@ -213,11 +209,11 @@ class Quotes(commands.GroupCog, group_name="quote"):
                 try:
                     quote.set_footer(text=f"Score: {'+' if newkarma[1] > 0 else ''}{newkarma[1]} ({'went up by +{karmadiff} pts'.format(karmadiff=karmadiff) if karmadiff > 0 else 'went down by {karmadiff} pts'.format(karmadiff=karmadiff) if karmadiff < 0 else 'did not change'} this time).")
                     update_karma(qid,newkarma[1])
-                    await qmsg.edit(embed=quote)
-                    await qmsg.clear_reactions()
+                    await newpost.edit(embed=quote)
+                    await newpost.clear_reactions()
                 except Exception as error:
                     quote.set_footer(text=f"Score: {'+' if karma > 0 else ''}{karma} (no change due to error: {error}")
-                    await qmsg.edit(embed=quote)
+                    await newpost.edit(embed=quote)
             
             con.close()
         except psycopg2.DatabaseError as error:
