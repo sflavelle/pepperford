@@ -146,7 +146,7 @@ class Quotes(commands.GroupCog, group_name="quote"):
           else:
             logger.warning(f"Did not enable voting for quote {qid} in guild {interaction.guild_id}. Guild voting: {qcfg['voting'][str(interaction.guild_id)] if str(interaction.guild_id) in qcfg['voting'] else 'not set'}")
         else:
-            logger.warning(f"Did not enable voting for quote {qid} in guild {interaction.guild_id}. Global Voting: {qcfg['voting']['enable']}")
+            logger.warning(f"Did not enable voting for quote {qid} in guild {interaction.guild_id}. Global Voting: {qcfg['voting']['enable']}. Running as guild integration: {interaction.is_guild_integration()}")
         # Send the resulting quote
         await newpost.edit(allowed_mentions=discord.AllowedMentions.none(),embed=quoteview)
         logger.info(f"Quote {qid} requested by {interaction.user} ({interaction.user.id}) in guild {interaction.guild_id} ({interaction.guild.name if interaction.guild else 'DM'})")
@@ -211,7 +211,7 @@ class Quotes(commands.GroupCog, group_name="quote"):
               else:
                 logger.warning(f"Did not enable voting for quote {qid} in guild {interaction.guild_id}. Guild voting: {qcfg['voting'][str(interaction.guild_id)] if str(interaction.guild_id) in qcfg['voting'] else 'not set'}")
             else:
-                logger.warning(f"Did not enable voting for quote {qid} in guild {interaction.guild_id}. Global Voting: {qcfg['voting']['enable']}")
+                logger.warning(f"Did not enable voting for quote {qid} in guild {interaction.guild_id}. Global Voting: {qcfg['voting']['enable']}. Running as guild integration: {interaction.is_guild_integration()}")
             # Send the resulting quote
             await newpost.edit(allowed_mentions=discord.AllowedMentions.none(),embed=quote)
             logger.info(f"Quote {qid} requested by {interaction.user} ({interaction.user.id}) in guild {interaction.guild_id} ({interaction.guild.name if interaction.guild else 'DM'})")
