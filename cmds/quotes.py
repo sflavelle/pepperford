@@ -125,7 +125,7 @@ class Quotes(commands.GroupCog, group_name="quote"):
         if bool(authorObject):
             authorAvatar = authorObject.display_avatar
         else:
-            author = await sanford.fetch_user(aID)
+            author = await self.ctx.fetch_user(aID)
             if author:
                 aName = author.name
                 authorAvatar = author.display_avatar
@@ -140,9 +140,13 @@ class Quotes(commands.GroupCog, group_name="quote"):
         if bool(authorAvatar): quoteview.set_thumbnail(url=authorAvatar.url)
         else: quoteview.set_thumbnail(url="https://cdn.thegeneral.chat/sanford/special-avatars/sanford-quote-noicon.png")
         
-        if qcfg['voting'] is True and qcfg['voting'][str(interaction.guild_id)] is True and interaction.is_guild_integration(): quoteview.set_footer(text=f"Score: {'+' if karma > 0 else ''}{karma}. Voting is open for {qvote_timeout} minutes.")
+        if qcfg['voting'] is True and qcfg['voting'][str(interaction.guild_id)] is True and interaction.is_guild_integration():
+            quoteview.set_footer(text=f"Score: {'+' if karma > 0 else ''}{karma}. Voting is open for {qvote_timeout} minutes.")
+        else:
+            logger.warning(f"Did not enable voting for quote {qid} in guild {interaction.guild_id}. Global Voting: {qcfg['voting']} and guild voting: {qcfg['voting'][str(interaction.guild_id)] if str(interaction.guild_id) in qcfg['voting'] else 'not set'}")
         # Send the resulting quote
         await newpost.edit(allowed_mentions=discord.AllowedMentions.none(),embed=quoteview)
+        logger.info(f"Quote {qid} requested by {interaction.user} ({interaction.user.id}) in guild {interaction.guild_id} ({interaction.guild.name if interaction.guild else 'DM'})")
         
         if qcfg['voting'] is True and qcfg['voting'][str(interaction.guild_id)] is True and interaction.is_guild_integration():
             qmsg = await interaction.original_response()
@@ -153,10 +157,12 @@ class Quotes(commands.GroupCog, group_name="quote"):
             try:
                 quoteview.set_footer(text=f"Score: {'+' if newkarma[1] > 0 else ''}{newkarma[1]} ({'went up by +{karmadiff} pts'.format(karmadiff=karmadiff) if karmadiff > 0 else 'went down by {karmadiff} pts'.format(karmadiff=karmadiff) if karmadiff < 0 else 'did not change'} this time).")
                 update_karma(qid,newkarma[1])
+                logger.info(f"Quote {qid} karma updated to {newkarma[1]} in guild {interaction.guild_id}")
                 await qmsg.edit(embed=quoteview)
                 await qmsg.clear_reactions()
             except Exception as error:
                 quoteview.set_footer(text=f"Score: {'+' if karma > 0 else ''}{karma} (no change due to error: {error}")
+                logger.error(f"Error updating karma for quote {qid} in guild {interaction.guild_id}: {error}")
                 await qmsg.edit(embed=quoteview)
 
     @app_commands.command(name="add")
@@ -194,26 +200,31 @@ class Quotes(commands.GroupCog, group_name="quote"):
                 quote.add_field(name='Note',value=f'Value "{source}" for Source was not an URL and was therefore ignored.',inline=False)
             authorAvatar = author.display_avatar
             quote.set_thumbnail(url=authorAvatar.url)
-            if qcfg['voting'] is True and qcfg['voting'][str(interaction.guild_id)] is True and interaction.is_guild_integration(): quote.set_footer(text=f"Score: {'+' if karma > 0 else ''}{karma}. Voting is open for {qvote_timeout} minutes.")
-            await newpost.edit(
-                embed=quote,
-                allowed_mentions=discord.AllowedMentions.none(),
-                ephemeral=author.id == interaction.user.id
-                )
-                
-            if qcfg['voting'] is True and qcfg['voting'][str(interaction.guild_id)] is True and interaction.is_guild_integration():
-                
-                newkarma = await karma_helper(interaction, qid, karma)
-                karmadiff = newkarma[1] - karma
-                
-                try:
-                    quote.set_footer(text=f"Score: {'+' if newkarma[1] > 0 else ''}{newkarma[1]} ({'went up by +{karmadiff} pts'.format(karmadiff=karmadiff) if karmadiff > 0 else 'went down by {karmadiff} pts'.format(karmadiff=karmadiff) if karmadiff < 0 else 'did not change'} this time).")
-                    update_karma(qid,newkarma[1])
-                    await newpost.edit(embed=quote)
-                    await newpost.clear_reactions()
-                except Exception as error:
-                    quote.set_footer(text=f"Score: {'+' if karma > 0 else ''}{karma} (no change due to error: {error}")
-                    await newpost.edit(embed=quote)
+
+        if qcfg['voting'] is True and qcfg['voting'][str(interaction.guild_id)] is True and interaction.is_guild_integration():
+            quote.set_footer(text=f"Score: {'+' if karma > 0 else ''}{karma}. Voting is open for {qvote_timeout} minutes.")
+        else:
+            logger.warning(f"Did not enable voting for quote {qid} in guild {interaction.guild_id}. Global Voting: {qcfg['voting']} and guild voting: {qcfg['voting'][str(interaction.guild_id)] if str(interaction.guild_id) in qcfg['voting'] else 'not set'}")
+        # Send the resulting quote
+        await newpost.edit(allowed_mentions=discord.AllowedMentions.none(),embed=quote)
+        logger.info(f"Quote {qid} requested by {interaction.user} ({interaction.user.id}) in guild {interaction.guild_id} ({interaction.guild.name if interaction.guild else 'DM'})")
+        
+        if qcfg['voting'] is True and qcfg['voting'][str(interaction.guild_id)] is True and interaction.is_guild_integration():
+            qmsg = await interaction.original_response()
+
+            newkarma = await karma_helper(interaction, qid, karma)
+            karmadiff = newkarma[1] - karma
+            
+            try:
+                quote.set_footer(text=f"Score: {'+' if newkarma[1] > 0 else ''}{newkarma[1]} ({'went up by +{karmadiff} pts'.format(karmadiff=karmadiff) if karmadiff > 0 else 'went down by {karmadiff} pts'.format(karmadiff=karmadiff) if karmadiff < 0 else 'did not change'} this time).")
+                update_karma(qid,newkarma[1])
+                logger.info(f"Quote {qid} karma updated to {newkarma[1]} in guild {interaction.guild_id}")
+                await qmsg.edit(embed=quote)
+                await qmsg.clear_reactions()
+            except Exception as error:
+                quote.set_footer(text=f"Score: {'+' if karma > 0 else ''}{karma} (no change due to error: {error}")
+                logger.error(f"Error updating karma for quote {qid} in guild {interaction.guild_id}: {error}")
+                await qmsg.edit(embed=quote)
             
             con.close()
         except psycopg2.DatabaseError as error:
