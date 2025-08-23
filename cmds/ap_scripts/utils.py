@@ -1,6 +1,7 @@
 import datetime
 import time
 import re
+import math
 import psycopg2 as psql
 import logging
 import yaml
@@ -679,6 +680,11 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                         return f"{item} Kong ({collected_string})"
                     if item in moves.keys():
                         return moves[item]
+                case "Donkey Kong Country 2":
+                    if item == "Kremcoin":
+                        # Not sure if the vanilla use (Klubba Kiosk) is intact,
+                        # but we still need to count these
+                        return f"{item} ({count})"
                 case "Donkey Kong Country 3":
                     if item == "DK Coin":
                         required = settings['Dk Coins For Gyrocopter']
@@ -774,6 +780,7 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                     if item == "Piece of Heart":
                         if count % 4 == 0:
                             return f"{item} (+1 Heart Container)"
+                        else: return f"{item} ({count % 4}/4)"
                 case "Pokemon Mystery Dungeon Explorers of Sky":
                     sky_peaks = [ "1st Station Pass", "2nd Station Pass", "3rd Station Pass", "4th Station Pass",
                         "5th Station Pass", "6th Station Pass", "7th Station Pass", "8th Station Pass",
@@ -837,7 +844,7 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
 
                     if item == progression_medal:
                         total = len([l for l in player.locations.values() if l.location.endswith("Target Time")])
-                        required = round(total * (settings['Series Medal Percentage'] / 100))
+                        required = math.ceil(total * (settings['Series Medal Percentage'] / 100))
                         return f"{item} ({count}/{required})"
                 case "TUNIC":
                     treasures = {
@@ -864,6 +871,8 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                             if count < check:
                                 next_req = check
                                 break
+                            next_req = 20
+
                         return f"{item} ({count}/{next_req})"
                     if item in ["Blue Questagon", "Red Questagon", "Green Questagon"]:
                         count = len(i for i in ["Blue Questagon", "Red Questagon", "Green Questagon"] if i in player.inventory)
@@ -1066,13 +1075,13 @@ def handle_state_tracking(player: Player):
                 player.stats.set_stat("collected_tickets", [item.name for item in player.get_collected_items([f"Metro Ticket - {color}" for color in metro_tickets]) ])
 
             world_costs = {
-                "Kitchen": player['settings']['Chapter 1 Cost'],
-                "Machine Room": player['settings']['Chapter 2 Cost'],
-                "Bedroom": player['settings']['Chapter 3 Cost'],
-                "Boiler Room": player['settings']['Chapter 4 Cost'],
-                "Attic": player['settings']['Chapter 5 Cost'],
-                "Laundry": player['settings']['Chapter 6 Cost'],
-                "Lab": player['settings']['Chapter 7 Cost'],
+                "Kitchen": settings['Chapter 1 Cost'],
+                "Machine Room": settings['Chapter 2 Cost'],
+                "Bedroom": settings['Chapter 3 Cost'],
+                "Boiler Room": settings['Chapter 4 Cost'],
+                "Attic": settings['Chapter 5 Cost'],
+                "Laundry": settings['Chapter 6 Cost'],
+                "Lab": settings['Chapter 7 Cost'],
             }
             player.stats.set_stat("accessible_worlds",[k for k, v in world_costs.items() if time_pieces > v])
 
