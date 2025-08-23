@@ -1067,6 +1067,7 @@ def handle_state_tracking(player: Player):
                 case _:
                     goal_str = goal
             if goal == "Finale" or goal == "Rush Hour":
+                player.stats.set_stat("time_pieces", time_pieces)
                 player.stats.set_stat("time_pieces_required", time_pieces_required)
             player.stats.set_stat("found_hats", [hat.name for hat in collected_hats])
 
@@ -1083,7 +1084,7 @@ def handle_state_tracking(player: Player):
                 "Laundry": settings['Chapter 6 Cost'],
                 "Lab": settings['Chapter 7 Cost'],
             }
-            player.stats.set_stat("accessible_worlds",[k for k, v in world_costs.items() if time_pieces > v])
+            player.stats.set_stat("accessible_worlds",[k for k, v in world_costs.items() if time_pieces >= v])
 
         case "Celeste (Open World)":
             goal = settings['Goal Area']
