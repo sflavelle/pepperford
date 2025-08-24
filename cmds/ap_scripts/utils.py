@@ -588,7 +588,7 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                         tickets = ["Yellow", "Green", "Blue", "Pink"]
                         collected = [player.get_collected_items([f"Metro Ticket - {ticket}" for ticket in tickets])]
                         logger.debug(f"Collected tickets: {collected}")
-                        return f"{item} ({''.join([key.name[0] for key in collected]) if len(collected) > 0 else "0"}/{required})"
+                        return f"{item} ({len(collected)}/{required})"
                     if item.startswith("Relic"):
                         relics = {
                             "Burger": [
