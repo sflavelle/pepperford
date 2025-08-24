@@ -841,7 +841,7 @@ def watch_log(url, interval):
                     last_line = len(current_lines)
                 except requests.RequestException as e:
                     pass
-            if len(message_buffer) == 0
+            if len(message_buffer) == 0:
                 # If we have no messages to send but the log has updated, sync last_line anyway
                 last_line = len(current_lines)
         logger.debug(f"Message buffer has {len(message_buffer)} messages queued.")
