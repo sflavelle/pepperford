@@ -799,37 +799,42 @@ def watch_log(url, interval):
                 sqlcon.commit()
             process_new_log_lines(new_lines)
             if message_buffer:
-                # Join all messages with newlines
-                all_messages = '\n'.join(message_buffer)
-                if len(all_messages) > MAX_MSG_LENGTH:
-                    logger.warning(f"Message buffer exceeded {MAX_MSG_LENGTH} characters, splitting into chunks.")
-                    # Split into chunks not exceeding MAX_MSG_LENGTH
-                    chunks = []
-                    current_chunk = ""
-                    for msg in message_buffer:
-                        # +1 for the newline if not first message
-                        if len(current_chunk) + len(msg) + (1 if current_chunk else 0) > MAX_MSG_LENGTH:
-                            if current_chunk:
-                                chunks.append(current_chunk)
-                            current_chunk = msg
-                        else:
-                            if current_chunk:
-                                current_chunk += '\n' + msg
-                            else:
+                try:
+                    # Join all messages with newlines
+                    all_messages = '\n'.join(message_buffer)
+                    if len(all_messages) > MAX_MSG_LENGTH:
+                        logger.warning(f"Message buffer exceeded {MAX_MSG_LENGTH} characters, splitting into chunks.")
+                        # Split into chunks not exceeding MAX_MSG_LENGTH
+                        chunks = []
+                        current_chunk = ""
+                        for msg in message_buffer:
+                            # +1 for the newline if not first message
+                            if len(current_chunk) + len(msg) + (1 if current_chunk else 0) > MAX_MSG_LENGTH:
+                                if current_chunk:
+                                    chunks.append(current_chunk)
                                 current_chunk = msg
-                    if current_chunk:
-                        chunks.append(current_chunk)
-                    # Send each chunk, waiting 2 seconds between
-                    for i, chunk in enumerate(chunks):
-                        send_to_discord(chunk)
-                        logger.debug(f"sent chunk {i+1}/{len(chunks)} ({len(chunk)} chars) to webhook")
-                        if i < len(chunks) - 1:
-                            time.sleep(2)
-                else:
-                    send_to_discord(all_messages)
-                    logger.debug(f"sent {len(message_buffer)} messages ({len(all_messages)} chars) to webhook")
-                message_buffer.clear()
-            last_line = len(current_lines)
+                            else:
+                                if current_chunk:
+                                    current_chunk += '\n' + msg
+                                else:
+                                    current_chunk = msg
+                        if current_chunk:
+                            chunks.append(current_chunk)
+                        # Send each chunk, waiting 2 seconds between
+                        for i, chunk in enumerate(chunks):
+                            send_to_discord(chunk)
+                            logger.debug(f"sent chunk {i+1}/{len(chunks)} ({len(chunk)} chars) to webhook")
+                            if i < len(chunks) - 1:
+                                time.sleep(2)
+                    else:
+                        send_to_discord(all_messages)
+                        logger.debug(f"sent {len(message_buffer)} messages ({len(all_messages)} chars) to webhook")
+
+                    # Clear the buffer and sync last_line if successful
+                    message_buffer.clear()
+                    last_line = len(current_lines)
+                except requests.RequestException as e:
+                    pass
 
 def process_releases():
     global release_buffer
