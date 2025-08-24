@@ -496,7 +496,12 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
             # Store the hint in the player's hints dictionary
             game.players[sender].add_hint("sending", Item)
             game.players[receiver].add_hint("receiving", Item)
+            game.spoiler_log[sender][item_location].hint()
 
+            if Item.is_filler() or Item.is_currency(): continue
+            # Balatro shop items are hinted as soon as they appear and are usually bought right away, so skip their hints
+            if Item.game == "Balatro" and any([Item.location.startswith(shop) for shop in ['Shop Item', 'Consumable Item']]): continue
+            
             if game.players[receiver].game == "Hollow Knight":
                 item = item.replace("_", " ").replace("-"," - ")
             if game.players[sender].game == "Hollow Knight":
@@ -518,11 +523,7 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
             if bool(Item.location_info):
                 message += f"\n> -# {Item.location_info}"
 
-            game.spoiler_log[sender][item_location].hint()
 
-            if Item.is_filler() or Item.is_currency(): continue
-            # Balatro shop items are hinted as soon as they appear and are usually bought right away, so skip their hints
-            if Item.game == "Balatro" and any([Item.location.startswith(shop) for shop in ['Shop Item', 'Consumable Item']]): continue
 
             if not skip_msg and game.players[receiver].is_finished() is False and not Item.found:
                 message_buffer.append(message)
