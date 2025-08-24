@@ -586,7 +586,8 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                     if item.startswith("Metro Ticket"):
                         required = 4
                         tickets = ["Yellow", "Green", "Blue", "Pink"]
-                        collected = [player.get_collected_items(f"Metro Ticket - {ticket}" for ticket in tickets)]
+                        collected = [player.get_collected_items([f"Metro Ticket - {ticket}" for ticket in tickets])]
+                        logger.debug(f"Collected tickets: {collected}")
                         return f"{item} ({''.join([key[0] for key in collected]) if len(collected) > 0 else "0"}/{required})"
                     if item.startswith("Relic"):
                         relics = {
@@ -751,7 +752,10 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                         required = 5
                         return f"{item} ({count}/{required})"
                 case "Hollow Knight":
-                    # There'll probably be something here later
+                    if item == "Grub":
+                        total = 46
+                        return f"{item} ({count}/{total})"
+                    
                     return item.replace("_", " ").replace("-"," - ")
                 case "Jigsaw":
                     if item.endswith("Puzzle Pieces"):
