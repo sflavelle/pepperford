@@ -497,6 +497,11 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
             game.players[sender].add_hint("sending", Item)
             game.players[receiver].add_hint("receiving", Item)
 
+            if game.players[receiver].game == "Hollow Knight":
+                item = item.replace("_", " ").replace("-"," - ")
+            if game.players[sender].game == "Hollow Knight":
+                item_location = item_location.replace("_", " ").replace("-"," - ")
+
             message = f"**[Hint]** **{receiver}'s {item}** is at {item_location} in {sender}'s World{f" (found at {entrance})" if bool(entrance) else ''}."
 
             match hint_status:
