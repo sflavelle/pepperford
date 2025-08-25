@@ -943,6 +943,10 @@ def handle_location_tracking(game: Game, player: Player, item: Item):
         game = player.game
 
         match game:
+            case "A Hat in Time":
+                if location.startswith("Tasksanity") and settings['Tasksanity'] is True:
+                    total = settings['Tasksanity Check Count']
+                    return f"{location}/{total}"
             case "Hollow Knight":
                 # There'll probably be something here later
                 return location.replace("_", " ").replace("-"," - ")
