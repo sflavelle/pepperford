@@ -393,21 +393,29 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
 
         comm_classification_table = {}
 
-        with sqlcon.cursor() as cursor:
-            # Get a list of games in our database
-            cursor.execute("SELECT DISTINCT game FROM archipelago.item_classifications;")
-            db_games = [row[0] for row in cursor.fetchall()]
+        def fetch_classifications(game: str):
+            nonlocal comm_classification_table
+            community_progression = requests.get(f"https://raw.githubusercontent.com/silasary/world_data/refs/heads/main/worlds/{game}/progression.txt")
+            if community_progression.status_code == 200:
+                comm_classification_table[game] = {}
+                for line in community_progression.text.splitlines():
+                    # Each line is in the format 'Item Name: classification'
+                    # Interpret everything up to the final ':' as the item name
+                    if ':' in line:
+                        comm_classification_table[game][line.rsplit(':', 1)[0].strip()] = line.rsplit(':', 1)[1].strip().lower()
+                logger.info(f"Retrieved community classifications for {game} from world_data repository.")
 
-            for game in db_games:
-                community_progression = requests.get(f"https://raw.githubusercontent.com/silasary/world_data/refs/heads/main/worlds/{game}/progression.txt")
-                if community_progression.status_code == 200:
-                    comm_classification_table[game] = {}
-                    for line in community_progression.text.splitlines():
-                        # Each line is in the format 'Item Name: classification'
-                        # Interpret everything up to the final ':' as the item name
-                        if ':' in line:
-                            comm_classification_table[game][line.rsplit(':', 1)[0].strip()] = line.rsplit(':', 1)[1].strip().lower()
-                    logger.info(f"Retrieved community classifications for {game} from world_data repository.")
+            # Get a list of games in our database
+            if not bool(game):
+                with sqlcon.cursor() as cursor:
+                        cursor.execute("SELECT DISTINCT game FROM archipelago.item_classifications;")
+                        db_games = [row[0] for row in cursor.fetchall()]
+
+                for game in db_games:
+                    fetch_classifications(game)
+            else:
+                fetch_classifications(game)
+
             
             # Update the item_classifications table with the community classifications
             for game, classifications in comm_classification_table.items():
