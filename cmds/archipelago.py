@@ -385,8 +385,8 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
     @db.command()
     @app_commands.default_permissions(manage_messages=True)
     @app_commands.autocomplete(game=db_game_complete)
-    @app_commands.describe(game="The game to import classifications for (omit to import all)")
-    async def import_classifications(self, interaction: discord.Interaction, game: str = None):
+    @app_commands.describe(game="The game to import classifications for (omit to import all)", skip_classified="Skip items that already have a classification")
+    async def import_classifications(self, interaction: discord.Interaction, game: str = None, skip_classified: bool = True):
         """Import community classifications from a third-party repository."""
         deferpost = await interaction.response.defer(ephemeral=True, thinking=True,)
         newpost = await interaction.original_response()
@@ -425,9 +425,14 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                         continue
                     if classification == "mcguffin":
                         classification = "progression"
-                    cursor.execute(
-                        "UPDATE archipelago.item_classifications SET classification = %s where game = %s and item = %s;",
-                        (classification, game, item))
+                    if skip_classified:
+                        cursor.execute(
+                            "UPDATE archipelago.item_classifications SET classification = %s where game = %s and item = %s and classification is null;",
+                            (classification, game, item))
+                    else:
+                        cursor.execute(
+                            "UPDATE archipelago.item_classifications SET classification = %s where game = %s and item = %s;",
+                            (classification, game, item))
                     logger.info(f"Updated {game}: {item} to {classification} in item_classifications table.")
 
     aproom = app_commands.Group(name="room",description="Commands to do with the current room")
