@@ -463,7 +463,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
         str = "\n".join([f"{item}: {classification}" for item, classification in export_data.items()])
 
         responsefile = bytes(str,encoding='UTF-8')
-            await newpost.edit("Here's the result, as a file:",file=discord.File(BytesIO(responsefile), 'result.txt'))
+        await newpost.edit("Here's the result, as a file:",file=discord.File(BytesIO(responsefile), 'result.txt'))
 
                 
 
