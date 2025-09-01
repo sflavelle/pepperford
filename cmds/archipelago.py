@@ -438,7 +438,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                         cursor.execute(
                             "UPDATE archipelago.item_classifications SET classification = %s where game = %s and item = %s;",
                             (classification, game, item))
-                    if cursor.rowcount > 0: processed += cursor.rowcount
+                    processed += 1
                     logger.info(f"Updated {game}: {item} to {classification} in item_classifications table.")
 
         return await newpost.edit(content=f"Import of community classifications complete! Processed {processed} items, skipped {skipped} items (bad classifications).")
