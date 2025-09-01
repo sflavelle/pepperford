@@ -435,6 +435,8 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                         (classification, game, item))
                 logger.info(f"Updated {game}: {item} to {classification} in item_classifications table.")
 
+        return await newpost.edit(content="Import of community classifications complete!")
+
     aproom = app_commands.Group(name="room",description="Commands to do with the current room")
 
     async def link_slot_unlinked_complete(self, ctx: discord.Interaction, current: str) -> typing.List[app_commands.Choice[str]]:
