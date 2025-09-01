@@ -456,7 +456,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
         export_data = defaultdict(str)
 
         with sqlcon.cursor() as cursor:
-            cursor.execute("SELECT item, classification FROM archipelago.item_classifications WHERE game = %s classification IS NOT NULL ORDER BY item asc;", (game,))
+            cursor.execute("SELECT item, classification FROM archipelago.item_classifications WHERE game = %s and classification IS NOT NULL ORDER BY item asc;", (game,))
             for item, classification in cursor.fetchall():
                 export_data[item] = classification
 
