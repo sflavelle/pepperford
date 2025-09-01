@@ -460,10 +460,10 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
             for item, classification in cursor.fetchall():
                 export_data[item] = classification
 
-        str = "\n".join([f"{item}: {classification}" for item, classification in export_data.items()])
+        response = "\n".join([f"{item}: {classification}" for item, classification in export_data.items()])
 
-        responsefile = bytes(str,encoding='UTF-8')
-        await newpost.edit("Here's the result, as a file:",file=discord.File(BytesIO(responsefile), 'result.txt'))
+        responsefile = bytes(response,encoding='UTF-8')
+        return await newpost.edit("Here's the result, as a file:",file=discord.File(BytesIO(responsefile), 'result.txt'))
 
                 
 
