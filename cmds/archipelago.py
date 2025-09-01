@@ -418,24 +418,30 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
 
         
         # Update the item_classifications table with the community classifications
-        for game, classifications in comm_classification_table.items():
-            for item, classification in classifications.items():
-                if classification not in ["mcguffin", "progression", "conditional progression", "useful", "currency", "filler", "trap"]:
-                    logger.warning(f"Invalid classification '{classification}' for {game}: {item}. Skipping.")
-                    continue
-                if classification == "mcguffin":
-                    classification = "progression"
-                if skip_classified:
-                    cursor.execute(
-                        "UPDATE archipelago.item_classifications SET classification = %s where game = %s and item = %s and classification is null;",
-                        (classification, game, item))
-                else:
-                    cursor.execute(
-                        "UPDATE archipelago.item_classifications SET classification = %s where game = %s and item = %s;",
-                        (classification, game, item))
-                logger.info(f"Updated {game}: {item} to {classification} in item_classifications table.")
+        skipped = 0
+        processed = 0
 
-        return await newpost.edit(content="Import of community classifications complete!")
+        with sqlcon.cursor() as cursor:
+            for game, classifications in comm_classification_table.items():
+                for item, classification in classifications.items():
+                    if classification not in ["mcguffin", "progression", "conditional progression", "useful", "currency", "filler", "trap"]:
+                        logger.warning(f"Invalid classification '{classification}' for {game}: {item}. Skipping.")
+                        skipped += 1
+                        continue
+                    if classification == "mcguffin":
+                        classification = "progression"
+                    if skip_classified:
+                        cursor.execute(
+                            "UPDATE archipelago.item_classifications SET classification = %s where game = %s and item = %s and classification is null;",
+                            (classification, game, item))
+                    else:
+                        cursor.execute(
+                            "UPDATE archipelago.item_classifications SET classification = %s where game = %s and item = %s;",
+                            (classification, game, item))
+                    if cursor.rowcount > 0: processed += cursor.rowcount
+                    logger.info(f"Updated {game}: {item} to {classification} in item_classifications table.")
+
+        return await newpost.edit(content=f"Import of community classifications complete! Processed {processed} items, skipped {skipped} items (bad classifications).")
 
     aproom = app_commands.Group(name="room",description="Commands to do with the current room")
 
