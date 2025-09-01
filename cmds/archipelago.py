@@ -442,6 +442,30 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                     logger.info(f"Updated {game}: {item} to {classification} in item_classifications table.")
 
         return await newpost.edit(content=f"Import of community classifications complete! Processed {processed} items, skipped {skipped} items (bad classifications).")
+    
+    @is_aphost()
+    @db.command()
+    @app_commands.default_permissions(manage_messages=True)
+    @app_commands.autocomplete(game=db_game_complete)
+    async def export_classifications(self, interaction: discord.Interaction, game: str):
+        """Export classifications from the database to a file compatible with the community repository."""
+
+        deferpost = await interaction.response.defer(ephemeral=True, thinking=True,)
+        newpost = await interaction.original_response()
+
+        export_data = defaultdict(str)
+
+        with sqlcon.cursor() as cursor:
+            cursor.execute("SELECT item, classification FROM archipelago.item_classifications WHERE game = %s classification IS NOT NULL ORDER BY item asc;", (game,))
+            for item, classification in cursor.fetchall():
+                export_data[item] = classification
+
+        str = "\n".join([f"{item}: {classification}" for item, classification in export_data.items()])
+
+        responsefile = bytes(str,encoding='UTF-8')
+            await newpost.edit("Here's the result, as a file:",file=discord.File(BytesIO(responsefile), 'result.txt'))
+
+                
 
     aproom = app_commands.Group(name="room",description="Commands to do with the current room")
 
