@@ -405,35 +405,35 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                         comm_classification_table[game][line.rsplit(':', 1)[0].strip()] = line.rsplit(':', 1)[1].strip().lower()
                 logger.info(f"Retrieved community classifications for {game} from world_data repository.")
 
-            # Get a list of games in our database
-            if not bool(game):
-                with sqlcon.cursor() as cursor:
-                        cursor.execute("SELECT DISTINCT game FROM archipelago.item_classifications;")
-                        db_games = [row[0] for row in cursor.fetchall()]
+        # Get a list of games in our database
+        if not bool(game):
+            with sqlcon.cursor() as cursor:
+                    cursor.execute("SELECT DISTINCT game FROM archipelago.item_classifications;")
+                    db_games = [row[0] for row in cursor.fetchall()]
 
-                for game in db_games:
-                    fetch_classifications(game)
-            else:
+            for game in db_games:
                 fetch_classifications(game)
+        else:
+            fetch_classifications(game)
 
-            
-            # Update the item_classifications table with the community classifications
-            for game, classifications in comm_classification_table.items():
-                for item, classification in classifications.items():
-                    if classification not in ["mcguffin", "progression", "conditional progression", "useful", "currency", "filler", "trap"]:
-                        logger.warning(f"Invalid classification '{classification}' for {game}: {item}. Skipping.")
-                        continue
-                    if classification == "mcguffin":
-                        classification = "progression"
-                    if skip_classified:
-                        cursor.execute(
-                            "UPDATE archipelago.item_classifications SET classification = %s where game = %s and item = %s and classification is null;",
-                            (classification, game, item))
-                    else:
-                        cursor.execute(
-                            "UPDATE archipelago.item_classifications SET classification = %s where game = %s and item = %s;",
-                            (classification, game, item))
-                    logger.info(f"Updated {game}: {item} to {classification} in item_classifications table.")
+        
+        # Update the item_classifications table with the community classifications
+        for game, classifications in comm_classification_table.items():
+            for item, classification in classifications.items():
+                if classification not in ["mcguffin", "progression", "conditional progression", "useful", "currency", "filler", "trap"]:
+                    logger.warning(f"Invalid classification '{classification}' for {game}: {item}. Skipping.")
+                    continue
+                if classification == "mcguffin":
+                    classification = "progression"
+                if skip_classified:
+                    cursor.execute(
+                        "UPDATE archipelago.item_classifications SET classification = %s where game = %s and item = %s and classification is null;",
+                        (classification, game, item))
+                else:
+                    cursor.execute(
+                        "UPDATE archipelago.item_classifications SET classification = %s where game = %s and item = %s;",
+                        (classification, game, item))
+                logger.info(f"Updated {game}: {item} to {classification} in item_classifications table.")
 
     aproom = app_commands.Group(name="room",description="Commands to do with the current room")
 
