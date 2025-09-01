@@ -450,8 +450,8 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
     async def export_classifications(self, interaction: discord.Interaction, game: str):
         """Export classifications from the database to a file compatible with the community repository."""
 
-        deferpost = await interaction.response.defer(ephemeral=True, thinking=True,)
-        newpost = await interaction.original_response()
+        # deferpost = await interaction.response.defer(ephemeral=True, thinking=True,)
+        # newpost = await interaction.original_response()
 
         export_data = defaultdict(str)
 
@@ -463,7 +463,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
         response = "\n".join([f"{item}: {classification}" for item, classification in export_data.items()])
 
         responsefile = bytes(response,encoding='UTF-8')
-        return await newpost.edit("Here's the result, as a file:",file=discord.File(BytesIO(responsefile), 'result.txt'))
+        return await interaction.response.send_message("Here's the result, as a file:",file=discord.File(BytesIO(responsefile), 'result.txt'),ephemeral=True)
 
                 
 
