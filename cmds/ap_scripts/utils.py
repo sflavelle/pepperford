@@ -134,6 +134,16 @@ class Game(dict):
         except Exception as e:
             logger.error(f"Error pulling from database: {e}")
             return None
+        
+    def refresh_classifications(self):
+        """Refresh the item classifications for all items in the game.
+        Useful if classifications have been changed during runtime and need to be applied."""
+
+        logger.info("Refreshing item classifications.")
+        for item in self.item_instance_cache.values():
+            item.set_item_classification()
+        logger.info("Item classifications refreshed.")
+        
 
 def handle_hint_update(self):
     pass
@@ -664,19 +674,22 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                         total = 20
                         return f"{item} ({count}/{total})"
                     if item == "Golden Banana":
+                        max = max([settings[f"Level {num} B. Locker"] for num in range(1,9)])
                         total = 201
-                        return f"{item} ({count}/{total})"
+                        return f"{item} (*{count}/{max}*/{total})"
                     if item.startswith("Key "):
                         keys = 8
                         collected_string = ""
+                        collected_keys = player.get_collected_items([f"Key {k+1}" for k in range(keys)])
                         for k in range(keys):
-                                if f"Key {k+1}" in player.inventory: collected_string += str(k+1)
+                                if f"Key {k+1}" in collected_keys: collected_string += str(k+1)
                                 else: collected_string += "_"
                         return f"{item} ({collected_string})"
                     if item in kongs:
                         collected_string = ""
+                        collected_kongs = player.get_collected_items(kongs)
                         for kong in kongs:
-                            if kong in player.inventory: collected_string += kong[0:1]
+                            if kong in collected_kongs: collected_string += kong[0:1]
                             else: collected_string += "__"
                         return f"{item} Kong ({collected_string})"
                     if item in moves.keys():
@@ -797,6 +810,11 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
 
                     if item == "Progressive Sky Peak":
                         return f"{item} ({sky_peaks[count-1]})"
+                case "Powerwash Simulator":
+                    if item == "A Job Well Done" and settings['Goal Type'] == "Mcguffin":
+                        # I need to figure out how to calculate the amount required
+                        # so for now
+                        pass
                 case "Pizza Tower":
                     if item == "Toppin":
                         total = settings['Toppin Count']
