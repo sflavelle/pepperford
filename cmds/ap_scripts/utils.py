@@ -674,9 +674,9 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                         total = 20
                         return f"{item} ({count}/{total})"
                     if item == "Golden Banana":
-                        max = max([settings[f"Level {num} B. Locker"] for num in range(1,9)])
+                        max_gbs = max([settings[f"Level {num} B. Locker"] for num in range(1,9)])
                         total = 201
-                        return f"{item} (*{count}/{max}*/{total})"
+                        return f"{item} (*{count}/{max_gbs}*/{total})"
                     if item.startswith("Key "):
                         keys = 8
                         collected_string = ""
