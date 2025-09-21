@@ -671,8 +671,9 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                         "Vines": "Vine Swinging",
                     }
                     if item == "Banana Fairy":
+                        required = settings['Rareware GB Requirement']
                         total = 20
-                        return f"{item} ({count}/{total})"
+                        return f"{item} (*{count}/{required}*/{total})"
                     if item == "Golden Banana":
                         max_gbs = max([settings[f"Level {num} B. Locker"] for num in range(1,9)])
                         total = 201
