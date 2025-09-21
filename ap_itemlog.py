@@ -154,7 +154,7 @@ def process_spoiler_log(seed_url):
         if line == "Starting Items:":
             parse_mode = "Starting Items"
             logger.info("Parsing starting items")
-        if line in ["Entrances:","Medallions:","Fairy Fountain Bottle Fill:", "Shops:"]:
+        if line in ["Entrances:","Medallions:","Fairy Fountain Bottle Fill:", "Shops:", "Level Layout", "Animal Friends"]:
             parse_mode = None
         if line.startswith("Spoiler and info for [Jigsaw]"):
             parse_mode = "Jigsaw Info"
@@ -174,6 +174,7 @@ def process_spoiler_log(seed_url):
 
         match parse_mode:
             case "Seed Info":
+                if line.startswith("Celeste (Open World) APWorld"): continue # don't need to record apworld version information
                 if line.startswith("Archipelago"):
                     game.version_generator = line.split(' ')[2]
                     game.seed = parse_to_type(line.split(' ')[-1])
