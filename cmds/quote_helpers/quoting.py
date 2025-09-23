@@ -21,10 +21,10 @@ def format_quote(content,timestamp,authorID=None,authorName=None,bot=None,source
     quote_string_name = '''"{0}"
     —{1} / {2}'''
     mdquote_string_id = '''"{0}"
-    —<@{1}> / [{2}]({3})''' if source is not None else '''"{0}"
+    —<@{1}> / {2} ([context]({3}))''' if source is not None else '''"{0}"
     —<@{1}> / {2}'''
     mdquote_string_name = '''"{0}"
-    *—{1} / [{2}]({3})*''' if source is not None else '''"{0}"
+    *—{1} / {2} ([context]({3}))*''' if source is not None else '''"{0}"
     *—{1} / {2}*'''
 
     # Adjust timestamp if milliseconds included
