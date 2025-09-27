@@ -1181,6 +1181,15 @@ def handle_state_tracking(player: Player):
             required = int(dimensions[0]) * int(dimensions[1])
             goal_str = f"Complete a {settings['Puzzle dimension']} ({required} piece) Puzzle"
 
+        case "Link to the Past":
+            # Goal matching
+            if settings['Goal'].endswith("Triforce Hunt"):
+                required_pieces = settings['Triforce Pieces Required']
+                goal_str = f"Collect {required_pieces} Triforce Pieces"
+            if "Ganon" in settings['Goal'] and settings['Goal'] != "Ganon":
+                goal_str += ", then Defeat Ganon"
+            if settings['Goal'] == "Ganon":
+                goal_str = "Reach Ganon and Defeat Him"
 
         case "Ocarina of Time":
             max_hearts = 20
