@@ -565,13 +565,14 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
                 else: seed_address_was = seed_address
                 seed_address = address
                 logger.info(f"Seed URI has changed: {address}")
-                if seed_address_was is not None: message = f"**The seed address has changed.** Use this updated address: `{address}`"
                 if not skip_msg:
                     with sqlcon.cursor() as cursor:
                         game.pushdb(cursor, 'pepper.ap_all_rooms', 'port', seed_address.split(":")[1])
                         sqlcon.commit()
-                    send_chat("Archipelago", message)
-                    message_buffer.append(message)
+                    if seed_address_was is not None:
+                        message = f"**The seed address has changed.** Use this updated address: `{address}`"
+                        send_chat("Archipelago", message)
+                        message_buffer.append(message)
             if start_time is None:
                 start_time = to_epoch(timestamp)
                 logger.info(f"Start time set to {start_time} (epoch)")
