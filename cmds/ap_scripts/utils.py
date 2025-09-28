@@ -930,7 +930,7 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                         parts = ["Bottom Left", "Bottom Right", "Top Left", "Top Right"]
                         jewel = next(j for j in jewels if j in item)
                         #
-                        jewel_count = player.get_collected_items([f"{part} {jewel} Piece" for part in parts])
+                        jewel_count = len(player.get_collected_items([f"{part} {jewel} Piece" for part in parts]))
                         jewel_required = 4
                         jewels_complete = len(
                             [j for j in jewels
