@@ -928,16 +928,19 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                         # Gather up all the jewels
                         jewels = ["Emerald", "Entry Jewel", "Golden Jewel", "Ruby", "Sapphire", "Topaz"]
                         parts = ["Bottom Left", "Bottom Right", "Top Left", "Top Right"]
-                        jewel = next(j for j in jewels if j in item)
-                        #
+                        jewel = next(j for j in jewels if j in item) # Get jewel name matching the item
+
+                        # Count how many pieces of this jewel we have
                         jewel_count = len(player.get_collected_items([f"{part} {jewel} Piece" for part in parts]))
-                        jewel_required = 4
-                        jewels_complete = len(
-                            [j for j in jewels
-                            if len([f"{part} {j} Piece" for part in parts
-                                if f"{part} {j} Piece" in player.inventory]) == 4 ])
+                        jewel_pieces = 4 # This is static
+
+                        jewels_complete = 0
+                        for j in jewels:
+                            if len(player.get_collected_items([f"{part} {j} Piece" for part in parts])) == jewel_pieces:
+                                jewels_complete += 1
                         jewels_required = settings['Required Jewels']
-                        return f"{item} ({jewel_count}/{jewel_required}P|{jewels_complete}/{jewels_required}C)"
+
+                        return f"{item} ({jewel_count}/{jewel_pieces}P|{jewels_complete}/{jewels_required}C)"
                 case _:
                     return item
         except Exception as e:
