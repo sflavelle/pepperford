@@ -1195,6 +1195,9 @@ def handle_state_tracking(player: Player):
             match settings['Goal']:
                 case "Three Proofs":
                     goal_str = "Collect the Three Proofs of Connection, Nonexistence and Peace"
+                case "Hitlist":
+                    required = settings['Bounties Required']
+                    goal_str = f"Collect {required} Bounties"
                 case _:
                     goal_str = settings['Goal']
 
