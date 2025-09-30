@@ -779,6 +779,10 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
 
                         total_pieces = starting_pieces + (pieces_per_item * item_count)
                         return f"{item} ({total_pieces} Available)"
+                case "Kingdom Hearts 2":
+                    if item == "Bounty" and settings["Goal"] == "Hitlist":
+                        required = settings['Bounties Required']
+                        return f"{item} (*{count}/{required}*)"
                 case "Muse Dash":
                     if item == "Music Sheet":
                         song_count = settings['Starting Song Count'] + settings['Additional Song Count']
@@ -934,13 +938,28 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                         jewel_count = len(player.get_collected_items([f"{part} {jewel} Piece" for part in parts]))
                         jewel_pieces = 4 # This is static
 
-                        jewels_complete = 0
-                        for j in jewels:
-                            if len(player.get_collected_items([f"{part} {j} Piece" for part in parts])) == jewel_pieces:
-                                jewels_complete += 1
+                        def determine_complete_jewels() -> int:
+                            """Helper function for WL4 jewels. Returns how many jewels have all pieces collected."""
+                            completed = 0
+                            for j in jewels:
+                                bottom_left = player.get_item_count(f"Bottom Left {j} Piece")
+                                bottom_right = player.get_item_count(f"Bottom Right {j} Piece")
+                                top_left = player.get_item_count(f"Top Left {j} Piece")
+                                top_right = player.get_item_count(f"Top Right {j} Piece")
+
+                                # If we have at least one of each piece, we have at least one completed jewel
+                                # Get the minimum of all counts to determine how many
+                                if all([bottom_left > 0, bottom_right > 0, top_left > 0, top_right > 0]):
+                                    completed += min([bottom_left, bottom_right, top_left, top_right])
+
+                            return completed
+
+
+                        jewels_complete = determine_complete_jewels()
                         jewels_required = settings['Required Jewels']
 
-                        return f"{item} ({jewel_count}/{jewel_pieces}P|{jewels_complete}/{jewels_required}C)"
+                        # return f"{item} ({jewel_count}/{jewel_pieces}P|{jewels_complete}/{jewels_required}C)"
+                        return f"{item} ({jewels_complete}/{jewels_required}C)"
                 case _:
                     return item
         except Exception as e:
