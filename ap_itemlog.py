@@ -49,7 +49,7 @@ seed_url = os.getenv('SPOILER_URL')
 msg_webhooks = [os.getenv('MSGHOOK_URL')]
 
 # Pull extra configuration if this itemlog is stored in config.yaml, by checking the log_url
-for log in cfg['archipelago']['itemlogs']:
+for log in cfg['bot']['archipelago']['itemlogs']:
     if log['log_url'] == log_url:
         if 'webhooks' in log and len(log['webhooks']) > 1:
             webhook_urls.extend(log['webhooks'][1:])
