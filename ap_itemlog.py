@@ -41,16 +41,25 @@ except psql.OperationalError:
 
 # URL of the log file and Discord webhook URL from environment variables
 log_url = os.getenv('LOG_URL')
-webhook_url = os.getenv('WEBHOOK_URL')
+webhook_urls = [os.getenv('WEBHOOK_URL')]
 session_cookie = os.getenv('SESSION_COOKIE')
 
 # Extra info for additional features
 seed_url = os.getenv('SPOILER_URL')
-msg_webhook = os.getenv('MSGHOOK_URL')
+msg_webhooks = [os.getenv('MSGHOOK_URL')]
 
-if not (bool(log_url) or bool(webhook_url) or bool(session_cookie)):
+# Pull extra configuration if this itemlog is stored in config.yaml, by checking the log_url
+for log in cfg['archipelago']['itemlogs']:
+    if log['log_url'] == log_url:
+        if 'webhooks' in log and len(log['webhooks']) > 1:
+            webhook_urls.extend(log['webhooks'][1:])
+        if 'msghooks' in log and len(log['msghooks']) > 1:
+            msg_webhooks.extend(log['msghooks'][1:])
+        break
+
+if not (bool(log_url) or bool(webhook_urls) or bool(session_cookie)):
     logger.error("Something required isn't configured properly!")
-    for var in [("LOG_URL",log_url), ("WEBHOOK_URL",webhook_url), ("SESSION_COOKIE",session_cookie)]:
+    for var in [("LOG_URL",log_url), ("WEBHOOK_URL",webhook_urls), ("SESSION_COOKIE",session_cookie)]:
         logger.error(f"{var[0]}: {var[1]}")
     sys.exit(1)
 
@@ -578,7 +587,7 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
                 logger.info(f"Start time set to {start_time} (epoch)")
         elif match := regex_patterns['messages'].match(line):
             timestamp, sender, message = match.groups()
-            if msg_webhook:
+            if msg_webhooks:
                 if message.startswith("!"): continue # don't send commands
                 else:
                     if not skip_msg and sender in game.players:
@@ -626,23 +635,31 @@ def send_chat(sender, message):
         "username": sender,
         "content": message
     }
-    try:
-        response = requests.post(msg_webhook, json=payload, timeout=5)
-        response.raise_for_status()
-    except requests.RequestException as e:
-        logging.error(f"Error sending message to Discord: {e}")
+
+    for webhook in msg_webhooks:
+        if webhook is None or webhook == "": continue
+        try:
+            response = requests.post(webhook, json=payload, timeout=5)
+            response.raise_for_status()
+            # log_to_file(message)  # Log the message to a file
+        except requests.RequestException as e:
+            logging.error(f"Error sending chat message to webhook: {e}")
 
 
-def send_to_discord(message):
+
+def send_log(message):
     payload = {
         "content": message
     }
-    try:
-        response = requests.post(webhook_url, json=payload, timeout=5)
-        response.raise_for_status()
-        # log_to_file(message)  # Log the message to a file
-    except requests.RequestException as e:
-        logging.error(f"Error sending message to Discord: {e}")
+
+    for webhook in webhook_urls:
+        if webhook is None or webhook == "": continue
+        try:
+            response = requests.post(webhook, json=payload, timeout=5)
+            response.raise_for_status()
+            # log_to_file(message)  # Log the message to a file
+        except requests.RequestException as e:
+            logging.error(f"Error sending log message to webhook: {e}")
 
 
 def send_release_messages():
@@ -698,12 +715,12 @@ def send_release_messages():
                     [f"{item} (x{count})" if count > 1 else item for item, count in item_counts.items()])
                 running_message += f"\n{dim_if_goaled(receiver)}**{receiver}** receives: {item_list}"
                 if len(running_message) > MAX_MSG_LENGTH:
-                    send_to_discord(message)
+                    send_log(message)
                     message = running_message.replace(message, '')
                     time.sleep(1)
                 else:
                     message = running_message
-            send_to_discord(message)
+            send_log(message)
             logger.info(f"{sender} release sent.")
             del release_buffer[sender]
 
@@ -832,12 +849,12 @@ def watch_log(url, interval):
                             chunks.append(current_chunk)
                         # Send each chunk, waiting 2 seconds between
                         for i, chunk in enumerate(chunks):
-                            send_to_discord(chunk)
+                            send_log(chunk)
                             logger.debug(f"sent chunk {i+1}/{len(chunks)} ({len(chunk)} chars) to webhook")
                             if i < len(chunks) - 1:
                                 time.sleep(2)
                     else:
-                        send_to_discord(all_messages)
+                        send_log(all_messages)
                         logger.debug(f"sent {len(message_buffer)} messages ({len(all_messages)} chars) to webhook")
 
                     # Clear the buffer and sync last_line if successful

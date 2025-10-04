@@ -1022,10 +1022,10 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                 env = os.environ.copy()
 
                 env['LOG_URL'] = log['log_url']
-                env['WEBHOOK_URL'] = log['webhook']
+                env['WEBHOOK_URL'] = log['webhooks'][0] if len(log['webhooks']) > 0 else None
                 env['SESSION_COOKIE'] = log['session_cookie']
                 env['SPOILER_URL'] = log['spoiler_url'] if log['spoiler_url'] else None
-                env['MSGHOOK_URL'] = log['msghook'] if log['msghook'] else None
+                env['MSGHOOK_URL'] = log['msghooks'][0] if len(log['msghooks']) > 0 else None
 
                 try:
                     script_path = os.path.join(os.path.dirname(__file__), '..', 'ap_itemlog.py')
