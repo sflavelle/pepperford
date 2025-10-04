@@ -787,6 +787,8 @@ def watch_log(url, interval):
     logger.info(f"Completion Percentage: {round(game.collection_percentage,2)}%")
     logger.info(f"Total Players: {len(game.players)}")
     logger.info(f"Seed Address: {seed_address}")
+    logger.info(f"Logging messages to {len(webhook_urls)} webhook(s).")
+    logger.info(f"Logging chats to {len(msg_webhooks)} webhook(s).")
     with sqlcon.cursor() as cursor:
         try: 
             game.pushdb(cursor, 'pepper.ap_all_rooms', 'port', seed_address.split(":")[1])
