@@ -867,6 +867,25 @@ def watch_log(url, interval):
             if len(message_buffer) == 0:
                 # If we have no messages to send but the log has updated, sync last_line anyway
                 last_line = len(current_lines)
+
+            # Check if all players have finished
+            if all(p.is_finished() for p in game.players.values()) and all(p.online is False for p in game.players.values()) and len(message_buffer) == 0 and len(release_buffer) == 0:
+                logger.info("All players have finished and are offline, and there's no more messages in the buffers to process. We're done here.")
+                
+                # Some maintenance items before we exit
+                for p in game.players.values():
+                    if p.released is True:
+                        # Any locations not 'checked' by this point should be marked as uncheckable
+                        logger.info(f"{p.name} ({p.game}) released, marking remaining unchecked locations as uncheckable.")
+                        for loc in p.locations.values():
+                            if loc.found is False:
+                                logger.info(f"Marking {p.game}: {loc.name} as uncheckable.")
+                                loc.db_add_location(is_check=False)
+                
+                # We're done, exit process
+                logger.info("Exiting process.")
+                sys.exit(0)
+
         logger.debug(f"Message buffer has {len(message_buffer)} messages queued.")
 
 def process_releases():
