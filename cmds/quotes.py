@@ -74,11 +74,17 @@ class Quotes(commands.GroupCog, group_name="quote"):
             if bool(user) and all_servers and not interaction.user.id == 49288117307310080:
                 if user.id != interaction.user.id:
                     await newpost.edit(content=
-                        ":no_entry_sign: Just FYI, `all_servers` will only work if you're exposing yourself.",
-                        ephemeral=True
-                        )
+                        ":no_entry_sign: Just FYI, `all_servers` will only work if you're exposing yourself.")
                     return
                 qid,content,aID,aName,timestamp,karma,source = random_quote(None, user.id)
+            elif all_servers:
+                if interaction.user.id == 49288117307310080:
+                    qid,content,aID,aName,timestamp,karma,source = random_quote(None, None)
+                else:
+                    qid,content,aID,aName,timestamp,karma,source = random_quote(None, user.id)
+                    # await newpost.edit(content=
+                    # ":no_entry_sign: Just FYI, `all_servers` will only work if you're exposing yourself.")
+                    # return
             elif isinstance(interaction.channel, discord.abc.PrivateChannel) and bool(user):
                 qid,content,aID,aName,timestamp,karma,source = random_quote(None, user.id)
             elif bool(user):
@@ -95,13 +101,6 @@ class Quotes(commands.GroupCog, group_name="quote"):
                     "So for now, just remember to select a user you want a quote from."
                     )
                 return
-            elif all_servers:
-                if interaction.user.id == 49288117307310080:
-                    qid,content,aID,aName,timestamp,karma,source = random_quote(None, None)
-                else:
-                    await newpost.edit(content=
-                    ":no_entry_sign: Just FYI, `all_servers` will only work if you're exposing yourself.")
-                    return
             else:
                 qid,content,aID,aName,timestamp,karma,source = random_quote(interaction.guild_id, None)
         except LookupError as error:
