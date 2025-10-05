@@ -889,7 +889,7 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                         return f"{item} ({count}/{required})"
                     if item == "Gold Questagon":
                         required = settings['Gold Hexagons Required']
-                        return f"{item} ({count}/{required})"
+                        return f"{item} (*{count}/{required}*)"
                     if item == "Golden Coin":
                         required = [3,6,10,15]
                         next_req = 0
@@ -904,7 +904,7 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                     if item in ["Blue Questagon", "Red Questagon", "Green Questagon"]:
                         count = len(i for i in ["Blue Questagon", "Red Questagon", "Green Questagon"] if i in player.inventory)
                         required = 3
-                        return f"{item} ({count}/{required})"
+                        return f"{item} (*{count}/{required}*)"
                     if item == "Sword Upgrade":
                         upgrades = ["Stick", "Ruin Seeker's Sword", "Librarian's Sword", "Heir's Sword"]
                         upgrade = upgrades[count-1]
