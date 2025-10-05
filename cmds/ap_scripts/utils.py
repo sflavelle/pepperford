@@ -783,6 +783,10 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                     if item == "Bounty" and settings["Goal"] == "Hitlist":
                         required = settings['Bounties Required']
                         return f"{item} (*{count}/{required}*)"
+                case "Mega Man 2":
+                    if item.endswith("Access Codes"):
+                        total = 8
+                        return f"{item} ({count}/{total})"
                 case "Muse Dash":
                     if item == "Music Sheet":
                         song_count = settings['Starting Song Count'] + settings['Additional Song Count']
@@ -997,6 +1001,11 @@ def handle_location_tracking(game: Game, player: Player, item: Item):
                     dimensions = settings['Puzzle dimension'].split("×")
                     required = int(dimensions[0]) * int(dimensions[1])
                     return f"{location} (of {required})"
+            case "Mega Man 2":
+                if location.endswith(" - Defeated"):
+                    count = len([l for l in player.locations.values() if l.location.endswith(" - Defeated") and l.found is True])
+                    required = 8
+                    return f"{location} ({count}/{required})"
             case "Simon Tatham's Portable Puzzle Collection":
                 required = round(settings['puzzle count']
                                  * (settings['Target Completion Percentage'] / 100))
