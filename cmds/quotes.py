@@ -88,27 +88,24 @@ class Quotes(commands.GroupCog, group_name="quote"):
                 # Reason being, it cannot access the list of recipients in a channel, in a user app context
                 # Which is totally fine, but I have to let the user know that they need to specify
                 # who they want a quote of
-                await interaction.response.send_message(
+                await newpost.edit(content=
                     ":no_entry_sign: You'll need to specify a user when getting quotes in a private channel.\n"
                     "This is because Discord doesn't support getting the list of users when you install the app to your account,"
                     " which is *good* because it means apps like this one can't harvest your data willy-nilly!\n"
-                    "So for now, just remember to select a user you want a quote from.",
-                    ephemeral=True
+                    "So for now, just remember to select a user you want a quote from."
                     )
                 return
             elif all_servers:
                 if interaction.user.id == 49288117307310080:
                     qid,content,aID,aName,timestamp,karma,source = random_quote(None, None)
                 else:
-                    await interaction.response.send_message(
-                    ":no_entry_sign: Just FYI, `all_servers` will only work if you're exposing yourself.",
-                    ephemeral=True
-                    )
+                    await newpost.edit(content=
+                    ":no_entry_sign: Just FYI, `all_servers` will only work if you're exposing yourself.")
                     return
             else:
                 qid,content,aID,aName,timestamp,karma,source = random_quote(interaction.guild_id, None)
         except LookupError as error:
-            await interaction.response.send_message(str(error), ephemeral=True)
+            await newpost.edit(content=str(error))
             return
         except Exception as error:
             logger.exception(error)
