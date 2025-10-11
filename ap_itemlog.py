@@ -227,10 +227,6 @@ def process_spoiler_log(seed_url):
                     if key.startswith("Player "): continue  # Skip player header lines
                     game.players[working_player].settings[key] = parse_value(value_str)
 
-                    # Try to parse as a list (comma-separated, not inside brackets)
-                    if "," in value_str and not (value_str.startswith("[") or value_str.startswith("{")):
-                        game.players[working_player].settings[key] = [parse_to_type(v.strip()) for v in value_str.split(",")]
-                        continue
                 except ValueError as e:
                     logger.error(f"Error parsing line:")
                     logger.error(line)
