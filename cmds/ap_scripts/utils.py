@@ -736,13 +736,13 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                     item_regex = re.compile(r"^([a-zA-Z]+) \((\S+)\)$")
                     if item.startswith("Level Access"):
                         count = len([i for i in player.inventory if str(i).startswith("Level Access")])
-                        total = len(settings['Included Levels'])
+                        total = len(settings['Included levels'])
                         return f"{item} ({count}/{total})"
                     if item.startswith("Level Clear"):
                         count = len([i for i in player.inventory if str(i).startswith("Level Clear")])
                         required = 0
                         if settings['Win conditions']['nrof-maps'] == "all":
-                            required = len(settings['Included Levels'])
+                            required = len(settings['Included levels'])
                         else:
                             required = int(settings['Win conditions']['nrof-maps']) + (len(settings['Win conditions']['specific-maps']) if 'specific-maps' in settings['Win conditions'] else 0)
                         return f"{item} ({count}/{required})"
