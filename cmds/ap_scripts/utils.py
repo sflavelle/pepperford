@@ -740,9 +740,11 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                         return f"{item} ({count}/{total})"
                     if item.startswith("Level Clear"):
                         count = len([i for i in player.inventory if str(i).startswith("Level Clear")])
-                        required = settings['Win Conditions']['nrof-maps']
-                        if required == "all":
+                        required = 0
+                        if settings['Win conditions']['nrof-maps'] == "all":
                             required = len(settings['Included Levels'])
+                        else:
+                            required = int(settings['Win conditions']['nrof-maps']) + (len(settings['Win conditions']['specific-maps']) if 'specific-maps' in settings['Win conditions'] else 0)
                         return f"{item} ({count}/{required})"
                     if any([str(item).startswith(color) for color in ["Blue","Yellow","Red"]]) and not str(item) == "BlueArmor":
                         item_match = item_regex.match(item)
