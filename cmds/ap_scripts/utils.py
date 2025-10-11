@@ -706,7 +706,7 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                         return f"{item} ({count}/{required})"
                 case "DOOM 1993":
                     if item.endswith(" - Complete"):
-                        count = len([i for i in player.inventory if i.endswith(" - Complete")])
+                        count = len([i for i in player.inventory if i.name.endswith(" - Complete")])
                         required = 0
                         for episode in 1, 2, 3, 4:
                             if settings[f"Episode {episode}"] is True:
@@ -714,7 +714,7 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                         return f"{item} ({count}/{required})"
                 case "DOOM II":
                     if item.endswith(" - Complete"):
-                        count = len([i for i in player.inventory if i.endswith(" - Complete")])
+                        count = len([i for i in player.inventory if i.name.endswith(" - Complete")])
                         required = 0
                         if settings["Episode 1"] is True:
                             required = required + 11 # MAP01-MAP11
@@ -731,16 +731,16 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                 case "gzDoom":
                     item_regex = re.compile(r"^([a-zA-Z]+) \((\S+)\)$")
                     if item.startswith("Level Access"):
-                        count = len([i for i in player.inventory if i.startswith("Level Access")])
+                        count = len([i for i in player.inventory if i.name.startswith("Level Access")])
                         total = len(settings['Included Levels'])
                         return f"{item} ({count}/{total})"
                     if item.startswith("Level Clear"):
-                        count = len([i for i in player.inventory if i.startswith("Level Clear")])
+                        count = len([i for i in player.inventory if i.name.startswith("Level Clear")])
                         required = settings['Win Conditions']['nrof-maps']
                         if required == "all":
                             required = len(settings['Included Levels'])
                         return f"{item} ({count}/{required})"
-                    if any([item.startswith(color) for color in ["Blue","Yellow","Red"]]) and not item == "BlueArmor":
+                    if any([item.name.startswith(color) for color in ["Blue","Yellow","Red"]]) and not item == "BlueArmor":
                         item_match = item_regex.match(item)
                         subitem,map = item_match.groups()
                         collected_string = str()
