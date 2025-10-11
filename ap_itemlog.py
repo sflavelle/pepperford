@@ -134,16 +134,12 @@ def process_spoiler_log(seed_url):
         'pokemon_locations': re.compile(r'^Wild Pokemon \((.+?)\):$')
     }
 
-    def parse_to_type(value):
-        constructors = [int, float, str]
-        if value == '': return None
-        if value.lower() in ['yes', 'true']: return True
-        elif value.lower() in ['no', 'false']: return False
-        for c in constructors:
-            try:
-                return c(value)
-            except ValueError:
-                pass
+    def parse_to_type(s):
+        # Try int, float, bool, list, dict, or fallback to str
+        try:
+            return ast.literal_eval(s)
+        except Exception:
+            return s
 
     for line in spoiler_text:
         line = str(line)
@@ -209,9 +205,27 @@ def process_spoiler_log(seed_url):
 
                         return key, value_str
                     
+                    def parse_value(value_str: str):
+                        # Dict-like pattern: key: value, key: value, ...
+                        if "," in value_str and ":" in value_str and not value_str.startswith("[") and not value_str.startswith("{"):
+                            items = [v.strip() for v in value_str.split(",")]
+                            result = {}
+                            for item in items:
+                                if ":" in item:
+                                    k, v = item.split(":", 1)
+                                    # Recursively parse the value
+                                    v_parsed = parse_to_type(v.strip())
+                                    result[k.strip()] = v_parsed
+                                else:
+                                    # If the item has no colon, treat as a single value
+                                    result[item] = None
+                            return result
+                        # Otherwise, try to parse as list/dict/etc.
+                        return parse_to_type(value_str)
+                    
                     key, value_str = parse_line(line)
                     if key.startswith("Player "): continue  # Skip player header lines
-                    game.players[working_player].settings[key] = parse_to_type(value_str)
+                    game.players[working_player].settings[key] = parse_value(value_str)
 
                     # Try to parse as a list (comma-separated, not inside brackets)
                     if "," in value_str and not (value_str.startswith("[") or value_str.startswith("{")):
@@ -222,37 +236,6 @@ def process_spoiler_log(seed_url):
                     logger.error(line)
                     logger.error(f"Error: {e}")
                     continue
-
-                # Try to parse as JSON (object or array)
-                try:
-                    # If it looks like a JSON object or array
-                    if value_str.startswith("{") or value_str.startswith("["):
-                        game.players[working_player].settings[key] = json.loads(value_str)
-                        continue
-                    # If it looks like a dict without braces, add braces and try to parse
-                    # Only trigger if it contains ':' and at least one comma, and does not start with '{' or '['
-                    if ":" in value_str and "," in value_str and not (value_str.startswith("{") or value_str.startswith("[")):
-                        json_str = "{" + value_str + "}"
-                        # Add quotes to keys for JSON compatibility
-                        json_str = re.sub(r'(\w[\w\- ]*):', r'"\1":', json_str)
-                        game.players[working_player].settings[key] = json.loads(json_str)
-                        continue
-                    # If it looks like a dict without braces and only one key:value, handle that too
-                    if ":" in value_str and not (value_str.startswith("{") or value_str.startswith("[")) and "," not in value_str:
-                        json_str = "{" + value_str + "}"
-                        json_str = re.sub(r'(\w[\w\- ]*):', r'"\1":', json_str)
-                        game.players[working_player].settings[key] = json.loads(json_str)
-                        continue
-
-                    if type(game.players[working_player].settings[key]) in [list]:
-                        # If the value is a list, parse it as such
-                        game.players[working_player].settings[key] = [parse_to_type(v.strip()) for v in game.players[working_player].settings[key]]
-                        continue
-                except Exception:
-                    pass
-
-                # Fallback: store as string
-                game.players[working_player].settings[key] = parse_to_type(value_str)
             case "Locations":
                 if match := regex_patterns['location'].match(line):
                     item_location, sender, item, receiver = match.groups()
@@ -316,6 +299,7 @@ def process_spoiler_log(seed_url):
                     expanded_levels.add(pattern)
             # Remove duplicates and update Included Levels
             player.settings["Included Levels"] = list(sorted(expanded_levels))
+            player.stats.set_stat("required_levels", list(sorted(expanded_levels)))
     logger.info("Done parsing the spoiler log")
 
 def process_new_log_lines(new_lines, skip_msg: bool = False):
