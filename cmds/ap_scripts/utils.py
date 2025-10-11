@@ -307,6 +307,10 @@ class Player(dict):
         """Get the count of a specific item in the player's inventory."""
         return sum(1 for item in self.inventory if item.name == item_name)
     
+    def has_item(self, item_name: str) -> bool:
+        """Check if the player has at least one of the specified item in their inventory."""
+        return any(item.name == item_name for item in self.inventory)
+    
     def get_collected_items(self, items: Iterable[Any]) -> list:
         """For a list of items requested, return the items that are present in the inventory."""
         collected_items = []
@@ -740,14 +744,14 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                         if required == "all":
                             required = len(settings['Included Levels'])
                         return f"{item} ({count}/{required})"
-                    if any([item.name.startswith(color) for color in ["Blue","Yellow","Red"]]) and not item == "BlueArmor":
+                    if any([str(item).startswith(color) for color in ["Blue","Yellow","Red"]]) and not str(item) == "BlueArmor":
                         item_match = item_regex.match(item)
                         subitem,map = item_match.groups()
                         collected_string = str()
                         keys = [f"{color}{key}" for color in ["Blue","Yellow","Red"] for key in ["Skull", "Card"]]
                         map_keys = sorted([i for i in item_table['gzDoom'].keys() if (i.endswith(f"({map})") and any([key in i for key in keys]))])
                         for i in map_keys:
-                            if i in player.inventory: collected_string += i[0]
+                            if player.has_item(i): collected_string += i[0]
                             else: collected_string += "_"
                         if f"Level Access ({map})" not in player.inventory:
                             collected_string = f"~~{collected_string}~~" # Strikethrough keys if not found
