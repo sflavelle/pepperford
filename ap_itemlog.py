@@ -205,19 +205,36 @@ def process_spoiler_log(seed_url):
 
                         return key, value_str
                     
-                    def parse_value(value_str: str):
+                    def smart_split(s):
+                        # Split on commas, ignoring those inside [], (), or {}
+                        parts = []
+                        bracket_level = 0
+                        curr = []
+                        for char in s:
+                            if char in '[({':
+                                bracket_level += 1
+                            elif char in '])}':
+                                bracket_level -= 1
+                            if char == ',' and bracket_level == 0:
+                                parts.append(''.join(curr).strip())
+                                curr = []
+                            else:
+                                curr.append(char)
+                        if curr:
+                            parts.append(''.join(curr).strip())
+                        return parts
+
+                    def parse_value(value_str):
                         # Dict-like pattern: key: value, key: value, ...
                         if "," in value_str and ":" in value_str and not value_str.startswith("[") and not value_str.startswith("{"):
-                            items = [v.strip() for v in value_str.split(",")]
+                            items = smart_split(value_str)
                             result = {}
                             for item in items:
                                 if ":" in item:
                                     k, v = item.split(":", 1)
-                                    # Recursively parse the value
                                     v_parsed = parse_to_type(v.strip())
                                     result[k.strip()] = v_parsed
                                 else:
-                                    # If the item has no colon, treat as a single value
                                     result[item] = None
                             return result
                         # Otherwise, try to parse as list/dict/etc.
