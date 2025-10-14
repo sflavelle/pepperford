@@ -303,7 +303,9 @@ def process_spoiler_log(seed_url):
         if player.game == "gzDoom":
             # If gzDoom has a wildcard in the map list, we need to handle it
             expanded_levels = set()
-            patterns = player.settings.get("Included Levels", [])
+            patterns = player.settings.get("Included levels", [])
+            logger.info(f"Matching gzDoom Included Levels for {player.name}: {patterns}")
+
             for pattern in patterns:
                 if "*" in pattern or "?" in pattern:
                     # Find all unique map names in player's locations that match the pattern
