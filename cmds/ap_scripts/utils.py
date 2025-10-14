@@ -1,6 +1,7 @@
 import datetime
 import time
 import re
+import fnmatch
 import math
 import psycopg2 as psql
 import logging
@@ -581,10 +582,6 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
 
         try:
             match game:
-                case "A Link to the Past":
-                    if item == "Triforce Piece" and "Triforce Hunt" in settings['Goal']:
-                        required = settings['Triforce Pieces Required']
-                        return f"{item} (*{count}/{required}*)"
                 case "A Hat in Time":
                     if item == "Time Piece" and not settings['Death Wish Only']:
                         required = 0
@@ -740,12 +737,23 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                         return f"{item} ({count}/{total})"
                     if item.startswith("Level Clear"):
                         count = len([i for i in player.inventory if str(i).startswith("Level Clear")])
-                        required = 0
+                        required_num = 0
+                        required_maps = []
+                        req_maps_formatted = []
                         if settings['Win conditions']['nrof-maps'] == "all":
-                            required = len(settings['Included levels'])
+                            required_num = len(settings['Included levels'])
                         else:
-                            required = int(settings['Win conditions']['nrof-maps']) + (len(settings['Win conditions']['specific-maps']) if 'specific-maps' in settings['Win conditions'] else 0)
-                        return f"{item} ({count}/{required})"
+                            required_num = int(settings['Win conditions']['nrof-maps'])
+                            required_maps = list(settings['Win conditions']['specific-maps'])
+
+                        if len(required_maps) > 0:
+                            for map in required_maps:
+                                if player.has_item(f"Level Clear ({map})"):
+                                    req_maps_formatted.append(f"~~{map}~~")
+                                else:
+                                    req_maps_formatted.append(map)
+
+                        return f"{item} ({count}/{required_num}{f"+{",".join(req_maps_formatted)}" if len(required_maps) > 0 else ""})"
                     if any([str(item).startswith(color) for color in ["Blue","Yellow","Red"]]) and not str(item) == "BlueArmor":
                         item_match = item_regex.match(item)
                         subitem,map = item_match.groups()
@@ -755,7 +763,7 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                         for i in map_keys:
                             if player.has_item(i): collected_string += i[0]
                             else: collected_string += "_"
-                        if f"Level Access ({map})" not in player.inventory:
+                        if not player.has_item(f"Level Access ({map})"):
                             collected_string = f"~~{collected_string}~~" # Strikethrough keys if not found
                         return f"{item} ({collected_string})"
                 case "Here Comes Niko!":
@@ -789,9 +797,18 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                     if item == "Bounty" and settings["Goal"] == "Hitlist":
                         required = settings['Bounties Required']
                         return f"{item} (*{count}/{required}*)"
+                case "A Link to the Past":
+                    if item == "Triforce Piece" and "Triforce Hunt" in settings['Goal']:
+                        required = settings['Triforce Pieces Required']
+                        return f"{item} (*{count}/{required}*)"
+                    if item == "Piece of Heart":
+                        if count % 4 == 0:
+                            return f"{item} (+1 Heart Container)"
+                        else: return f"{item} ({count % 4}/4)"
                 case "Mega Man 2":
                     if item.endswith("Access Codes"):
                         total = 8
+                        count = len([i for i in player.inventory if str(i).endswith("Access Codes")])
                         return f"{item} ({count}/{total})"
                 case "Muse Dash":
                     if item == "Music Sheet":
