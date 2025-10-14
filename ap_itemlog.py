@@ -306,11 +306,15 @@ def process_spoiler_log(seed_url):
             patterns = player.settings.get("Included levels", [])
             logger.info(f"Matching gzDoom Included Levels for {player.name}: {patterns}")
 
+            levelaccess_mapname_match = re.compile(r'Level Access \((.+?)\)')
+
             for pattern in patterns:
                 if "*" in pattern or "?" in pattern:
                     # Find all unique map names in player's locations that match the pattern
                     for location in player.locations:
-                        map_name = location.split(" - ")[0]
+                        map_name = None
+                        if match := levelaccess_mapname_match.match(str(location)):
+                            map_name = match.group(1)
                         if fnmatch.fnmatch(map_name, pattern):
                             expanded_levels.add(map_name)
                 else:
