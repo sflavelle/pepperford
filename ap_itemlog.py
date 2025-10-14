@@ -314,8 +314,10 @@ def process_spoiler_log(seed_url):
                 else:
                     expanded_levels.add(pattern)
             # Remove duplicates and update Included Levels
-            player.settings["Included levels"] = list(sorted(expanded_levels))
-            player.stats.set_stat("required_levels", list(sorted(expanded_levels)))
+            complete_level_list = list(sorted(expanded_levels))
+            logger.info(f"Expanded gzDoom Included Levels for {player.name}: {complete_level_list}")
+            player.settings["Included levels"] = complete_level_list
+            player.stats.set_stat("all_levels", complete_level_list)
     logger.info("Done parsing the spoiler log")
 
 def process_new_log_lines(new_lines, skip_msg: bool = False):
