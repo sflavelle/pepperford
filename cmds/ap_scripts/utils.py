@@ -11,6 +11,7 @@ import discord
 from typing import Iterable, Any
 
 from cmds.ap_scripts.emitter import event_emitter
+from cmds.ap_scripts.name_translations import gzDoomMapNames
 from zoneinfo import ZoneInfo
 
 # setup logging
@@ -918,14 +919,14 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                         required = settings['Gold Hexagons Required']
                         return f"{item} (*{count}/{required}*)"
                     if item == "Golden Coin":
-                        required = [3,6,10,15]
+                        required = [3,6,10,15,20]
                         next_req = 0
                         for check in required:
                             if count >= check: continue
                             if count < check:
                                 next_req = check
                                 break
-                            next_req = 20
+                        if next_req == 0: next_req = 20
 
                         return f"{item} ({count}/{next_req})"
                     if item in ["Blue Questagon", "Red Questagon", "Green Questagon"]:
