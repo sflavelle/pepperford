@@ -12,6 +12,7 @@ import typing
 import datetime
 import isodate
 import dateparser
+import validators
 from io import BytesIO
 import psycopg2 as psql
 from psycopg2.extras import Json as psql_json
@@ -232,8 +233,8 @@ class Quotes(commands.GroupCog, group_name="quote"):
         except psycopg2.DatabaseError as error:
             await interaction.response.send_message(f'Error: SQL Failed due to:\n```{str(error.with_traceback)}```',ephemeral=True)
             logger.error("QUOTE SQL ERROR:\n" + str(error.with_traceback))
-        except dateutil.parser._parser.ParserError as error:
-            await interaction.response.send_message(f'Error: {error}',ephemeral=True)
+        # except dateutil.parser._parser.ParserError as error:
+        #     await interaction.response.send_message(f'Error: {error}',ephemeral=True)
 
 @app_commands.context_menu(name='Save as quote!')
 async def quote_save(interaction: discord.Interaction, message: discord.Message):
