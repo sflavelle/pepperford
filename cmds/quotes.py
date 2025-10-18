@@ -11,6 +11,7 @@ import traceback
 import typing
 import datetime
 import isodate
+import dateparser
 from io import BytesIO
 import psycopg2 as psql
 from psycopg2.extras import Json as psql_json
@@ -173,7 +174,7 @@ class Quotes(commands.GroupCog, group_name="quote"):
         try:
             
             # Parse entered timestamp
-            timestamp = parse(time, default=datetime.now())
+            timestamp = dateparser.parse(time)
             
             sql_values = (
                 content,
