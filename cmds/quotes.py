@@ -228,8 +228,7 @@ class Quotes(commands.GroupCog, group_name="quote"):
                     quote.set_footer(text=f"Score: {'+' if karma > 0 else ''}{karma} (no change due to error: {error}")
                     logger.error(f"Error updating karma for quote {qid} in guild {interaction.guild_id}: {error}")
                     await qmsg.edit(embed=quote)
-            
-            con.close()
+        
         except psycopg2.DatabaseError as error:
             await interaction.response.send_message(f'Error: SQL Failed due to:\n```{str(error.with_traceback)}```',ephemeral=True)
             logger.error("QUOTE SQL ERROR:\n" + str(error.with_traceback))
