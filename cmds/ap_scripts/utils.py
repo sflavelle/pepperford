@@ -11,7 +11,7 @@ import discord
 from typing import Iterable, Any
 
 from cmds.ap_scripts.emitter import event_emitter
-from cmds.ap_scripts.name_translations import gzDoomMapNames
+# from cmds.ap_scripts.name_translations import gzDoomMapNames
 from zoneinfo import ZoneInfo
 
 # setup logging
