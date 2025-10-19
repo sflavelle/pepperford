@@ -407,6 +407,7 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
         return item
 
     for line in new_lines:
+        line_start_time = time.time_ns() # for performance logging
         if match := regex_patterns['sent_items'].match(line):
             timestamp, sender, item, receiver, item_location = match.groups()
 
@@ -669,6 +670,13 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
         else:
             # Unmatched lines
             logger.debug(f"Unparsed line: {line}")
+
+        line_end_time = time.time_ns()
+
+        # If the line processing took more than 5 ms, log it
+
+        if line_end_time - line_start_time > 5_000_000:
+            logger.debug(f"Processing line took {(line_end_time - line_start_time)/1_000_000} ms: {line}")
 
 ### Common non-loop functions
 
