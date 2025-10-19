@@ -1,4 +1,5 @@
-import datetime
+from datetime import datetime, timedelta
+import dateparser
 import json
 import time
 import regex as re
@@ -92,6 +93,13 @@ INTERVAL = 60
 # Maximum Discord message length in characters
 MAX_MSG_LENGTH = 2000
 
+# Timezones for timestamp parsing
+timezones = {
+    'archipelago.gg': 'Etc/UTC',
+    'rando.thegeneral.chat': 'America/Chicago',
+    'neurario.com': 'Australia/Melbourne',
+}
+
 # Buffer to store release and related sent item messages
 release_buffer = {}
 message_buffer = []
@@ -104,7 +112,6 @@ start_time = None
 # small functions
 goaled = lambda player : game.players[player].is_finished()
 dim_if_goaled = lambda p : "-# " if goaled(p) else ""
-to_epoch = lambda timestamp : time.mktime(datetime.datetime.strptime(timestamp, "%Y-%m-%d %H:%M:%S,%f").timetuple())
 
 def join_words(words):
     if len(words) > 2:
@@ -401,7 +408,8 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
             timestamp, sender, item, receiver, item_location = match.groups()
 
             # convert timestamp to epoch time
-            timestamp = to_epoch(timestamp)
+            timestamp = dateparser.parse(timestamp, 
+                                         settings={'TIMEZONE': timezones.get(hostname, 'Etc/UTC')})
 
             # Mark item as collected
             try:
@@ -580,7 +588,7 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
             if not skip_msg:
                 logging.info("Release detected.")
                 release_buffer[sender] = {
-                    'timestamp': to_epoch(timestamp),
+                    'timestamp': dateparser.parse(timestamp, settings={'TIMEZONE': timezones.get(hostname, 'Etc/UTC'), 'RETURN_AS_TIMEZONE_AWARE': False}),
                     'items': defaultdict(list)
                 }
         elif match := regex_patterns['room_shutdown'].match(line):
@@ -606,7 +614,7 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
                         send_chat("Archipelago", message)
                         message_buffer.append(message)
             if start_time is None:
-                start_time = to_epoch(timestamp)
+                start_time = dateparser.parse(timestamp, settings={'TIMEZONE': timezones.get(hostname, 'Etc/UTC'), 'RETURN_AS_TIMEZONE_AWARE': False})
                 logger.info(f"Start time set to {start_time} (epoch)")
         elif match := regex_patterns['messages'].match(line):
             timestamp, sender, message = match.groups()
@@ -651,7 +659,7 @@ def log_to_file(message):
 
     os.makedirs('logs', exist_ok=True)  # Ensure logs directory exists
     with open(f'logs/{room_id}.md', 'a', encoding='UTF-8') as log_file:
-        log_file.write(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} - {message}\n")
+        log_file.write(f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} - {message}\n")
 
 def send_chat(sender, message):
     payload = {
@@ -829,7 +837,7 @@ def watch_log(url, interval):
         **Seed Address:** `{seed_address}`
         **Archipelago Version:** `{game.version_generator}`
         **Players:** `{game.world_settings["Players"]}`
-        **Total Checks:** `{game.total_locations}` (possibly inaccurate)'''
+        **Total Checks:** `{game.total_locations}\*`'''
 
         message_buffer.append(message)
         logger.info("New room: Queuing initial message to Discord.")
@@ -890,6 +898,11 @@ def watch_log(url, interval):
             if len(message_buffer) == 0:
                 # If we have no messages to send but the log has updated, sync last_line anyway
                 last_line = len(current_lines)
+
+        if len(release_buffer) > 0:
+            if any(time.time() - release_buffer[sender]['timestamp'] > 3 for sender in release_buffer.keys()):
+                logger.info(f"Release buffer period has already passed, sending.")
+                send_release_messages()
 
         # Check if all players have finished
         if all(p.is_finished() for p in game.players.values()) and len(message_buffer) == 0 and len(release_buffer) == 0:
@@ -968,7 +981,7 @@ def run_flask():
                 # Check if the port is already in use by another seed in the database
                 if sqlcon:
                     with sqlcon.cursor() as cursor:
-                        cursor.execute("SELECT COUNT(*) FROM pepper.ap_all_rooms WHERE flask_port = %s AND room_id != %s", (port, room_id))
+                        cursor.execute("SELECT COUNT(*) FROM pepper.ap_all_rooms WHERE flask_port = %s AND room_id != %s AND active = 'true'", (port, room_id))
                         if cursor.fetchone()[0] == 0:
                             pass
                         else: raise ValueError(f"Port {port} is already in use by another seed in the database.")
