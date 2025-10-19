@@ -286,6 +286,7 @@ def process_spoiler_log(seed_url):
                         # Not a problem, just the header
                         continue
                     else:
+                        logger.error(f"Error parsing Jigsaw line: {line}")
                         raise e
             case "Pokemon Locations":
                 # Some Pkmn games list the locations of wild Pokemon in the spoiler log
