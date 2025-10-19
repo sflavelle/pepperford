@@ -157,6 +157,7 @@ class Player(dict):
     inventory: list = []
     locations = {}
     hints = {}
+    spoilers = {"items": [], "locations": {}}
     online = False
     last_online = None
     tags = []
@@ -167,6 +168,7 @@ class Player(dict):
     collected_locations: int = 0
     total_locations: int = 0
     collection_percentage: float = 0.0
+    finished_percentage: float = 0.0
 
     class PlayerState(dict):
         """A class to hold the player's state in the game.
@@ -322,6 +324,19 @@ class Player(dict):
                 collected_items.append(collected_item)
         
         return collected_items
+    
+    def add_spoiler(self, item: 'Item'):
+        """Add an item to the player's spoiler log."""
+        if item.receiver == self.name:
+            self.spoilers['items'].append(item)
+        if item.sender == self.name:
+            self.spoilers['locations'][item.location] = item
+        if self.name in [item.sender, item.receiver]:
+            logger.debug(f"Spoiler added for player {self.name}: {item.name} at {item.location}")
+            return True
+        else:
+            logger.warning(f"Attempted to add spoiler for player {self.name} but they are not involved with the item: {item.name} at {item.sender}: {item.location}")
+            return False
 
 class Item(dict):
     """An Archipelago item in the multiworld"""

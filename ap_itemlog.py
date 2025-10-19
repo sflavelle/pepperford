@@ -281,6 +281,9 @@ def process_spoiler_log(seed_url):
                         pass
 
                     ItemObject.db_add_location()
+                    game.players[sender].add_spoiler(ItemObject)
+                    game.players[receiver].add_spoiler(ItemObject)
+                    
                     if sender not in game.spoiler_log: game.spoiler_log.update({sender: {}})
                     game.spoiler_log[sender].update({item_location: ItemObject})
             case "Starting Items":
@@ -465,6 +468,16 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
                 if Item.classification == "trap":
                     trap_messages = []
 
+                    def random_nontrap_item(player: Player):
+                        """Get the name of a random non-trap item from the player's spoiler log.
+                        Useful for extra flavor in trap messages."""
+
+                        non_trap_items = [it.name for it in game.spoiler_log[player.name].values() if it.classification not in ["trap","currency","filler"] and it.found is False]
+
+                        if len(non_trap_items) == 0:
+                            return "a mysterious item"
+                        return random.choice(non_trap_items)
+
                     def trapmsg_substvars(string: str, sender: str, receiver: str, trap: str):
                         string = string.replace("$s", sender)
                         string = string.replace("$r", receiver)
@@ -475,6 +488,8 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
                         string = string.replace("$T", trap.replace(" Trap","")) 
 
                         return string
+                    
+
 
                     if sender == receiver:
                         trap_messages = [
@@ -575,6 +590,7 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
             timestamp, sender = match.groups()
             if sender not in game.players: game.players[sender] = {"goaled": True}
             game.players[sender].goaled = True
+            game.players[sender].finished_percentage = game.players[sender].collection_percentage
 
             message = f"**{sender} has finished!** That's {len([p for p in game.players.values() if p.is_goaled()])}/{len(game.players)} goaled! ({len([p for p in game.players.values() if p.is_finished()])}/{len(game.players)} including releases)"
             if game.players[sender].collected_locations == game.players[sender].total_locations:
