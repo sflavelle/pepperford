@@ -472,7 +472,7 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
                         """Get the name of a random non-trap item from the player's spoiler log.
                         Useful for extra flavor in trap messages."""
 
-                        non_trap_items = [it.name for it in game.spoiler_log[player.name].values() if it.classification not in ["trap","currency","filler"] and it.found is False]
+                        non_trap_items = [it.name for it in game.players[player.name].spoilers['items'] if it.classification not in ["trap","currency","filler"] and it.found is False]
 
                         if len(non_trap_items) == 0:
                             return "a mysterious item"
@@ -487,6 +487,10 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
                         # Trap name without the 'Trap' suffix
                         string = string.replace("$T", trap.replace(" Trap","")) 
 
+                        # Some random non-trap item from the receiver's spoiler log
+                        # Jokes!
+                        string = string.replace("$i", random_nontrap_item(game.players[receiver]))
+
                         return string
                     
 
@@ -494,7 +498,7 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
                     if sender == receiver:
                         trap_messages = [
                             "**$s** needed more challenge, and collected **their own $t**",
-                            "**$s** thought it was progression, but it was I, **$t**!",
+                            "**$s** thought it was a $i, but it was I, **$t**!",
                             "**$s** is a FOOL! (collected a **$t**)",
                             "**$s** was **$T'd!**",
                             "A **$t** destroyed **$s's** world (and everything inside)",
@@ -508,6 +512,7 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
                             "**$r**, is this a good time for a **$t** from $s?",
                             "**$r** received a demo of what it's like to get a **$t** from $s",
                             "$s destroyed **$r's** world (and everything inside) with a **$t**",
+                            "$s did *not* send **~~$i~~** to **$r** (it was a **$t** instead)",
                         ]
 
                     message = random.choice(trap_messages)
