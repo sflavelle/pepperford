@@ -853,7 +853,7 @@ def watch_log(url, interval):
         **Seed Address:** `{seed_address}`
         **Archipelago Version:** `{game.version_generator}`
         **Players:** `{game.world_settings["Players"]}`
-        **Total Checks:** `{game.total_locations}\*`'''
+        **Total Checks:** `{game.total_locations}*`'''
 
         message_buffer.append(message)
         logger.info("New room: Queuing initial message to Discord.")
