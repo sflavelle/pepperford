@@ -241,9 +241,9 @@ class Player(dict):
     def is_goaled(self) -> bool:
         return self.goaled
 
-    def set_online(self, online: bool, timestamp: str):
+    def set_online(self, online: bool, timestamp: datetime.datetime):
         self.online = online
-        self.last_online = time.mktime(datetime.datetime.strptime(timestamp, "%Y-%m-%d %H:%M:%S,%f").timetuple())
+        self.last_online = timestamp.timetuple()
 
     def last_seen(self):
         if self.online is True:
