@@ -205,6 +205,7 @@ def process_spoiler_log(seed_url):
             parse_mode = None
         if line.startswith("Dungeon Entrances"):
             parse_mode = None
+            continue
         if line.startswith("Spoiler and info for [Jigsaw]"):
             parse_mode = "Jigsaw Info"
             working_player_num = 0
@@ -473,6 +474,7 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
                             "**$s** thought it was progression, but it was I, **$t**!",
                             "**$s** is a FOOL! (collected a **$t**)",
                             "**$s** was **$T'd!**",
+                            "A **$t** destroyed **$s's** world (and everything inside)",
                         ]
                     else:
                         trap_messages = [
@@ -482,6 +484,7 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
                             "$s definitely *did not* send **$r** a **$t**",
                             "**$r**, is this a good time for a **$t** from $s?",
                             "**$r** received a demo of what it's like to get a **$t** from $s",
+                            "$s destroyed **$r's** world (and everything inside) with a **$t**",
                         ]
 
                     message = random.choice(trap_messages)
