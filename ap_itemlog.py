@@ -140,6 +140,48 @@ def process_spoiler_log(seed_url):
             return ast.literal_eval(s)
         except Exception:
             return s
+        
+    def parse_line(line):
+        current_key, value = line.strip().split(':', 1)
+        value_str = value.lstrip()
+        key = current_key.strip().replace("_", " ")
+
+        return key, value_str
+    
+    def smart_split(s):
+        # Split on commas, ignoring those inside [], (), or {}
+        parts = []
+        bracket_level = 0
+        curr = []
+        for char in s:
+            if char in '[({':
+                bracket_level += 1
+            elif char in '])}':
+                bracket_level -= 1
+            if char == ',' and bracket_level == 0:
+                parts.append(''.join(curr).strip())
+                curr = []
+            else:
+                curr.append(char)
+        if curr:
+            parts.append(''.join(curr).strip())
+        return parts
+
+    def parse_value(value_str):
+        # Dict-like pattern: key: value, key: value, ...
+        if "," in value_str and ":" in value_str and not value_str.startswith("[") and not value_str.startswith("{"):
+            items = smart_split(value_str)
+            result = {}
+            for item in items:
+                if ":" in item:
+                    k, v = item.split(":", 1)
+                    v_parsed = parse_to_type(v.strip())
+                    result[k.strip()] = v_parsed
+                else:
+                    result[item] = None
+            return result
+        # Otherwise, try to parse as list/dict/etc.
+        return parse_to_type(value_str)
 
     for line in spoiler_text:
         line = str(line)
@@ -171,6 +213,7 @@ def process_spoiler_log(seed_url):
             except (ValueError, IndexError):
                 logger.error(f"Error parsing Jigsaw player number from line: {line}")
                 working_player = None
+            continue
         if match := regex_patterns['pokemon_locations'].match(line):
             parse_mode = "Pokemon Locations"
             working_player = match.group(1)
@@ -198,47 +241,6 @@ def process_spoiler_log(seed_url):
 
             case "Players":
                 try:
-                    def parse_line(line):
-                        current_key, value = line.strip().split(':', 1)
-                        value_str = value.lstrip()
-                        key = current_key.strip().replace("_", " ")
-
-                        return key, value_str
-                    
-                    def smart_split(s):
-                        # Split on commas, ignoring those inside [], (), or {}
-                        parts = []
-                        bracket_level = 0
-                        curr = []
-                        for char in s:
-                            if char in '[({':
-                                bracket_level += 1
-                            elif char in '])}':
-                                bracket_level -= 1
-                            if char == ',' and bracket_level == 0:
-                                parts.append(''.join(curr).strip())
-                                curr = []
-                            else:
-                                curr.append(char)
-                        if curr:
-                            parts.append(''.join(curr).strip())
-                        return parts
-
-                    def parse_value(value_str):
-                        # Dict-like pattern: key: value, key: value, ...
-                        if "," in value_str and ":" in value_str and not value_str.startswith("[") and not value_str.startswith("{"):
-                            items = smart_split(value_str)
-                            result = {}
-                            for item in items:
-                                if ":" in item:
-                                    k, v = item.split(":", 1)
-                                    v_parsed = parse_to_type(v.strip())
-                                    result[k.strip()] = v_parsed
-                                else:
-                                    result[item] = None
-                            return result
-                        # Otherwise, try to parse as list/dict/etc.
-                        return parse_to_type(value_str)
                     
                     key, value_str = parse_line(line)
                     if key.startswith("Player "): continue  # Skip player header lines
