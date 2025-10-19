@@ -1131,6 +1131,10 @@ def handle_location_hinting(player: Player, item: Item) -> tuple[list[str], str]
                 if location in contact_lists["2"]:
                     requirements.append("Contact List 2")
 
+                if "Chatsanity" in location and settings['Textbox'] is True:
+                    requirements.append("Textbox")
+
+
     if bool(requirements):
         logger.info(f"Updating item's location {item.location} with requirements: {requirements}")
     return (requirements, extra_info)
