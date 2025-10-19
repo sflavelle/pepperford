@@ -411,8 +411,7 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
         if match := regex_patterns['sent_items'].match(line):
             timestamp, sender, item, receiver, item_location = match.groups()
 
-            # convert timestamp to epoch time
-            timestamp = dateparser.parse(timestamp, 
+            timestamp = dateparser.parse(timestamp[:-3], # strip milliseconds
                                          settings={'TIMEZONE': timezones.get(hostname, 'Etc/UTC')})
 
             # Mark item as collected
@@ -605,7 +604,7 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
             if not skip_msg:
                 logging.info("Release detected.")
                 release_buffer[sender] = {
-                    'timestamp': dateparser.parse(timestamp, settings={'TIMEZONE': timezones.get(hostname, 'Etc/UTC'), 'RETURN_AS_TIMEZONE_AWARE': False}),
+                    'timestamp': dateparser.parse(timestamp[:-3], settings={'TIMEZONE': timezones.get(hostname, 'Etc/UTC'), 'RETURN_AS_TIMEZONE_AWARE': False}),
                     'items': defaultdict(list)
                 }
         elif match := regex_patterns['room_shutdown'].match(line):
@@ -631,7 +630,7 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
                         send_chat("Archipelago", message)
                         message_buffer.append(message)
             if start_time is None:
-                start_time = dateparser.parse(timestamp, settings={'TIMEZONE': timezones.get(hostname, 'Etc/UTC'), 'RETURN_AS_TIMEZONE_AWARE': False})
+                start_time = dateparser.parse(timestamp[:-3], settings={'TIMEZONE': timezones.get(hostname, 'Etc/UTC'), 'RETURN_AS_TIMEZONE_AWARE': False})
                 if start_time is None:
                     logger.error(f"Failed to parse start time from timestamp: {timestamp}")
                 logger.info(f"Start time set to {start_time} (epoch)")
