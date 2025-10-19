@@ -203,6 +203,8 @@ def process_spoiler_log(seed_url):
             logger.info("Parsing starting items")
         if line in ["Entrances:","Medallions:","Fairy Fountain Bottle Fill:", "Shops:", "Level Layout", "Animal Friends"]:
             parse_mode = None
+        if line.startswith("Dungeon Entrances"):
+            parse_mode = None
         if line.startswith("Spoiler and info for [Jigsaw]"):
             parse_mode = "Jigsaw Info"
             working_player_num = 0
