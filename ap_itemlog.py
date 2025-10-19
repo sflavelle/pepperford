@@ -650,6 +650,11 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
 
         elif match := regex_patterns['joins'].match(line):
             timestamp, player, verb, playergame, client_version, tags = match.groups()
+
+            timestamp = dateparser.parse(timestamp[:-3], # strip milliseconds
+                                         settings={'TIMEZONE': timezones.get(hostname, 'Etc/UTC')})
+            
+
             try:
                 tags_str = tags
                 tags = ast.literal_eval(tags_str)
@@ -668,6 +673,10 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
 
         elif match := regex_patterns['parts'].match(line):
             timestamp, player, version, tags = match.groups()
+
+            timestamp = dateparser.parse(timestamp[:-3], # strip milliseconds
+                                         settings={'TIMEZONE': timezones.get(hostname, 'Etc/UTC')})
+            
             if not skip_msg: logger.info(f"{player} is offline.")
             game.players[player].set_online(False, timestamp)
 
