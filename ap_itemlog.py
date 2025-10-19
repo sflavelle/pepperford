@@ -893,7 +893,7 @@ def watch_log(url, interval):
                     # Any locations not 'checked' by this point should be marked as uncheckable
                     logger.info(f"{p.name} ({p.game}) released, marking remaining unchecked locations as uncheckable.")
                     for loc in p.locations.values():
-                        if loc.found is False:
+                        if loc.found is False and loc.is_location_checkable is None:
                             logger.info(f"Marking {p.game}: {loc.name} as uncheckable.")
                             loc.db_add_location(is_check=False)
             
