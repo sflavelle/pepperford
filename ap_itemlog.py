@@ -631,6 +631,8 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
                         message_buffer.append(message)
             if start_time is None:
                 start_time = dateparser.parse(timestamp, settings={'TIMEZONE': timezones.get(hostname, 'Etc/UTC'), 'RETURN_AS_TIMEZONE_AWARE': False})
+                if start_time is None:
+                    logger.error(f"Failed to parse start time from timestamp: {timestamp}")
                 logger.info(f"Start time set to {start_time} (epoch)")
         elif match := regex_patterns['messages'].match(line):
             timestamp, sender, message = match.groups()
