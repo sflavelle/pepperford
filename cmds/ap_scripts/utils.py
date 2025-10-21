@@ -328,7 +328,7 @@ class Player(dict):
     
     def add_spoiler(self, item: 'Item'):
         """Add an item to the player's spoiler log."""
-        if self.name == item.sender or self.name == item.receiver:
+        if self.name == str(item.sender) or self.name == str(item.receiver):
             if item.receiver == self.name:
                 self.spoilers['items'].append(item)
             if item.sender == self.name:
