@@ -328,11 +328,11 @@ class Player(dict):
     
     def add_spoiler(self, item: 'Item'):
         """Add an item to the player's spoiler log."""
-        if self.name in [item.sender, item.receiver]:
+        if self.name == item.sender or self.name == item.receiver:
             if item.receiver == self.name:
                 self.spoilers['items'].append(item)
             if item.sender == self.name:
-                self.spoilers['locations'][item.location] = item
+                self.spoilers['locations'].update({item.location: item})
             logger.debug(f"Spoiler added for player {self.name}: {item.name} at {item.location}")
             return True
         else:
