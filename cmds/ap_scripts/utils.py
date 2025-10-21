@@ -336,7 +336,7 @@ class Player(dict):
             logger.debug(f"Spoiler added for player {self.name}: {item.name} at {item.location}")
             return True
         else:
-            logger.debug(f"Attempted to add spoiler for player {self.name} but they are not involved with the item: {item.name} at {item.sender}: {item.location}")
+            logger.error(f"Attempted to add spoiler for player {self.name} but they are not involved with the item: {item.name} at {item.sender}: {item.location} for {item.receiver}")
             return False
 
 class Item(dict):
