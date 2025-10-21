@@ -243,7 +243,7 @@ class Player(dict):
 
     def set_online(self, online: bool, timestamp: datetime.datetime):
         self.online = online
-        self.last_online = timestamp.timetuple()
+        self.last_online = timestamp
 
     def last_seen(self):
         if self.online is True:
