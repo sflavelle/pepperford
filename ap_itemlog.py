@@ -279,10 +279,13 @@ def process_spoiler_log(seed_url):
                         # del ItemObject
                         # continue
                         pass
+                    else:
+                        if game.players[sender].name == sender:
+                            game.players[sender].add_spoiler(ItemObject)
+                        if game.players[receiver].name == receiver:
+                            game.players[receiver].add_spoiler(ItemObject)
 
                     ItemObject.db_add_location()
-                    game.players[sender].add_spoiler(ItemObject)
-                    game.players[receiver].add_spoiler(ItemObject)
                     
                     if sender not in game.spoiler_log: game.spoiler_log.update({sender: {}})
                     game.spoiler_log[sender].update({item_location: ItemObject})
@@ -498,7 +501,7 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
                     if sender == receiver:
                         trap_messages = [
                             "**$s** needed more challenge, and collected **their own $t**",
-                            "**$s** thought it was a $i, but it was I, **$t**!",
+                            "**$s** thought it was $i, but it was I, **$t**!",
                             "**$s** is a FOOL! (collected a **$t**)",
                             "**$s** was **$T'd!**",
                             "A **$t** destroyed **$s's** world (and everything inside)",
