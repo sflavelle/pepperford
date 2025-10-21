@@ -454,7 +454,7 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
             if Item.is_filler() or Item.is_currency(): continue
 
             # If this is part of a release, send it there instead
-            if sender in release_buffer and not skip_msg and (timestamp - release_buffer[sender]['timestamp'] <= 2):
+            if sender in release_buffer and not skip_msg and (int(timestamp.timestamp()) - release_buffer[sender]['timestamp'] <= 2):
                 release_buffer[sender]['items'][receiver].append(Item)
                 logger.debug(f"Adding {item} for {receiver} to release buffer.")
             else:
@@ -773,7 +773,7 @@ def send_release_messages():
         return itemlist
 
     for sender, data in release_buffer.copy().items():
-        if time.time() - data['timestamp'] > 1:
+        if time.time() - data['timestamp'].timestamp() > 1:
             message = f"**{sender}** has released their remaining items."
             running_message = message
             for receiver, items in data['items'].items():
