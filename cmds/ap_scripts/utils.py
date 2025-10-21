@@ -159,7 +159,7 @@ class Player(dict):
     hints = {}
     spoilers = {"items": [], "locations": {}}
     online = False
-    last_online = None
+    last_online: datetime.datetime = None
     tags = []
     settings = None
     stats: 'PlayerState' # Game-specific stats
@@ -224,7 +224,7 @@ class Player(dict):
             "locations": {k: v.to_dict() for k, v in self.locations.items()},
             "hints": {k: [i.to_dict() for i in v] for k, v in self.hints.items()},
             "online": self.online,
-            "last_online": self.last_online,
+            "last_online": self.last_online.timestamp() if self.last_online else None,
             "tags": self.tags,
             "stats": self.stats.to_dict(),
             "settings": dict(self.settings) if self.settings else {},
@@ -355,7 +355,7 @@ class Item(dict):
     found = False
     hinted = False
     spoiled = False
-    received_timestamp: float = None
+    received_timestamp: datetime.datetime = None
 
     def __init__(self, sender: Player|str, receiver: Player, item: str, location: str, entrance: str = None, received_timestamp: float = None):
         self.sender = sender
@@ -400,7 +400,7 @@ class Item(dict):
             "found": self.found,
             "hinted": self.hinted,
             "spoiled": self.spoiled,
-            "received_timestamp": self.received_timestamp
+            "received_timestamp": self.received_timestamp.timestamp() if self.received_timestamp else None
         }
 
     def collect(self):
