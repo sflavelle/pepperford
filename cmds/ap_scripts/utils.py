@@ -223,7 +223,10 @@ class Player(dict):
             "inventory": [i.to_dict() for i in self.inventory],
             "locations": {k: v.to_dict() for k, v in self.locations.items()},
             "hints": {k: [i.to_dict() for i in v] for k, v in self.hints.items()},
-            "spoilers": self.spoilers,
+            "spoilers": {
+                "items": [self.spoilers['items'][i].to_dict() for i in self.spoilers['items']],
+                "locations": {k: v.to_dict() for k, v in self.spoilers['locations'].items()},
+            },
             "online": self.online,
             "last_online": self.last_online.timestamp() if self.last_online else None,
             "tags": self.tags,
