@@ -1,3 +1,4 @@
+from datetime import datetime, timedelta
 import json
 import os
 import sys
@@ -699,7 +700,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                             "Receiver": item['receiver'],
                             "Classification": item['classification'],
                             "Location": item['location'],
-                            "Timestamp": int(item['received_timestamp']),
+                            "Timestamp": item['received_timestamp'],
                         })
                 except TypeError:
                     # received_timestamp or player_last_online is probably None
