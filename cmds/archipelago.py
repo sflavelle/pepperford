@@ -758,7 +758,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                 else:
                     for item in offline_items:
                         items_list += (
-                            f"- <t:{item['Timestamp']}:R>: **{item['Item']}** from {item['Sender']} ({item['Location']})\n"
+                            f"- <t:{int(item['Timestamp'])}:R>: **{item['Item']}** from {item['Sender']} ({item['Location']})\n"
                         )
 
             await newpost.edit(content=items_list)
