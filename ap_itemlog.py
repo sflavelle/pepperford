@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 import dateparser
 import json
 import time
@@ -454,7 +455,7 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
             if Item.is_filler() or Item.is_currency(): continue
 
             # If this is part of a release, send it there instead
-            if sender in release_buffer and not skip_msg and (datetime.now() - release_buffer[sender]['timestamp'] <= 2):
+            if sender in release_buffer and not skip_msg and (datetime.now(ZoneInfo("UTC")).astimezone() - release_buffer[sender]['timestamp'] <= 2):
                 release_buffer[sender]['items'][receiver].append(Item)
                 logger.debug(f"Adding {item} for {receiver} to release buffer.")
             else:
@@ -612,7 +613,7 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
             if not skip_msg:
                 logging.info("Release detected.")
                 release_buffer[sender] = {
-                    'timestamp': dateparser.parse(timestamp[:-3], settings={'TIMEZONE': timezones.get(hostname, 'Etc/UTC'), 'RETURN_AS_TIMEZONE_AWARE': False}),
+                    'timestamp': dateparser.parse(timestamp[:-3], settings={'TIMEZONE': timezones.get(hostname, 'Etc/UTC'), 'RETURN_AS_TIMEZONE_AWARE': True}),
                     'items': defaultdict(list)
                 }
         elif match := regex_patterns['room_shutdown'].match(line):
@@ -638,7 +639,7 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
                         send_chat("Archipelago", message)
                         message_buffer.append(message)
             if start_time is None:
-                start_time = dateparser.parse(timestamp[:-3], settings={'TIMEZONE': timezones.get(hostname, 'Etc/UTC'), 'RETURN_AS_TIMEZONE_AWARE': False})
+                start_time = dateparser.parse(timestamp[:-3], settings={'TIMEZONE': timezones.get(hostname, 'Etc/UTC'), 'RETURN_AS_TIMEZONE_AWARE': True})
                 if start_time is None:
                     logger.error(f"Failed to parse start time from timestamp: {timestamp}")
                 logger.info(f"Start time set to {start_time} (epoch)")
@@ -942,7 +943,7 @@ def watch_log(url, interval):
                 last_line = len(current_lines)
 
         if len(release_buffer) > 0:
-            if any(datetime.now() - release_buffer[sender]['timestamp'] > 3 for sender in release_buffer.keys()):
+            if any(datetime.now(ZoneInfo("UTC")).astimezone() - release_buffer[sender]['timestamp'] > 3 for sender in release_buffer.keys()):
                 logger.info(f"Release buffer period has already passed, sending.")
                 send_release_messages()
 
