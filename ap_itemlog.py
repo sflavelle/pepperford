@@ -937,12 +937,12 @@ def watch_log(url, interval):
                     last_line = len(current_lines)
                 except requests.RequestException as e:
                     pass
-            if len(message_buffer) == 0:
+            if len(message_buffer) == 0 and len(release_buffer) == 0:
                 # If we have no messages to send but the log has updated, sync last_line anyway
                 last_line = len(current_lines)
 
         if len(release_buffer) > 0:
-            if any(time.time() - release_buffer[sender]['timestamp'] > 3 for sender in release_buffer.keys()):
+            if any(datetime.now() - release_buffer[sender]['timestamp'] > 3 for sender in release_buffer.keys()):
                 logger.info(f"Release buffer period has already passed, sending.")
                 send_release_messages()
 
