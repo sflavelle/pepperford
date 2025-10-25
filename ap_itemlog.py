@@ -93,6 +93,8 @@ logger.addHandler(logfile)
 INTERVAL = 60
 # Maximum Discord message length in characters
 MAX_MSG_LENGTH = 2000
+# How long to wait for release items
+RELEASE_DELTA = timedelta(seconds=2)
 
 # Timezones for timestamp parsing
 timezones = {
@@ -455,7 +457,7 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
             if Item.is_filler() or Item.is_currency(): continue
 
             # If this is part of a release, send it there instead
-            if sender in release_buffer and not skip_msg and (datetime.now(ZoneInfo("UTC")).astimezone() - release_buffer[sender]['timestamp'] <= 2):
+            if sender in release_buffer and not skip_msg and (datetime.now(ZoneInfo("UTC")).astimezone() - release_buffer[sender]['timestamp'] <= RELEASE_DELTA):
                 release_buffer[sender]['items'][receiver].append(Item)
                 logger.debug(f"Adding {item} for {receiver} to release buffer.")
             else:
@@ -943,7 +945,7 @@ def watch_log(url, interval):
                 last_line = len(current_lines)
 
         if len(release_buffer) > 0:
-            if any(datetime.now(ZoneInfo("UTC")).astimezone() - release_buffer[sender]['timestamp'] > 3 for sender in release_buffer.keys()):
+            if any(datetime.now(ZoneInfo("UTC")).astimezone() - release_buffer[sender]['timestamp'] > RELEASE_DELTA for sender in release_buffer.keys()):
                 logger.info(f"Release buffer period has already passed, sending.")
                 send_release_messages()
 
