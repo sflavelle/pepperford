@@ -118,8 +118,9 @@ start_time = None
 # small functions
 goaled = lambda player : game.players[player].is_finished()
 dim_if_goaled = lambda p : "-# " if goaled(p) else ""
-parse_to_datetime = lambda ts: dateparser.parse(ts[:-3], # strip milliseconds
-                                 settings={'TIMEZONE': timezones.get(hostname, 'Etc/UTC'), 'TO_TIMEZONE': local_timezone, 'RETURN_AS_TIMEZONE_AWARE': True}),
+def parse_to_datetime(timestamp_str: str) -> datetime:
+    return dateparser.parse(timestamp_str[:-3], # strip milliseconds
+                             settings={'TIMEZONE': timezones.get(hostname, 'Etc/UTC'), 'TO_TIMEZONE': local_timezone, 'RETURN_AS_TIMEZONE_AWARE': True})
 
 def join_words(words):
     if len(words) > 2:
