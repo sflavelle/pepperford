@@ -700,7 +700,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                             "Receiver": item['receiver'],
                             "Classification": item['classification'],
                             "Location": item['location'],
-                            "Timestamp": item['received_timestamp'].timestamp(),
+                            "Timestamp": item['received_timestamp'],
                         })
                 except TypeError:
                     # received_timestamp or player_last_online is probably None

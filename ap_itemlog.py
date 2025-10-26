@@ -103,6 +103,9 @@ timezones = {
     'neurario.com': 'Australia/Melbourne',
 }
 
+# Get the timezone from the machine this is running on
+local_timezone = time.tzname[time.daylight]
+
 # Buffer to store release and related sent item messages
 release_buffer = {}
 message_buffer = []
@@ -115,6 +118,8 @@ start_time = None
 # small functions
 goaled = lambda player : game.players[player].is_finished()
 dim_if_goaled = lambda p : "-# " if goaled(p) else ""
+parse_to_datetime = lambda ts: dateparser.parse(ts[:-3], # strip milliseconds
+                                 settings={'TIMEZONE': timezones.get(hostname, 'Etc/UTC'), 'TO_TIMEZONE': local_timezone, 'RETURN_AS_TIMEZONE_AWARE': True}),
 
 def join_words(words):
     if len(words) > 2:
@@ -417,8 +422,7 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
         if match := regex_patterns['sent_items'].match(line):
             timestamp, sender, item, receiver, item_location = match.groups()
 
-            timestamp = dateparser.parse(timestamp[:-3], # strip milliseconds
-                                         settings={'TIMEZONE': timezones.get(hostname, 'Etc/UTC')})
+            timestamp = parse_to_datetime(timestamp)
 
             # Mark item as collected
             try:
@@ -615,7 +619,7 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
             if not skip_msg:
                 logging.info("Release detected.")
                 release_buffer[sender] = {
-                    'timestamp': dateparser.parse(timestamp[:-3], settings={'TIMEZONE': timezones.get(hostname, 'Etc/UTC'), 'RETURN_AS_TIMEZONE_AWARE': True}),
+                    'timestamp': parse_to_datetime(timestamp),
                     'items': defaultdict(list)
                 }
         elif match := regex_patterns['room_shutdown'].match(line):
@@ -641,7 +645,7 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
                         send_chat("Archipelago", message)
                         message_buffer.append(message)
             if start_time is None:
-                start_time = dateparser.parse(timestamp[:-3], settings={'TIMEZONE': timezones.get(hostname, 'Etc/UTC'), 'RETURN_AS_TIMEZONE_AWARE': True})
+                start_time = parse_to_datetime(timestamp)
                 if start_time is None:
                     logger.error(f"Failed to parse start time from timestamp: {timestamp}")
                 logger.info(f"Start time set to {start_time} (epoch)")
@@ -657,8 +661,7 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
         elif match := regex_patterns['joins'].match(line):
             timestamp, player, verb, playergame, client_version, tags = match.groups()
 
-            timestamp = dateparser.parse(timestamp[:-3], # strip milliseconds
-                                         settings={'TIMEZONE': timezones.get(hostname, 'Etc/UTC')})
+            timestamp = parse_to_datetime(timestamp)
             
 
             try:
@@ -680,8 +683,7 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
         elif match := regex_patterns['parts'].match(line):
             timestamp, player, version, tags = match.groups()
 
-            timestamp = dateparser.parse(timestamp[:-3], # strip milliseconds
-                                         settings={'TIMEZONE': timezones.get(hostname, 'Etc/UTC')})
+            timestamp = parse_to_datetime(timestamp)
             
             if not skip_msg: logger.info(f"{player} is offline.")
             game.players[player].set_online(False, timestamp)
