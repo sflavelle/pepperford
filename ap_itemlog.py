@@ -462,7 +462,7 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
             if Item.is_filler() or Item.is_currency(): continue
 
             # If this is part of a release, send it there instead
-            if sender in release_buffer and not skip_msg and (datetime.now(ZoneInfo("UTC")).astimezone() - release_buffer[sender]['timestamp'] <= RELEASE_DELTA):
+            if sender in release_buffer and not skip_msg and (timestamp - release_buffer[sender]['timestamp'] <= RELEASE_DELTA):
                 release_buffer[sender]['items'][receiver].append(Item)
                 logger.debug(f"Adding {item} for {receiver} to release buffer.")
             else:
