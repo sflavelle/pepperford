@@ -788,7 +788,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                         for item in offline_items:
                             if item['Classification'] in ["progression", None]:
                                 items_list += (
-                                    f"- <t:{item['Timestamp']}:R>: **{item['Item']}** from {item['Sender']}\n"
+                                    f"- <t:{int(item['Timestamp'])}:R>: **{item['Item']}** from {item['Sender']}\n"
                                 )
                 try: 
                     await newpost.edit(content=items_list)
@@ -822,7 +822,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                             for item in offline_items:
                                 if item['Classification'] in ["progression", None]:
                                     items_list += (
-                                        f"- <t:{item['Timestamp']}:R>: **{item['Item']}** from {item['Sender']}\n"
+                                        f"- <t:{int(item['Timestamp'])}:R>: **{item['Item']}** from {item['Sender']}\n"
                                     )
                     try: 
                         await newpost.edit(content=items_list)
