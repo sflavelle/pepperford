@@ -102,6 +102,13 @@ class Quotes(commands.GroupCog, group_name="quote"):
                 return
             else:
                 qid,content,aID,aName,timestamp,karma,source = random_quote(interaction.guild_id, None)
+        except UnboundLocalError as error:
+            # Likely no quotes found for this server/user combo
+            await newpost.edit(content=
+                               ":no_entry_sign: I don't think there are any quotes in this server!\n"
+                               "If you wish, you can add some using `/quote add` or the 'Save as quote!' context menu on messages.\n"
+                               "Or, if you want to show off your quotes from other servers, try using the `all_servers` option.")
+            return
         except LookupError as error:
             await newpost.edit(content=str(error))
             return
