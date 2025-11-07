@@ -628,7 +628,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
         for player in game_table['players'].values():
             last_online = lambda player: "Online right now." if player['online'] is True else f"Last online <t:{int(player['last_online'])}:R>." if player['last_online'] is not None else "Never logged in."
             if player['goaled'] is True:
-                msg_lines.append(f"- **{player['name']} ({player['game']})**: finished their game with {round(player['collection_percentage'], 2)}% checks collected.")
+                msg_lines.append(f"- **{player['name']} ({player['game']})**: finished their game with {round(player['finished_percentage'], 2)}% checks collected.")
             elif player['released'] is True and player['goaled'] is False:
                 msg_lines.append(f"- **{player['name']} ({player['game']})**: released from the game.")
             else:

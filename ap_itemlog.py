@@ -405,7 +405,7 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
             if item.game == "Trackmania":
                 medals = ["Bronze Medal", "Silver Medal", "Gold Medal", "Author Medal"]
                 # From TMAP docs: 
-                # "The quicket medal equal to or below target difficulty is made the progression medal."
+                # "The quickest medal equal to or below target difficulty is made the progression medal."
                 target_difficulty = setting['Target Time Difficulty']
                 progression_medal_lookup = target_difficulty // 100
                 progression_medal = medals[progression_medal_lookup]
@@ -618,7 +618,7 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
             timestamp, sender = match.groups()
             game.players[sender].released = True
             if not skip_msg:
-                logging.info("Release detected.")
+                logging.info(f"{sender} has released their remaining items.")
                 release_buffer[sender] = {
                     'timestamp': parse_to_datetime(timestamp),
                     'items': defaultdict(list)
@@ -656,7 +656,7 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
                 if message.startswith("!"): continue # don't send commands
                 else:
                     if not skip_msg and sender in game.players:
-                        logger.info(f"{sender}: {message}")
+                        logger.info(f"[CHAT] {sender}: {message}")
                         send_chat(sender, message)
 
         elif match := regex_patterns['joins'].match(line):
@@ -677,8 +677,8 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
                 game.players[player].set_online(True, timestamp)
             if "Tracker" in tags or verb == "tracking":
                 if not skip_msg:
-                    pass
-                #     message = f"{player} is checking what is in logic."
+                    # pass
+                    logger.info(f"{player} is checking what is in logic.")
                 #     message_buffer.append(message)
 
         elif match := regex_patterns['parts'].match(line):
@@ -961,7 +961,7 @@ def watch_log(url, interval):
             for p in game.players.values():
                 if p.released is True:
                     # Any locations not 'checked' by this point should be marked as uncheckable
-                    logger.info(f"{p.name} ({p.game}) released, marking remaining unchecked locations as uncheckable.")
+                    logger.debug(f"{p.name} ({p.game}) released, marking remaining unchecked locations as uncheckable.")
                     for loc in p.locations.values():
                         if loc.found is False and loc.is_location_checkable is None:
                             logger.info(f"Marking {p.game}: {loc.name} as uncheckable.")

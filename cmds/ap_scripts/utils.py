@@ -237,6 +237,7 @@ class Player(dict):
             "collected_locations": self.collected_locations,
             "total_locations": self.total_locations,
             "collection_percentage": self.collection_percentage,
+            "finished_percentage": self.finished_percentage,
         }
 
     def is_finished(self) -> bool:
@@ -269,9 +270,8 @@ class Player(dict):
         else:
             self.total_locations = checkable_location_count
 
-        if not (self.goaled or self.released):
-            self.collected_locations = len([l for l in self.locations.values() if l.found is True])
-            self.collection_percentage = (self.collected_locations / self.total_locations) * 100 if self.total_locations > 0 else 0.0
+        self.collected_locations = len([l for l in self.locations.values() if l.found is True])
+        self.collection_percentage = (self.collected_locations / self.total_locations) * 100 if self.total_locations > 0 else 0.0
 
         self.check_milestones()
 
