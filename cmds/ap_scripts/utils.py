@@ -49,11 +49,17 @@ item_table = {}
 
 
 class Game(dict):
+    """An Archipelago multiworld game instance."""
+    hostname: str = None
     seed = None
     room_id = None
+    tracker_id = None
+
     version_generator = None
     version_server = None
     running: bool = False
+    has_spoiler: bool = False
+
     world_settings = {}
     spoiler_log = {}
     players = {}
@@ -123,7 +129,7 @@ class Game(dict):
         self.item_instance_cache[key] = obj
         return obj
     
-    def get_player(self, player: str|int):
+    def get_player(self, player):
         """Get a Player object by name or ID."""
         for p in self.players.values():
             if isinstance(player, int) and p.id == player:
@@ -131,6 +137,199 @@ class Game(dict):
             elif isinstance(player, str) and p.name == player:
                 return p
         return None
+    
+    def fetch_room_api(self):
+        """Fetch room API data and update the Game instance accordingly."""
+        api_url = f"http://{self.hostname}/api/room_status/{self.room_id}"
+        logger.info(f"Fetching room info from {api_url}.")
+        room_api = requests.get(api_url).json()
+        self.tracker_id = room_api['tracker']
+
+        player_id = 1
+        for player in room_api["players"]:
+            self.players[player[0]] = Player(
+                name=player[0],
+                game=player[1],
+                id=player_id,
+                game_instance=self
+            )
+            self.spoiler_log[player[0]] = {}
+            player_id += 1
+            logger.debug(f"Initialized player: {player[0]} playing {player[1]}")
+        del player
+        logger.info("Room info fetched and players initialized.")
+    
+    def fetch_static_tracker(self) -> bool:
+        """Grab static tracker data from the Archipelago server for this room.
+        This should only be called once on boot, as the static data does not change."""
+        tracker_url = f"http://{self.hostname}/api/static_tracker/{self.tracker_id}"
+
+        logger.info(f"Fetching static tracker data from {tracker_url}")
+        tracker_data = requests.get(tracker_url)
+        if tracker_data.status_code != 200:
+            logger.error(f"Failed to fetch static tracker data from {tracker_url}: HTTP {tracker_data.status_code}")
+            return False
+        tracker_json = tracker_data.json()
+        logger.info("Static tracker fetched and parsed to json.")
+
+        for game, datapackage in tracker_json['datapackage'].items():
+            for player in self.players.values():
+                if player.game == game:
+                    player.settings.update({"datapackage_checksum": datapackage['checksum']})
+
+        game_total_locations = 0
+        for p in tracker_json['player_locations_total']:
+            player = self.get_player(p['player'])
+            logger.info(f"{player.name} has {p['total_locations']} total locations.")
+            player.total_locations = p['total_locations']
+            game_total_locations += p['total_locations']
+
+            player.team = p['team']
+
+        logger.info(f"Game total locations calculated as {game_total_locations}.")
+        self.total_locations = game_total_locations
+
+        logger.info("Static tracker successfully processed.")
+        return True
+
+
+    def fetch_tracker(self) -> bool:
+        """Grab dynamic tracker data from the Archipelago server for this room."""
+        tracker_url = f"http://{self.hostname}/api/tracker/{self.tracker_id}"
+
+        logger.info(f"Fetching dynamic tracker data from {tracker_url}")
+        tracker_data = requests.get(tracker_url)
+        if tracker_data.status_code != 200:
+            logger.error(f"Failed to fetch static tracker data from {tracker_url}: HTTP {tracker_data.status_code}")
+            return False
+        tracker_json = tracker_data.json()
+        logger.info("Dynamic tracker fetched and parsed to json. Processing...")
+
+        ### The dynamic tracker returns several sets of data, some useful now, some will need processing:
+        ### activity_timers: the RFC 1123 timestamp of the last check for each player
+        ### aliases: player name to alias mapping
+        ### connection_timers: RFC 1123 timestamp of last connection for each player
+        ### hints: List of created hints, see https://github.com/ArchipelagoMW/Archipelago/blob/main/docs/network%20protocol.md#hint
+        ### player_checks_done: List of location IDs checked per player, in order
+        ### player_items_received: List of item/location mappings that the player has received, as a NetworkItem https://github.com/ArchipelagoMW/Archipelago/blob/main/docs/network%20protocol.md#networkitem
+        ### player_status: Each player's status
+        ### total_checks_done: Total checks done per team (no teams implemented in AP, so this is always 0)
+
+        ### NetworkItems and Network Hints don't have any key values to identify them by
+        ### See the respective process in this code and the aforementioned links for more information
+
+        ### Items/Hints also possess bitflags for their given item:
+        ### 0 : filler/junk
+        ### 1 (0b001) : progression
+        ### 2 (0b010): useful
+        ### 4 (0b100): trap
+
+
+        # going through these in order
+        for p in tracker_json['activity_timers']:
+            pass # for now, will probably implement this timer into the Player object though
+        
+        for p in tracker_json['aliases']:
+            player = self.get_player(p['player'])
+            if player:
+                if bool(p['alias']) and player.alias is None:
+                    logger.info(f"Setting alias for player {player.name} to {p['alias']}")
+                player.alias = p['alias']
+
+        for p in tracker_json['connection_timers']:
+            pass # we already track this via the logs
+
+        for p in tracker_json['hints']:
+            player = self.get_player(p['player'])
+
+            # Can't do anything with this yet, but here's the structure:
+            ### receiving_player: int # player ID
+            ### finding_player: int # player ID
+            ### location: int # location ID
+            ### item: int # item ID
+            ### found: bool # whether the hint was found or not
+            ### entrance: str = "" # entrance name, if applicable
+            ### item_flags: int = 0 # bitfield of item flags
+            ### status: HintStatus
+
+            ### HintStatus:
+            ### 0 : Unspecified
+            ### 10 : No Priority (unset)
+            ### 20 : Avoid (traps etc)
+            ### 30 : Priority (progression etc)
+            ### 40 : Found
+
+            ### Example:
+            ### [2,1,60238,12320772,true,"Kakariko Shop",1,40]:
+            ### Player 2 received a hint from player 1 about location 60238 containing item 12320772
+            ### The item was found, the location is "Kakariko Shop", the item has the 'useful' flag, and the hint status is 'found'
+
+            pass
+
+        for p in tracker_json['player_checks_done']:
+            pass # I need to somehow figure out location IDs mapping to location names
+
+        for p in tracker_json['player_items_received']:
+            player = self.get_player(p['player'])
+
+            ### Can't do anything about this either, but the structure is more simple:
+            ### item: int # item ID
+            ### location: int # location ID
+            ### player: int # player ID of the *SENDING* player
+            ### flags: int # bitfield of item flags, same as above
+
+            ### Example:
+            ### [54, 15471852, 4, 0] for player 1:
+            ### Player 1 received item 54 at location 15471852 from player 4, and it was a filler item (0)
+
+            pass
+
+        for p in tracker_json['player_status']:
+            player = self.get_player(p['player'])
+            if player:
+                ### Status values:
+                ### 0 : Unknown
+                ### 5 : Connected
+                ### 10 : Ready (if they use the /ready command)
+                ### 20 : Playing
+                ### 30 : Goal
+                match p['status']:
+                    case 30:
+                        player.goaled = True
+                    case _:
+                        pass # other statuses might be implemented later on
+
+        for t in tracker_json['total_checks_done']:
+            ### There's no teams in AP, so there's always just one entry with team 0
+            ### checks_done: int # total checks done by the team
+            ### We could probably match this against our own calculations later on for verification
+            pass
+
+        logger.info("Dynamic tracking info successfully processed.")
+        return True
+    
+    def fetch_slot_data(self) -> bool:
+        """Fetch slot data from the Archipelago server for this room."""
+        slot_url = f"http://{self.hostname}/api/slot_data_tracker/{self.tracker_id}"
+
+        logger.info(f"Fetching slot data from {slot_url}")
+        slot_data = requests.get(slot_url)
+        if slot_data.status_code != 200:
+            logger.error(f"Failed to fetch slot data from {slot_url}: HTTP {slot_data.status_code}")
+            return False
+        slot_json = slot_data.json()
+        logger.info("Slot data fetched and parsed to json. Processing...")
+
+        for p in slot_json:
+            id = int(p['player'])
+            player = self.get_player(id)
+            if isinstance(player, Player):
+                player.slot_data = p['slot_data']
+
+        logger.info("Slot data successfully processed.")
+        return True
+    
+    ### DATABASE COMMANDS
 
     def pushdb(self, cursor, database: str, column: str, payload):
         try:
@@ -166,10 +365,16 @@ class Player(dict):
     game: str = None
     id: int = None
 
-    inventory: list = []
-    locations: dict = {}
+    alias: str = None
+    team: int = 0
+
+    inventory: list = [] # What items the player has collected
+
     hints: dict = {}
-    spoilers: dict = {"items": [], "locations": {}}
+    spoilers: dict = {
+        "items": [], # Items associated with this player
+        "locations": {} # Locations associated with this player
+        }
     online: bool = False
     last_online: datetime.datetime = None
     tags = []
@@ -211,11 +416,13 @@ class Player(dict):
                 self.stats[stat_name] = value
 
 
-    def __init__(self,name,game):
+    def __init__(self,name: str,game: str,id: int, game_instance: Game):
+        self._super = game_instance
+
         self.name = name
         self.game = game
+        self.id = id
         self.inventory = []
-        self.locations = {}
         self.hints = {
             "sending": [],
             "receiving": []
@@ -234,7 +441,6 @@ class Player(dict):
             "name": self.name,
             "game": self.game,
             "inventory": [i.to_dict() for i in self.inventory],
-            "locations": {k: v.to_dict() for k, v in self.locations.items()},
             "hints": {k: [i.to_dict() for i in v] for k, v in self.hints.items()},
             "spoilers": {
                 "items": [i.to_dict() for i in self.spoilers['items']],
@@ -270,20 +476,21 @@ class Player(dict):
             return self.last_online
 
     def update_locations(self, game: Game):
-        self.locations = {l.location: l for l in game.spoiler_log[self.name].values()}
 
-        location_count = len(self.locations)
-        checkable_location_count = len([l for l in self.locations.values() if l.is_location_checkable is True])
+        locations = game.spoiler_log.get(self.name, {})
 
-        if (checkable_location_count / location_count) < 0.95:
-            # If the amount of checkable locations does not pass a certain threshold,
-            # The world has likely not been fully played through to determine checkability
-            # In this case just use the unfiltered total location count
-            self.total_locations = location_count
-        else:
-            self.total_locations = checkable_location_count
+        location_count = self.total_locations
+        checkable_location_count = len([l for l in locations.values() if l.location.is_checkable is True])
 
-        self.collected_locations = len([l for l in self.locations.values() if l.found is True])
+        # if all(c > 0 for c in [checkable_location_count, location_count]) and (checkable_location_count / location_count) < 0.95:
+        #     # If the amount of checkable locations does not pass a certain threshold,
+        #     # The world has likely not been fully played through to determine checkability
+        #     # In this case just use the unfiltered total location count
+        #     self.total_locations = location_count
+        # else:
+        #     self.total_locations = checkable_location_count
+
+        self.collected_locations = len([l for l in locations.values() if l.location.is_checked is True])
         self.collection_percentage = (self.collected_locations / self.total_locations) * 100 if self.total_locations > 0 else 0.0
 
         self.check_milestones()
@@ -343,22 +550,20 @@ class Player(dict):
         return collected_items
     
     def add_spoiler(self, item: 'Item'):
-        """Add an item to the player's spoiler log."""
-        if self.name == str(item.location.player) or self.name == str(item.receiver):
-            if str(item.receiver) == self.name and str(item.location.player) == self.name:
-                # Item sent to self, add to both
-                self.spoilers['items'].append(item)
-                self.spoilers['locations'].update({item.location.name: item})
-            else:
-                if item.receiver.name == self.name:
-                    self.spoilers['items'].append(item)
-                if item.location.player.name == self.name:
-                    self.spoilers['locations'].update({item.location.name: item})
-            logger.debug(f"Spoiler added for player {self.name}: {item.name} at {item.location.name}")
-            return True
-        else:
-            logger.error(f"Attempted to add spoiler for player {self.name} but they are not involved with the item: {item.name} at {item.location.player}: {item.location.name} for {item.receiver}")
-            return False
+        """Add an item to the player's spoiler data, organizing it by location and item lists.
+        Only tracks items that are either:
+        - Located in this player's world (in locations dict)
+        - Intended for this player to receive (in items list)
+        """
+        # Track items that this player should receive
+        if item.receiver == self and item not in self.spoilers["items"]:
+            self.spoilers["items"].append(item)
+        
+        # Track locations in this player's world and what items are in them
+        if item.location and isinstance(item.location, Location) and item.location.player == self:
+            location_name = str(item.location)
+            if location_name not in self.spoilers["locations"]:
+                self.spoilers["locations"][location_name] = item
 
 class Location(dict):
     """A location in the multiworld.
@@ -490,7 +695,6 @@ class Item(dict):
 
     def to_dict(self):
         return {
-            "sender": str(self.sender) if hasattr(self.sender, 'name') else self.sender,
             "receiver": str(self.receiver) if hasattr(self.receiver, 'name') else self.receiver,
             "name": self.name,
             "game": self.game,
@@ -506,6 +710,7 @@ class Item(dict):
     def collect(self):
         """Mark this item as collected and add it to the receiver's inventory."""
         self.found = True
+        self.location.is_checked = True
         self.receiver.inventory.append(self)
 
     def hint(self):
@@ -615,28 +820,15 @@ class PlayerSettings(dict):
     def __init__(self):
         pass
 
-def fetch_static_tracker(game: Game, hostname: str, room_id: str) -> bool:
-    """Grab static tracker data from the Archipelago server for this room.
-    This should only be called once on boot, as the static data does not change."""
-    tracker_url = f"http://{hostname}/api/static_tracker/{room_id}"
-
-    tracker_data = requests.get(tracker_url)
-    if tracker_data.status_code != 200:
-        logger.error(f"Failed to fetch static tracker data from {tracker_url}: HTTP {tracker_data.status_code}")
-        return False
-    tracker_json = tracker_data.json()
-
-
-async def fetch_tracker(game: Game, hostname: str, room_id: str) -> bool:
-    """Grab dynamic tracker data from the Archipelago server for this room."""
-    tracker_url = f"http://{hostname}/api/tracker/{room_id}"
-
 def handle_item_tracking(game: Game, player: Player, item: Item):
     """If an item is an important collectable of some kind, we should put some extra info in the item name for the logs."""
     global item_table
 
     ItemObject = item
     item = item.name
+
+    if game.has_spoiler is False:
+        return item
 
     if bool(player.settings):
         settings = player.settings
@@ -1069,6 +1261,8 @@ def handle_location_tracking(game: Game, player: Player, item: Item):
     ItemObject = item
     location = item.location
 
+    if game.has_spoiler is False:
+        return location
     if bool(player.settings):
         settings = player.settings
         game = player.game
@@ -1195,6 +1389,9 @@ def handle_state_tracking(player: Player):
 
     goal: str = ""
     goal_str: str = ""
+
+    if not player._super.has_spoiler:
+        return
 
     match player_game:
         case "A Hat in Time":

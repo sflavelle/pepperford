@@ -15,17 +15,19 @@ import requests
 import fnmatch
 import threading
 import yaml
-from cmds.ap_scripts.utils import Game, Item, Player, PlayerSettings, handle_item_tracking, handle_location_tracking, handle_location_hinting
+from cmds.ap_scripts.utils import Game, Location, Item, Player, PlayerSettings, handle_item_tracking, handle_location_tracking, handle_location_hinting
 from cmds.ap_scripts.emitter import event_emitter
 from word2number import w2n
 from flask import Flask, jsonify, Response
 import psycopg2 as psql
 
+DEBUG = bool(os.getenv('DEBUG_MODE','').lower()) if os.getenv('DEBUG_MODE','') != '' else False
+
 # setup logging
 logger = logging.getLogger('ap_itemlog')
 handler = logging.StreamHandler()
 handler.setFormatter(logging.Formatter('[%(name)s %(process)d][%(levelname)s] %(message)s'))
-if os.getenv('DEBUG_MODE','').lower() in ['1','true','yes']:
+if DEBUG:
     logger.setLevel(logging.DEBUG)
 else:
     logger.setLevel(logging.INFO)
@@ -120,6 +122,7 @@ message_buffer = []
 
 # Store for players, items, settings
 game = Game()
+game.hostname = hostname
 game.room_id = room_id
 game.seed_id = seed_id
 start_time = None
@@ -418,7 +421,10 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
                 medals = ["Bronze Medal", "Silver Medal", "Gold Medal", "Author Medal"]
                 # From TMAP docs: 
                 # "The quickest medal equal to or below target difficulty is made the progression medal."
-                target_difficulty = setting['Target Time Difficulty']
+                if game.has_spoiler:
+                    target_difficulty = setting['Target Time Difficulty']
+                else:
+                    target_difficulty = int(item.receiver.slot_data['TargetTimeSetting'] * 100)
                 progression_medal_lookup = target_difficulty // 100
                 progression_medal = medals[progression_medal_lookup]
                 filler_medals = [item for i, item in enumerate(medals) if i != progression_medal_lookup]
@@ -602,9 +608,9 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
                 case _:
                     pass
 
-            if bool(Item.location_costs):
+            if bool(Item.location.requirements):
                 message += f"\n> -# This will cost {join_words(Item.location_costs)} to obtain."
-            if bool(Item.location_info):
+            if bool(Item.location.description):
                 message += f"\n> -# {Item.location_info}"
 
 
@@ -843,27 +849,24 @@ def watch_log(url, interval):
 
     last_line = 0
 
-    logger.info("Fetching room info.")
-    for player in requests.get(api_url).json()["players"]:
-        game.players[player[0]] = Player(
-            name=player[0],
-            game=player[1]
-        )
-        game.spoiler_log[player[0]] = {}
-    del player
+    game.fetch_room_api()
+    game.fetch_static_tracker()
+
     if seed_url:
         logger.info("Processing spoiler log.")
+        game.has_spoiler = True
         process_spoiler_log(seed_url)
     previous_lines = fetch_log(url)
     logger.info("Parsing existing log lines before we start watching it...")
 
     # Get the last line number we processed from the database
-    with sqlcon.cursor() as cursor:
-        try:
-            last_line = int(game.pulldb(cursor, 'pepper.ap_all_rooms', 'last_line'))
-        except TypeError:
-            # Last Line probably hasn't been set yet; this room is new
-            pass
+    if not DEBUG:
+        with sqlcon.cursor() as cursor:
+            try:
+                last_line = int(game.pulldb(cursor, 'pepper.ap_all_rooms', 'last_line'))
+            except TypeError:
+                # Last Line probably hasn't been set yet; this room is new
+                pass
 
     process_new_log_lines(previous_lines[:last_line], True) # Read for hints etc
     release_buffer = {}
@@ -880,13 +883,15 @@ def watch_log(url, interval):
     logger.info(f"Seed Address: {seed_address}")
     logger.info(f"Logging messages to {len(webhook_urls)} webhook(s).")
     logger.info(f"Logging chats to {len(msg_webhooks)} webhook(s).")
-    with sqlcon.cursor() as cursor:
-        try: 
-            game.pushdb(cursor, 'pepper.ap_all_rooms', 'port', seed_address.split(":")[1])
-            sqlcon.commit()
-        except AttributeError:
-            # Seed Address not processed/set yet
-            pass
+
+    if not DEBUG:
+        with sqlcon.cursor() as cursor:
+            try: 
+                game.pushdb(cursor, 'pepper.ap_all_rooms', 'port', seed_address.split(":")[1])
+                sqlcon.commit()
+            except AttributeError:
+                # Seed Address not processed/set yet
+                pass
 
     message_buffer.clear() # Clear buffer in case we have any old messages
 
