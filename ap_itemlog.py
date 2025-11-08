@@ -21,6 +21,16 @@ from word2number import w2n
 from flask import Flask, jsonify, Response
 import psycopg2 as psql
 
+# setup logging
+logger = logging.getLogger('ap_itemlog')
+handler = logging.StreamHandler()
+handler.setFormatter(logging.Formatter('[%(name)s %(process)d][%(levelname)s] %(message)s'))
+if os.getenv('DEBUG_MODE','').lower() in ['1','true','yes']:
+    logger.setLevel(logging.DEBUG)
+else:
+    logger.setLevel(logging.INFO)
+logger.addHandler(handler)
+
 
 with open('config.yaml', 'r', encoding='UTF-8') as file:
     cfg = yaml.safe_load(file)
@@ -51,13 +61,14 @@ seed_url = os.getenv('SPOILER_URL')
 msg_webhooks = [os.getenv('MSGHOOK_URL')]
 
 # Pull extra configuration if this itemlog is stored in config.yaml, by checking the log_url
-for log in cfg['bot']['archipelago']['itemlogs']:
-    if log['log_url'] == log_url:
-        if 'webhooks' in log and len(log['webhooks']) > 1:
-            webhook_urls.extend(log['webhooks'][1:])
-        if 'msghooks' in log and len(log['msghooks']) > 1:
-            msg_webhooks.extend(log['msghooks'][1:])
-        break
+if cfg is not None and 'bot' in cfg and 'archipelago' in cfg['bot'] and 'itemlogs' in cfg['bot']['archipelago']:
+    for log in cfg['bot']['archipelago']['itemlogs']:
+        if log['log_url'] == log_url:
+            if 'webhooks' in log and len(log['webhooks']) > 1:
+                webhook_urls.extend(log['webhooks'][1:])
+            if 'msghooks' in log and len(log['msghooks']) > 1:
+                msg_webhooks.extend(log['msghooks'][1:])
+            break
 
 if not (bool(log_url) or bool(webhook_urls) or bool(session_cookie)):
     logger.error("Something required isn't configured properly!")
@@ -79,14 +90,11 @@ if bool(seed_url):
 
 seed_address = None
 
-# setup logging
-logger = logging.getLogger('ap_itemlog')
-handler = logging.StreamHandler()
-handler.setFormatter(logging.Formatter('[%(name)s %(process)d][%(levelname)s] %(message)s'))
+# Add file logger now that room_id is set
+if not os.path.exists("logs"):
+    os.makedirs("logs")
 logfile = logging.FileHandler(f"logs/room_{room_id}.log",encoding="UTF-8")
 logfile.setFormatter(logging.Formatter('[%(asctime)s][%(levelname)s] %(message)s'))
-logger.setLevel(logging.INFO)
-logger.addHandler(handler)
 logger.addHandler(logfile)
 
 # Time interval between checks (in seconds)
@@ -113,6 +121,7 @@ message_buffer = []
 # Store for players, items, settings
 game = Game()
 game.room_id = room_id
+game.seed_id = seed_id
 start_time = None
 
 # small functions

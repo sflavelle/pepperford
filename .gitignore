@@ -6,3 +6,5 @@ facts.db
 **__pycache__
 apitems.db
 inspectgame.json
+.env
+/logs
