@@ -914,7 +914,15 @@ def watch_log(url, interval):
     logger.info("Ready!")
     flask_thread = threading.Thread(target=run_flask, daemon=True)
     flask_thread.start()
+
+    tracker_sleep_count = 5
+
+    ### Main Loop
     while True:
+        if tracker_sleep_count >= 5:
+            game.fetch_tracker()
+            game.fetch_slot_data()
+            tracker_sleep_count = 0
         time.sleep(interval)
         current_lines = fetch_log(url)
         if len(current_lines) > last_line:
@@ -989,6 +997,7 @@ def watch_log(url, interval):
             sys.exit(0)
 
         logger.debug(f"Message buffer has {len(message_buffer)} messages queued.")
+        tracker_sleep_count += 1
 
 def process_releases():
     global release_buffer
