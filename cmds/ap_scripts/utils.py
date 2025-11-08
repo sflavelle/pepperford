@@ -1531,10 +1531,20 @@ def handle_state_tracking(player: Player, game: Game):
             if settings['Goal'].endswith("Triforce Hunt"):
                 required_pieces = settings['Triforce Pieces Required']
                 goal_str = f"Collect {required_pieces} Triforce Pieces"
-            if "Ganon" in settings['Goal'] and settings['Goal'] != "Ganon":
-                goal_str += ", then Defeat Ganon"
-            if settings['Goal'] == "Ganon":
-                goal_str = "Reach Ganon and Defeat Him"
+            elif settings['Goal'] == "Ganon":
+                goal_str = "Defeat Agahnim 2 and Ganon in the Dark World"
+            else:
+                match settings['Goal']:
+                    case "Crystals":
+                        required = settings['Crystals for Ganon']
+                        goal_str = f"Obtain {required} Crystals, then defeat Ganon in the Dark World"
+                    case "Bosses":
+                        goal_str = "Purge Hyrule of dungeon bosses"
+                    case "Pedestal":
+                        goal_str = "Prove yourself worthy of pulling the Master Sword from its pedestal"
+
+                if "Ganon" in settings['Goal'] and settings['Goal'] != "Ganon":
+                    goal_str += ", then Defeat Ganon"
 
         case "Ocarina of Time":
             max_hearts = 20
@@ -1624,7 +1634,7 @@ def handle_state_tracking(player: Player, game: Game):
             progression_medal = medals[progression_medal_lookup]
             player.stats.set_stat("progression_medal", progression_medal)
 
-            medal_total = len([l for l in player.spoilers['locations'].values() if l.location.endswith("Target Time")])
+            medal_total = len([l for l in player.spoilers['locations'].values() if l.location.name.endswith("Target Time")])
             medal_required = math.ceil(medal_total * (settings['Series Medal Percentage'] / 100))
             goal_str = f"Race community maps to unlock items. Collect {medal_required} {progression_medal}s to win"
 
@@ -1654,13 +1664,14 @@ def handle_state_tracking(player: Player, game: Game):
 
         case "Wario Land 4":
             golden_treasure_count = settings['Golden Treasure Count']
+            jewels_required = settings['Required Jewels']
             match settings['Goal']:
                 case "Golden Diva":
-                    goal_str = "Reach the depths of the Golden Pyramid, and defeat the Golden Diva"
+                    goal_str = f"Complete {jewels_required} jewels to reach the depths of the Golden Pyramid, and defeat the Golden Diva"
                 case "Golden Treasure Hunt"|"Local Golden Treasure Hunt":
-                    goal_str = f"Find {golden_treasure_count} treasures, then escape the Golden Pyramid"
+                    goal_str = f"Complete {jewels_required} jewels and find {golden_treasure_count} treasures, then escape the Golden Pyramid"
                 case "Golden Diva Treasure Hunt"|"Local Golden Diva Treasure Hunt":
-                    goal_str = f"Find {golden_treasure_count} treasures, then defeat the Golden Diva"
+                    goal_str = f"Complete {jewels_required} jewels and find {golden_treasure_count} treasures, then defeat the Golden Diva"
 
         # MANUAL GAMES
         case "Manual_PokemonPlatinum_Linneus":
