@@ -416,7 +416,8 @@ class Player(dict):
                 self.stats[stat_name] = value
 
 
-    def __init__(self,name: str,game: str,id: int, game_instance: Game):
+    def __init__(self, name: str, game: str, id: int, game_instance: Game):
+        super().__init__()
         self._super = game_instance
 
         self.name = name
@@ -583,6 +584,7 @@ class Location(dict):
     is_checked: bool = False
 
     def __init__(self, item: 'Item', player: Player, name: str, game: str, entrance: str = None):
+        super().__init__()
         self.player = player
         self.name = name
         self.game = game
@@ -654,8 +656,8 @@ class Location(dict):
             cursor.execute("INSERT INTO archipelago.game_locations VALUES (%s, %s, %s)", (self.game, self.name, str(is_check)))
         finally:
             sqlcon.commit()
-        logger.debug(f"locationsdb: classified {self.game}: {self.name} as {is_checkable}")
-        self.is_location_checkable = self.fetch_islocation_checkable()
+        logger.debug(f"locationsdb: classified {self.game}: {self.name} as checkable: {is_checkable}")
+        self.is_checkable = self.fetch_islocation_checkable()
 class Item(dict):
     """An Archipelago item in the multiworld"""
 
@@ -671,6 +673,7 @@ class Item(dict):
     received_timestamp: datetime.datetime = None
 
     def __init__(self, sender: Player|str, receiver: Player, item: str, location: str, entrance: str = None, received_timestamp: float = None):
+        super().__init__()
         self.receiver = receiver
         self.name = item
         self.game = receiver.game
@@ -818,6 +821,7 @@ class Item(dict):
 
 class PlayerSettings(dict):
     def __init__(self):
+        super().__init__()
         pass
 
 def handle_item_tracking(game: Game, player: Player, item: Item):
@@ -1152,7 +1156,7 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                     progression_medal = medals[progression_medal_lookup]
 
                     if item == progression_medal:
-                        total = len([l for l in player.locations.values() if l.location.endswith("Target Time")])
+                        total = len([l for l in player.spoilers['locations'].values() if l.location.endswith("Target Time")])
                         required = math.ceil(total * (settings['Series Medal Percentage'] / 100))
                         return f"{item} ({count}/{required})"
                 case "TUNIC":
@@ -1261,7 +1265,7 @@ def handle_location_tracking(game: Game, player: Player, item: Item):
     ItemObject = item
     location = item.location.name
 
-    if game.has_spoiler is False:
+    if not game.has_spoiler:
         return location
     if bool(player.settings):
         settings = player.settings
@@ -1283,7 +1287,7 @@ def handle_location_tracking(game: Game, player: Player, item: Item):
                     return f"{location} (of {required})"
             case "Mega Man 2":
                 if location.endswith(" - Defeated"):
-                    count = len([l for l in player.locations.values() if l.location.endswith(" - Defeated") and l.found is True])
+                    count = len([l for l in player.spoilers['locations'].values() if l.location.endswith(" - Defeated") and l.found is True])
                     required = 8
                     return f"{location} ({count}/{required})"
             case "Simon Tatham's Portable Puzzle Collection":
@@ -1293,9 +1297,9 @@ def handle_location_tracking(game: Game, player: Player, item: Item):
                 return f"{location} ({count}/{required})"
             # case "Trackmania":
             #     if location.endswith("Target Time"):
-            #         total = len([l for l in player.locations.values() if l.location.endswith("Target Time")])
+            #         total = len([l for l in player.spoilers['locations'].values() if l.location.endswith("Target Time")])
             #         required = round(total * (settings['Series Medal Percentage'] / 100))
-            #         count = len([l for l in player.locations.values() if l.location.endswith("Target Time") and l.found is True])
+            #         count = len([l for l in player.spoilers['locations'].values() if l.location.endswith("Target Time") and l.found is True])
             #         return f"{location} ({count}/{required})"
             case _:
                 return location
