@@ -836,7 +836,9 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
         return item
 
     if bool(player.settings):
+        itemlog = game
         settings = player.settings
+        slot_data = player.slot_data
         game = player.game
         count = player.get_item_count(item)
 
@@ -1151,8 +1153,11 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                 case "Trackmania":
                     medals = ["Bronze Medal", "Silver Medal", "Gold Medal", "Author Medal"]
                     # From TMAP docs: 
-                    # "The quicket medal equal to or below target difficulty is made the progression medal."
-                    target_difficulty = settings['Target Time Difficulty']
+                    # "The quickest medal equal to or below target difficulty is made the progression medal."
+                    if itemlog.has_spoiler:
+                        target_difficulty = settings['Target Time Difficulty']
+                    else:
+                        target_difficulty = slot_data['TargetTimeSetting'] * 100
                     progression_medal_lookup = target_difficulty // 100
                     progression_medal = medals[progression_medal_lookup]
 
@@ -1215,8 +1220,12 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                         count = OneCount + (ThreeCount * 3)
                         return f"{item} ({count})"
                 case "Wario Land 4":
+                    if (item.startswith("Golden") and not item.startswith("Golden Jewel")) and "Treasure Hunt" in settings['Goal']:
+                        count = len([i for i in player.inventory if (str(i).startswith("Golden") and not str(i).startswith("Golden Jewel"))])
+                        required = settings["Golden Treasure Count"]
+                        return f"{item} ({count}/{required})"
                     if item.endswith("Piece"):
-                        # Gather up all the jewels
+                        # Gather all the jewels
                         jewels = ["Emerald", "Entry Jewel", "Golden Jewel", "Ruby", "Sapphire", "Topaz"]
                         parts = ["Bottom Left", "Bottom Right", "Top Left", "Top Right"]
                         jewel = next(j for j in jewels if j in item) # Get jewel name matching the item
@@ -1437,6 +1446,15 @@ def handle_state_tracking(player: Player, game: Game):
             }
             player.stats.set_stat("accessible_worlds",[k for k, v in world_costs.items() if time_pieces >= v])
 
+        case "Blasphemous":
+            goal = settings["Ending"]
+
+            match goal:
+                case "Any Ending"|"Ending A":
+                    goal_str = "Reach the Cradle of Affliction with all Thorn Upgrades"
+                case "Ending C":
+                    goal_str = "Reach the Cradle of Affliction with all Thorn Upgrades, and the Holy Wound of Abnegation"
+
         case "Celeste (Open World)":
             goal = settings['Goal Area']
 
@@ -1527,15 +1545,16 @@ def handle_state_tracking(player: Player, game: Game):
             partial_hearts = heart_pieces % 4
 
             current_hearts = starting_hearts + heart_containers + completed_heart_pieces
+            if current_hearts > max_hearts: current_hearts = max_hearts
             player.stats.set_stat("current_hearts", current_hearts)
 
             match settings['Triforce Hunt']:
-                case True:
+                case "Yes":
                     goal_pieces = settings['Required Triforce Pieces']
                     goal_str = f"Collect {goal_pieces} Triforce Pieces from around Hyrule"
 
                     triforce_pieces = player.get_item_count("Triforce Piece")
-                case False:
+                case "No":
                     goal_str = "Defeat Ganon and Save Hyrule"
 
             # TODO Get main inventory
@@ -1583,7 +1602,32 @@ def handle_state_tracking(player: Player, game: Game):
         
             player.stats.set_stat("movement_abilities", 
                                   [ability.name for ability in player.get_collected_items(movement_abilities)])
-        
+
+        case "The Witness":
+            match settings["Victory Condition"]:
+                case "Panel Hunt":
+                    ph_total = settings["Total Panel Hunt panels"]
+                    ph_required = round(ph_total * (settings['Percentage of required Panel Hunt panels'] / 100))
+                    goal_str = f"Solve {ph_required} randomly selected panels to access a Secret"
+                case _:
+                    goal_str = settings["Victory Condition"]
+
+        case "Trackmania":
+            medals = ["Bronze Medal", "Silver Medal", "Gold Medal", "Author Medal"]
+            # From TMAP docs:
+            # "The quickest medal equal to or below target difficulty is made the progression medal."
+            if game.has_spoiler:
+                target_difficulty = settings['Target Time Difficulty']
+            else:
+                target_difficulty = player.slot_data['TargetTimeSetting'] * 100
+            progression_medal_lookup = target_difficulty // 100
+            progression_medal = medals[progression_medal_lookup]
+            player.stats.set_stat("progression_medal", progression_medal)
+
+            medal_total = len([l for l in player.spoilers['locations'].values() if l.location.endswith("Target Time")])
+            medal_required = math.ceil(medal_total * (settings['Series Medal Percentage'] / 100))
+            goal_str = f"Race community maps to unlock items. Collect {medal_required} {progression_medal}s to win"
+
         case "TUNIC":
             if settings['Hexagon Quest'] is True:
                 required = settings['Gold Hexagons Required']
@@ -1607,6 +1651,16 @@ def handle_state_tracking(player: Player, game: Game):
                     player.get_item_count(f"{stat} Offering") + 
                     (len(player.get_collected_items(treasures[stat])) if stat in treasures else 0)
                 )
+
+        case "Wario Land 4":
+            golden_treasure_count = settings['Golden Treasure Count']
+            match settings['Goal']:
+                case "Golden Diva":
+                    goal_str = "Reach the depths of the Golden Pyramid, and defeat the Golden Diva"
+                case "Golden Treasure Hunt"|"Local Golden Treasure Hunt":
+                    goal_str = f"Find {golden_treasure_count} treasures, then escape the Golden Pyramid"
+                case "Golden Diva Treasure Hunt"|"Local Golden Diva Treasure Hunt":
+                    goal_str = f"Find {golden_treasure_count} treasures, then defeat the Golden Diva"
 
         # MANUAL GAMES
         case "Manual_PokemonPlatinum_Linneus":

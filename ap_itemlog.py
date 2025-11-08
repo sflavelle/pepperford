@@ -990,14 +990,16 @@ def watch_log(url, interval):
                 if p.released is True:
                     # Any locations not 'checked' by this point should be marked as uncheckable
                     logger.debug(f"{p.name} ({p.game}) released, marking remaining unchecked locations as uncheckable.")
-                    for loc in p.locations.values():
-                        if loc.found is False and loc.is_location_checkable is None:
-                            logger.info(f"Marking {p.game}: {loc.name} as uncheckable.")
-                            loc.db_add_location(is_check=False)
+                    for loc in p.spoilers['locations'].values():
+                        location = loc.location
+                        if location.found is False and location.is_checkable is None:
+                            logger.info(f"Marking {p.game}: {location.name} as uncheckable.")
+                            location.db_add_location(is_check=False)
             
-            # We're done, exit process
-            logger.info("Exiting process.")
-            sys.exit(0)
+            # We're done
+            logger.info("Sleeping forever now. (Keeping the API open) Goodnight!")
+            while True:
+                time.sleep(600)
 
         logger.debug(f"Message buffer has {len(message_buffer)} messages queued.")
         tracker_sleep_count += 1
