@@ -21,7 +21,10 @@ from word2number import w2n
 from flask import Flask, jsonify, Response
 import psycopg2 as psql
 
-DEBUG = bool(os.getenv('DEBUG_MODE','').lower()) if os.getenv('DEBUG_MODE','') != '' else False
+DEBUG = os.getenv('DEBUG_MODE','').lower() if os.getenv('DEBUG_MODE','') != '' else False
+if DEBUG in ['1','true','yes','on']:
+    DEBUG = True
+else: DEBUG = False
 
 # setup logging
 logger = logging.getLogger('ap_itemlog')

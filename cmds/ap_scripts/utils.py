@@ -529,7 +529,7 @@ class Player(dict):
     def on_item_collected(self, item):
         if item is not None:
             pass # TODO: Handle item collection logic here, e.g., updating stats, notifying other players, etc.
-        handle_state_tracking(self)
+        handle_state_tracking(self, self._super)
 
     def get_item_count(self, item_name: str) -> int:
         """Get the count of a specific item in the player's inventory."""
@@ -1259,7 +1259,7 @@ def handle_location_tracking(game: Game, player: Player, item: Item):
     """If checking a location is an indicator of progress, we should track that in the location name."""
 
     ItemObject = item
-    location = item.location
+    location = item.location.name
 
     if game.has_spoiler is False:
         return location
@@ -1381,7 +1381,7 @@ def handle_location_hinting(player: Player, location: Location) -> tuple[list[st
         logger.info(f"Updating item's location {location.name} with requirements: {requirements}")
     return (requirements, extra_info)
 
-def handle_state_tracking(player: Player):
+def handle_state_tracking(player: Player, game: Game):
     """Use the tracked game state to build a summary of the player's progress."""
 
     player_game = player.game
@@ -1503,7 +1503,7 @@ def handle_state_tracking(player: Player):
             required = int(dimensions[0]) * int(dimensions[1])
             goal_str = f"Complete a {settings['Puzzle dimension']} ({required} piece) Puzzle"
 
-        case "Link to the Past":
+        case "A Link to the Past":
             # Goal matching
             if settings['Goal'].endswith("Triforce Hunt"):
                 required_pieces = settings['Triforce Pieces Required']
