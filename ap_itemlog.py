@@ -271,7 +271,10 @@ def process_spoiler_log(seed_url):
                 try:
                     
                     key, value_str = parse_line(line)
-                    if key.startswith("Player "): continue  # Skip player header lines
+                    if key.startswith("Player "): 
+                        # Extract the player ID from Player header
+                        if int(key.split(" ",1)[1]):
+                            game.players[working_player].id = int(key.split(" ",1)[1])
                     game.players[working_player].settings[key] = parse_value(value_str)
                     if type(game.players[working_player].settings[key]) == str and "," in game.players[working_player].settings[key]:
                         # Comma-separated string (no brackets), parse as list
@@ -290,7 +293,7 @@ def process_spoiler_log(seed_url):
 
                     if item_location == item and sender == receiver:
                         continue # Most likely an event, can be skipped
-                    if ItemObject.is_location_checkable is False:
+                    if ItemObject.location.is_checkable is False:
                         # If the item is not checkable, we don't need to store it
                         # But we can't delete it just yet until the checkable database is more complete
                         # TODO uncomment this when this is safer to do
@@ -303,7 +306,7 @@ def process_spoiler_log(seed_url):
                         if game.players[receiver].name == receiver:
                             game.players[receiver].add_spoiler(ItemObject)
 
-                    ItemObject.db_add_location()
+                    ItemObject.location.db_add_location()
                     
                     if sender not in game.spoiler_log: game.spoiler_log.update({sender: {}})
                     game.spoiler_log[sender].update({item_location: ItemObject})
@@ -458,7 +461,7 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
 
 
             # Update location totals
-            Item.db_add_location(True)
+            Item.location.db_add_location(True)
             game.players[sender].update_locations(game)
             game.update_locations()
 

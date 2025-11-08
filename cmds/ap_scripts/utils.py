@@ -3,6 +3,7 @@ import time
 import re
 import fnmatch
 import math
+import requests
 import psycopg2 as psql
 import logging
 import yaml
@@ -121,6 +122,15 @@ class Game(dict):
         obj = Item(sender, receiver, itemname, location, entrance, received_timestamp)
         self.item_instance_cache[key] = obj
         return obj
+    
+    def get_player(self, player: str|int):
+        """Get a Player object by name or ID."""
+        for p in self.players.values():
+            if isinstance(player, int) and p.id == player:
+                return p
+            elif isinstance(player, str) and p.name == player:
+                return p
+        return None
 
     def pushdb(self, cursor, database: str, column: str, payload):
         try:
@@ -152,19 +162,22 @@ def handle_hint_update(self):
 
 
 class Player(dict):
-    name = None
-    game = None
+    name: str = None
+    game: str = None
+    id: int = None
+
     inventory: list = []
-    locations = {}
-    hints = {}
-    spoilers = {"items": [], "locations": {}}
-    online = False
+    locations: dict = {}
+    hints: dict = {}
+    spoilers: dict = {"items": [], "locations": {}}
+    online: bool = False
     last_online: datetime.datetime = None
     tags = []
-    settings = None
+    settings: dict = {}
+    slot_data: dict = {}
     stats: 'PlayerState' # Game-specific stats
-    goaled = False
-    released = False
+    goaled: bool = False
+    released: bool = False
     collected_locations: int = 0
     total_locations: int = 0
     collection_percentage: float = 0.0
@@ -331,34 +344,120 @@ class Player(dict):
     
     def add_spoiler(self, item: 'Item'):
         """Add an item to the player's spoiler log."""
-        if self.name == str(item.sender) or self.name == str(item.receiver):
-            if str(item.receiver) == self.name and str(item.sender) == self.name:
+        if self.name == str(item.location.player) or self.name == str(item.receiver):
+            if str(item.receiver) == self.name and str(item.location.player) == self.name:
                 # Item sent to self, add to both
                 self.spoilers['items'].append(item)
-                self.spoilers['locations'].update({item.location: item})
+                self.spoilers['locations'].update({item.location.name: item})
             else:
                 if item.receiver.name == self.name:
                     self.spoilers['items'].append(item)
-                if item.sender.name == self.name:
-                    self.spoilers['locations'].update({item.location: item})
-            logger.debug(f"Spoiler added for player {self.name}: {item.name} at {item.location}")
+                if item.location.player.name == self.name:
+                    self.spoilers['locations'].update({item.location.name: item})
+            logger.debug(f"Spoiler added for player {self.name}: {item.name} at {item.location.name}")
             return True
         else:
-            logger.error(f"Attempted to add spoiler for player {self.name} but they are not involved with the item: {item.name} at {item.sender}: {item.location} for {item.receiver}")
+            logger.error(f"Attempted to add spoiler for player {self.name} but they are not involved with the item: {item.name} at {item.location.player}: {item.location.name} for {item.receiver}")
             return False
 
+class Location(dict):
+    """A location in the multiworld.
+    A Location is associated with a Player and can have an Item placed in it.
+    The Location might also be associated with an Entrance (for entrance randomizers),
+    or have certain requirements to access (currency or a specific item)."""
+    name: str = None
+    game: str = None
+    player: Player = None
+
+    entrance: str = None
+    item: 'Item' = None
+    requirements: list[str] = []
+    description: str = None
+
+    is_checkable: bool = None
+    is_checked: bool = False
+
+    def __init__(self, item: 'Item', player: Player, name: str, game: str, entrance: str = None):
+        self.player = player
+        self.name = name
+        self.game = game
+        self.entrance = entrance
+        self.item = item
+        self.requirements, self.description = handle_location_hinting(self.player, self.item)
+        self.is_checkable = self.fetch_islocation_checkable()
+        self.is_checked = False
+
+    def __str__(self):
+        return self.name
+
+    def to_dict(self):
+        return {
+            "name": self.name,
+            "game": self.game,
+            "player": str(self.player) if hasattr(self.player, 'name') else self.player,
+            "entrance": self.entrance,
+            "item": str(self.item), # Item is this location's parent, avoid recursion
+            "requirements": self.requirements,
+            "description": self.description,
+            "is_checkable": self.is_checkable,
+            "is_checked": self.is_checked
+        }
+
+    def fetch_islocation_checkable(self) -> bool:
+        if not isinstance(self.player, Player):
+            return False # Archipelago starting items, etc
+        match self.game:
+            case "SlotLock"|"APBingo":
+                return True # Metagames are always checkable
+            case "Jigsaw"|"Simon Tatham's Portable Puzzle Collection":
+                return True # AP-specific games are simple enough that all their locations are checkable
+            case "gzDoom":
+                # Locations are dynamically generated by the selected wad
+                # So let's assume they they are all checkable
+                return True 
+            case _:
+                with sqlcon.cursor() as cursor:
+                    cursor.execute("SELECT is_checkable FROM archipelago.game_locations WHERE game = %s AND location = %s;", (self.game, self.name))
+                    response = cursor.fetchone()
+                    # logger.info(f"locationsdb: {self.sender.game}: {self.location} is checkable: {response[0]}") # debugging in info, yes i know
+                    return response[0] if response else False
+
+    def db_add_location(self, is_check: bool = False):
+        """Add this item's location to the database if it doesn't already exist.
+        If a location shows up in a playthrough, it is a checkable location.
+        If it doesn't (only appears in spoiler log), it is *likely* an event.
+
+        If the location already exists, but the 'checkable' value is wrong,
+        this function will update the value in the database.
+
+        This should help to establish accurate location counts when we start tracking those."""
+        cursor = sqlcon.cursor()
+
+        cursor.execute("CREATE TABLE IF NOT EXISTS archipelago.game_locations (game bpchar, location bpchar, is_checkable boolean)")
+
+        is_checkable: bool = None
+
+        try:
+            cursor.execute("SELECT * FROM archipelago.game_locations WHERE game = %s AND location = %s;", (self.game, self.name))
+            game, location, is_checkable = cursor.fetchone()
+            if is_checkable != is_check and is_check == True:
+                logger.debug(f"Request to update checkable status for {self.game}: {self.name} (to: {str(is_check)})")
+                cursor.execute("UPDATE archipelago.game_locations set is_checkable = %s WHERE game = %s AND location = %s;", (str(is_check), game, location))
+        except TypeError:
+            logger.debug("Nothing found for this location, likely")
+            logger.info(f"locationsdb: adding {self.game}: {self.name} to the db")
+            cursor.execute("INSERT INTO archipelago.game_locations VALUES (%s, %s, %s)", (self.game, self.name, str(is_check)))
+        finally:
+            sqlcon.commit()
+        logger.debug(f"locationsdb: classified {self.game}: {self.name} as {is_checkable}")
+        self.is_location_checkable = self.fetch_islocation_checkable()
 class Item(dict):
     """An Archipelago item in the multiworld"""
 
-    sender = None
     receiver = None
     name = None
     game = None
-    location = None
-    location_costs: list[str] = []
-    location_info: str = None
-    location_entrance = None
-    is_location_checkable = None
+    location: Location = None
     classification = None
     count = 1
     found = False
@@ -367,14 +466,10 @@ class Item(dict):
     received_timestamp: datetime.datetime = None
 
     def __init__(self, sender: Player|str, receiver: Player, item: str, location: str, entrance: str = None, received_timestamp: float = None):
-        self.sender = sender
         self.receiver = receiver
         self.name = item
         self.game = receiver.game
-        self.location = location
-        self.is_location_checkable = self.get_location_checkable()
-        self.location_entrance = entrance
-        self.location_costs, self.location_info = handle_location_hinting(self.receiver, self)
+        self.location = Location(self, sender, location, sender.game if hasattr(sender, 'game') else None, entrance)
         self.classification = self.set_item_classification(self)
         self.count: int = 1
         self.found = False
@@ -399,11 +494,7 @@ class Item(dict):
             "receiver": str(self.receiver) if hasattr(self.receiver, 'name') else self.receiver,
             "name": self.name,
             "game": self.game,
-            "location": self.location,
-            "location_entrance": self.location_entrance,
-            "location_costs": self.location_costs,
-            "location_info": self.location_info,
-            "is_location_checkable": self.is_location_checkable,
+            "location": self.location.to_dict(),
             "classification": self.classification,
             "count": self.count,
             "found": self.found,
@@ -422,56 +513,6 @@ class Item(dict):
 
     def spoil(self):
         self.spoiled = True
-
-    def get_location_checkable(self) -> bool:
-        if not isinstance(self.sender, Player):
-            return False # Archipelago starting items, etc
-        match self.game:
-            case "SlotLock"|"APBingo":
-                return True # Metagames are always checkable
-            case "Jigsaw"|"Simon Tatham's Portable Puzzle Collection":
-                return True # AP-specific games are simple enough that all their locations are checkable
-            case "gzDoom":
-                # Locations are dynamically generated by the selected wad
-                # So let's assume they they are all checkable
-                return True 
-            case _:
-                with sqlcon.cursor() as cursor:
-                    cursor.execute("SELECT is_checkable FROM archipelago.game_locations WHERE game = %s AND location = %s;", (self.sender.game, self.location))
-                    response = cursor.fetchone()
-                    # logger.info(f"locationsdb: {self.sender.game}: {self.location} is checkable: {response[0]}") # debugging in info, yes i know
-                    return response[0] if response else False
-
-    def db_add_location(self, is_check: bool = False):
-        """Add this item's location to the database if it doesn't already exist.
-        If a location shows up in a playthrough, it is a checkable location.
-        If it doesn't (only appears in spoiler log), it is *likely* an event.
-
-        If the location already exists, but the 'checkable' value is wrong,
-        this function will update the value in the database.
-
-        This should help to establish accurate location counts when we start tracking those."""
-        cursor = sqlcon.cursor()
-
-        cursor.execute("CREATE TABLE IF NOT EXISTS archipelago.game_locations (game bpchar, location bpchar, is_checkable boolean)")
-
-        is_checkable: bool = None
-
-        try:
-            cursor.execute("SELECT * FROM archipelago.game_locations WHERE game = %s AND location = %s;", (self.sender.game, self.location))
-            game, location, is_checkable = cursor.fetchone()
-            if is_checkable != is_check and is_check == True:
-                logger.debug(f"Request to update checkable status for {self.sender.game}: {self.location} (to: {str(is_check)})")
-                cursor.execute("UPDATE archipelago.game_locations set is_checkable = %s WHERE game = %s AND location = %s;", (str(is_check), game, location))
-        except TypeError:
-            logger.debug("Nothing found for this location, likely")
-            logger.info(f"locationsdb: adding {self.sender.game}: {self.location} to the db")
-            cursor.execute("INSERT INTO archipelago.game_locations VALUES (%s, %s, %s)", (self.sender.game, self.location, str(is_check)))
-        finally:
-            sqlcon.commit()
-        logger.debug(f"locationsdb: classified {self.sender.game}: {self.location} as {is_checkable}")
-        self.is_location_checkable = self.get_location_checkable()
-
 
     def set_item_classification(self, player: Player = None):
         """Refer to the itemdb and see whether the provided Item has a classification.
@@ -574,24 +615,21 @@ class PlayerSettings(dict):
     def __init__(self):
         pass
 
-class APEvent:
-    def __init__(self, event_type: str, timestamp: str, sender: str, receiver: str = None, location: str = None, item: str = None, extra: str = None):
-        self.type = event_type
-        self.sender = sender
-        self.receiver = receiver if receiver else None
-        self.location = location if location else None
-        self.item = item if item else None
-        self.extra = extra if extra else None
+def fetch_static_tracker(game: Game, hostname: str, room_id: str) -> bool:
+    """Grab static tracker data from the Archipelago server for this room.
+    This should only be called once on boot, as the static data does not change."""
+    tracker_url = f"http://{hostname}/api/static_tracker/{room_id}"
 
-        try:
-            self.timestamp = time.mktime(datetime.datetime(tzinfo=ZoneInfo()).strptime(timestamp, "%Y-%m-%d %H:%M:%S,%f"))
-        except ValueError as e:
-            raise
+    tracker_data = requests.get(tracker_url)
+    if tracker_data.status_code != 200:
+        logger.error(f"Failed to fetch static tracker data from {tracker_url}: HTTP {tracker_data.status_code}")
+        return False
+    tracker_json = tracker_data.json()
 
-        match self.type:
-            case "item_send"|"hint":
-                if not all([bool(criteria) for criteria in [self.sender, self.receiver, self.location, self.item]]):
-                    raise ValueError(f"Invalid {self.type} event! Requires a sender, receiver, location, and item.")
+
+async def fetch_tracker(game: Game, hostname: str, room_id: str) -> bool:
+    """Grab dynamic tracker data from the Archipelago server for this room."""
+    tracker_url = f"http://{hostname}/api/tracker/{room_id}"
 
 def handle_item_tracking(game: Game, player: Player, item: Item):
     """If an item is an important collectable of some kind, we should put some extra info in the item name for the logs."""
@@ -1069,19 +1107,20 @@ def handle_location_tracking(game: Game, player: Player, item: Item):
                 return location
     return location
 
-def handle_location_hinting(player: Player, item: Item) -> tuple[list[str], str]:
+def handle_location_hinting(player: Player, location: Location) -> tuple[list[str], str]:
     """Some locations have a cost or extra info associated with it.
     If an item that's hinted is on this location, go through similar steps to
     the tracking functions to provide info on costs etc."""
 
-    location = item.location
+    l = location
+    location = location.name
 
     requirements = []
     extra_info = ""
 
-    if bool(player.settings):
+    if isinstance(player, Player) and bool(player.settings):
         settings = player.settings
-        game = item.game
+        game = l.game
 
         match game:
             case "Here Comes Niko!":
@@ -1145,7 +1184,7 @@ def handle_location_hinting(player: Player, item: Item) -> tuple[list[str], str]
 
 
     if bool(requirements):
-        logger.info(f"Updating item's location {item.location} with requirements: {requirements}")
+        logger.info(f"Updating item's location {location.name} with requirements: {requirements}")
     return (requirements, extra_info)
 
 def handle_state_tracking(player: Player):
