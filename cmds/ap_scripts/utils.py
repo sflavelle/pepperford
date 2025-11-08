@@ -452,6 +452,7 @@ class Player(dict):
             "tags": self.tags,
             "stats": self.stats.to_dict(),
             "settings": dict(self.settings) if self.settings else {},
+            "slot_data": self.slot_data,
             "goaled": self.goaled,
             "released": self.released,
             "collected_locations": self.collected_locations,
