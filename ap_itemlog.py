@@ -1049,6 +1049,24 @@ def get_checkable_locations(found: bool = False):
                 locationtable[player.game][location_name] = location.is_location_checkable
     return jsonify(locationtable)
 
+@webview.route('/upload_data/<str:slotname>', methods=['POST'])
+def upload_data(slotname: str):
+    player = game.get_player(slotname)
+    if not player:
+        return jsonify({"error": "Player not found"}), 404
+
+    try:
+        data = request.get_json()
+        if not isinstance(data, dict):
+            return jsonify({"error": "Invalid JSON format, expected a dictionary"}), 400
+
+        player.upload_data = data
+        return jsonify({"message": f"Data uploaded successfully for player {slotname}"}), 200
+    except Exception as e:
+        logger.error(f"Error uploading data for player {slotname}: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
 def run_flask():
     # Dynamically select an available port starting from 42069
     port = 42069

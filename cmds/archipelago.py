@@ -942,6 +942,62 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
 
         await newpost.edit(content=hints_list)
 
+    @aproom.command()
+    @app_commands.guilds(1424283904260706378)
+    @app_commands.describe(slot="Linked slot to upload to", slot_file="File to upload. Run this command without for more info.")
+    async def upload_data(self, interaction: discord.Interaction, slot: str, slot_file: discord.File = None):
+        """Upload a compatible file to enhance item log tracking."""
+
+        deferpost = await interaction.response.defer(ephemeral=True, thinking=True,)
+        newpost = await interaction.original_response()
+
+        if not self.ctx.extras.get('ap_rooms'):
+            self.ctx.extras['ap_rooms'] = {}
+            self.fetch_guild_room(interaction.guild_id)
+            if not self.ctx.extras['ap_rooms'].get(interaction.guild_id):
+                return await newpost.edit(content="No Archipelago room is currently set for this server.")
+
+        room = self.ctx.extras['ap_rooms'].get(interaction.guild_id)
+        api_port = room['flask_port']
+        if not room:
+            return await newpost.edit(content="No Archipelago room is currently set for this server.")
+
+        game_table = requests.get(f"http://localhost:{api_port}/inspectgame", timeout=10).json()
+
+        if not game_table:
+            return await newpost.edit(content="Couldn't fetch the game table from the running Archipelago game.")
+
+        if slot_file is None:
+            match game_table['players'][slot]['game']:
+                case "Trackmania":
+                    helpmsg = """You can upload a file from Openplanet's PluginStorage to allow metadata such as
+                    track names to appear in the item log alongside the relevant track checks.
+                    
+                    For example, "Series 7 Map 3 - Target Time" could become "S7M3: [Manoa Rush](<https://trackmania.exchange/mapshow/34593>) - Target Time"
+                    
+                    The file will be located in `C:\\Users\\<Your Windows Username>\\OpenplanetNext\\PluginStorage\\ArchipelagoPlugin\\saves`
+                    and is named something like `93762637785644248741_0_9.json`.
+                    
+                    Note that maps are rolled one series at a time, and not before you've unlocked them - you may have to upload this file
+                    multiple times for full tracking, if this matters to you."""
+                    return await newpost.edit(content=helpmsg)
+                case _:
+                    # Not supported
+                    helpmsg = f"""{slot}'s game ({game_table['players'][slot]['game']}) doesn't need a file uploaded to it.
+                    If metadata *can* be used from a file you have in mind, let Splatsune know so they can integrate it into this script."""
+
+                    return await newpost.edit(content=helpmsg)
+        else:
+            match game_table['players'][slot]['game']:
+                case "Trackmania":
+                    up_request = requests.post(f"http://localhost:{api_port}/upload_data/{slot}", files=slot_file.fp)
+                    if up_request.status_code == 200:
+                        return await newpost.edit(content=f"✓ {up_request.text}")
+                    else: return await newpost.edit(content=f"✗ {up_request.status_code}: {up_request.text}")
+                case _:
+                    # Not supported
+                    return await newpost.edit(content="Sorry, I can't use that file - your game doesn't support this.")
+
     # itemlogging = app_commands.Group(name="itemlog",description="Manage an item logging webhook")
 
     """ (2025-03-15)

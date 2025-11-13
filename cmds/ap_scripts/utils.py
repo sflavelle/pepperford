@@ -252,6 +252,10 @@ class Game(dict):
             ### item_flags: int = 0 # bitfield of item flags
             ### status: HintStatus
 
+            ### item/location IDs can be determined by the game datapackage
+            ### /api/datapackage/<datapackage_checksum>
+            ### item_name_to_id and location_name_to_id dicts
+
             ### HintStatus:
             ### 0 : Unspecified
             ### 10 : No Priority (unset)
@@ -380,6 +384,7 @@ class Player(dict):
     tags = []
     settings: dict = {}
     slot_data: dict = {}
+    upload_data: dict = {}
     stats: 'PlayerState' # Game-specific stats
     goaled: bool = False
     released: bool = False
@@ -466,6 +471,9 @@ class Player(dict):
 
     def is_goaled(self) -> bool:
         return self.goaled
+
+    def has_uploaded_data(self) -> bool:
+        return len(self.upload_data) > 0
 
     def set_online(self, online: bool, timestamp: datetime.datetime):
         self.online = online
@@ -1164,7 +1172,14 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                     if item == progression_medal:
                         total = len([l for l in player.spoilers['locations'].values() if l.location.endswith("Target Time")])
                         required = math.ceil(total * (settings['Series Medal Percentage'] / 100))
-                        return f"{item} ({count}/{required})"
+
+                        next_requirement = 0
+                        for series in slot_data['SeriesData'].values():
+                            next_requirement += series['MedalTotal']
+                            if next_requirement >= count:
+                                break
+
+                        return f"{item} ({count}{f"/{next_requirement}" if next_requirement < required else ""}/{required})"
                 case "TUNIC":
                     treasures = {
                         "DEF": ["Secret Legend", "Phonomath"],
