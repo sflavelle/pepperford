@@ -502,11 +502,10 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
 
     @aproom.command()
     @app_commands.autocomplete(slot_name=link_slot_unlinked_complete)
-    async def link_slot(self, interaction: discord.Interaction, slot_name: str, user: discord.User = None):
+    async def link_slot(self, interaction: discord.Interaction, slot_name: str):
         """Link an Archipelago slot name to your Discord account."""
 
-        if user is None:
-            user = interaction.user
+        user = interaction.user
 
         cmd = "UPDATE pepper.ap_players SET discord_user = %s WHERE player_name = %s"
         with sqlcon.cursor() as cursor:

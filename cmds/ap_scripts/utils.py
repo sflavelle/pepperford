@@ -1274,7 +1274,7 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                 case _:
                     return item
         except Exception as e:
-            logger.error(f"Error while parsing tracking info for item {item} in game {game}:", e, exc_info=True)
+            logger.error(f"Error while parsing tracking info for item {item} in game {game}:", e)
             # If we can't parse the item, just return the name
             # This is to prevent the bot from crashing if something goes wrong
             # with the settings or the item name.
@@ -1702,4 +1702,4 @@ def handle_state_tracking(player: Player, game: Game):
 
         player.stats.goal_str = goal_str
     except KeyError as err:
-        logger.error(f"Couldn't update state for player {player.name}: {err}",exc_info=True)
+        logger.error(f"Couldn't update state for player {player.name}: {err}")

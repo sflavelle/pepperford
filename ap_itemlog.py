@@ -286,11 +286,11 @@ def process_spoiler_log(seed_url):
                 try:
                     
                     key, value_str = parse_line(line)
-                    if key.startswith("Player ") and is_int(key.split(" ",1)[1]):
+                    if key.startswith("Player "):
                         # Extract the player ID from Player header
-                        if int(key.split(" ",1)[1]):
+                        if is_int(key.split(" ",1)[1]):
                             game.players[working_player].id = int(key.split(" ",1)[1])
-                        continue
+                            continue
                     game.players[working_player].settings[key] = parse_value(value_str)
                     if type(game.players[working_player].settings[key]) == str and "," in game.players[working_player].settings[key]:
                         # Comma-separated string (no brackets), parse as list
@@ -930,11 +930,11 @@ def watch_log(url, interval):
     flask_thread = threading.Thread(target=run_flask, daemon=True)
     flask_thread.start()
 
-    tracker_sleep_count = 5
+    tracker_sleep_count = 10
 
     ### Main Loop
     while True:
-        if tracker_sleep_count >= 5:
+        if tracker_sleep_count >= 10:
             game.fetch_tracker()
             game.fetch_slot_data()
             tracker_sleep_count = 0
