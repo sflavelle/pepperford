@@ -1422,281 +1422,284 @@ def handle_state_tracking(player: Player, game: Game):
     if not player._super.has_spoiler:
         return
 
-    match player_game:
-        case "A Hat in Time":
-            hats = ["Sprint Hat", "Brewing Hat", "Ice Hat", "Dweller Mask", "Time Stop Hat"]
-            collected_hats = player.get_collected_items(hats)
-            time_pieces = player.get_item_count("Time Piece")
-            time_pieces_required: int
+    try:
+        match player_game:
+            case "A Hat in Time":
+                hats = ["Sprint Hat", "Brewing Hat", "Ice Hat", "Dweller Mask", "Time Stop Hat"]
+                collected_hats = player.get_collected_items(hats)
+                time_pieces = player.get_item_count("Time Piece")
+                time_pieces_required: int
 
-            goal = settings['End Goal']
-            match goal:
-                case "Finale":
-                    goal_str = "Defeat Mustache Girl"
-                    time_pieces_required = settings['Chapter 5 Cost']
-                case "Rush Hour":
-                    goal_str = "Escape Nyakuza Metro's Rush Hour"
-                    time_pieces_required = settings['Chapter 7 Cost']
-                case "Seal The Deal":
-                    goal_str = "Seal the Deal with Snatcher"
-                case _:
-                    goal_str = goal
-            if goal == "Finale" or goal == "Rush Hour":
-                player.stats.set_stat("time_pieces", time_pieces)
-                player.stats.set_stat("time_pieces_required", time_pieces_required)
-            player.stats.set_stat("found_hats", [hat.name for hat in collected_hats])
+                goal = settings['End Goal']
+                match goal:
+                    case "Finale":
+                        goal_str = "Defeat Mustache Girl"
+                        time_pieces_required = settings['Chapter 5 Cost']
+                    case "Rush Hour":
+                        goal_str = "Escape Nyakuza Metro's Rush Hour"
+                        time_pieces_required = settings['Chapter 7 Cost']
+                    case "Seal The Deal":
+                        goal_str = "Seal the Deal with Snatcher"
+                    case _:
+                        goal_str = goal
+                if goal == "Finale" or goal == "Rush Hour":
+                    player.stats.set_stat("time_pieces", time_pieces)
+                    player.stats.set_stat("time_pieces_required", time_pieces_required)
+                player.stats.set_stat("found_hats", [hat.name for hat in collected_hats])
 
-            if goal == "Rush Hour":
-                metro_tickets = ["Yellow", "Pink", "Green", "Blue"]
-                player.stats.set_stat("collected_tickets", [item.name for item in player.get_collected_items([f"Metro Ticket - {color}" for color in metro_tickets]) ])
+                if goal == "Rush Hour":
+                    metro_tickets = ["Yellow", "Pink", "Green", "Blue"]
+                    player.stats.set_stat("collected_tickets", [item.name for item in player.get_collected_items([f"Metro Ticket - {color}" for color in metro_tickets]) ])
 
-            world_costs = {
-                "Kitchen": settings['Chapter 1 Cost'],
-                "Machine Room": settings['Chapter 2 Cost'],
-                "Bedroom": settings['Chapter 3 Cost'],
-                "Boiler Room": settings['Chapter 4 Cost'],
-                "Attic": settings['Chapter 5 Cost'],
-                "Laundry": settings['Chapter 6 Cost'],
-                "Lab": settings['Chapter 7 Cost'],
-            }
-            player.stats.set_stat("accessible_worlds",[k for k, v in world_costs.items() if time_pieces >= v])
+                world_costs = {
+                    "Kitchen": settings['Chapter 1 Cost'],
+                    "Machine Room": settings['Chapter 2 Cost'],
+                    "Bedroom": settings['Chapter 3 Cost'],
+                    "Boiler Room": settings['Chapter 4 Cost'],
+                    "Attic": settings['Chapter 5 Cost'],
+                    "Laundry": settings['Chapter 6 Cost'],
+                    "Lab": settings['Chapter 7 Cost'],
+                }
+                player.stats.set_stat("accessible_worlds",[k for k, v in world_costs.items() if time_pieces >= v])
 
-        case "Blasphemous":
-            goal = settings["Ending"]
+            case "Blasphemous":
+                goal = settings["Ending"]
 
-            match goal:
-                case "Any Ending"|"Ending A":
-                    goal_str = "Reach the Cradle of Affliction with all Thorn Upgrades"
-                case "Ending C":
-                    goal_str = "Reach the Cradle of Affliction with all Thorn Upgrades, and the Holy Wound of Abnegation"
+                match goal:
+                    case "Any Ending"|"Ending A":
+                        goal_str = "Reach the Cradle of Affliction with all Thorn Upgrades"
+                    case "Ending C":
+                        goal_str = "Reach the Cradle of Affliction with all Thorn Upgrades, and the Holy Wound of Abnegation"
 
-        case "Celeste (Open World)":
-            goal = settings['Goal Area']
+            case "Celeste (Open World)":
+                goal = settings['Goal Area']
 
-            required_strawberries = settings['Total Strawberries'] * (settings['Strawberries Required Percentage'] / 100)
-            goal_with_strawbs = lambda string: string + f" (with {int(required_strawberries)} Strawberries)"
+                required_strawberries = settings['Total Strawberries'] * (settings['Strawberries Required Percentage'] / 100)
+                goal_with_strawbs = lambda string: string + f" (with {int(required_strawberries)} Strawberries)"
 
-            match goal:
-                case "The Summit A":
-                    goal_str = goal_with_strawbs("Reach the Summit of Mount Celeste")
-                case "The Summit B":
-                    goal_str = goal_with_strawbs("Take a Harder Path to Mount Celeste's Summit")
-                case "The Summit C":
-                    goal_str = goal_with_strawbs("Reach Celeste's Hardest Peak")
-                case "Core A":
-                    goal_str = goal_with_strawbs("Reach the Heart of the Mountain")
-                case "Core B":
-                    goal_str = goal_with_strawbs("Understand the Heart of the Mountain")
-                case "Core C":
-                    goal_str = goal_with_strawbs("Conquer the Heart of the Mountain")
-                case "Empty Space":
-                    goal_str = goal_with_strawbs("Reach Acceptance?")
-                case "Farewell":
-                    goal_str = goal_with_strawbs("Bid Farewell")
-                case "Farewell Golden":
-                    goal_str = goal_with_strawbs("Conquer Farewell's Hardest Challenge")
-        
-        case "Here Comes Niko!":
-            coins = player.get_item_count("Coin")
-            coins_required: int
+                match goal:
+                    case "The Summit A":
+                        goal_str = goal_with_strawbs("Reach the Summit of Mount Celeste")
+                    case "The Summit B":
+                        goal_str = goal_with_strawbs("Take a Harder Path to Mount Celeste's Summit")
+                    case "The Summit C":
+                        goal_str = goal_with_strawbs("Reach Celeste's Hardest Peak")
+                    case "Core A":
+                        goal_str = goal_with_strawbs("Reach the Heart of the Mountain")
+                    case "Core B":
+                        goal_str = goal_with_strawbs("Understand the Heart of the Mountain")
+                    case "Core C":
+                        goal_str = goal_with_strawbs("Conquer the Heart of the Mountain")
+                    case "Empty Space":
+                        goal_str = goal_with_strawbs("Reach Acceptance?")
+                    case "Farewell":
+                        goal_str = goal_with_strawbs("Bid Farewell")
+                    case "Farewell Golden":
+                        goal_str = goal_with_strawbs("Conquer Farewell's Hardest Challenge")
 
-            goal = settings['Completion Goal']
-            match goal:
-                case "Hired":
-                    goal_str = "Get Hired as a Professional Friend"
-                    coins_required = settings['Elevator Cost']
-                case "Employee":
-                    goal_str = "Become Employee of the Month"
-                    coins_required = 76
-                case _:
-                    goal_str = goal
+            case "Here Comes Niko!":
+                coins = player.get_item_count("Coin")
+                coins_required: int
 
-            movement_abilities = [
-                "Textbox",
-                "Swim Course",
-                "Apple Basket",
-                "Safety Helmet",
-                "Bug Net",
-                "Soda Repair",
-                "Parasol Repair",
-                "AC Repair",
-            ]
+                goal = settings['Completion Goal']
+                match goal:
+                    case "Hired":
+                        goal_str = "Get Hired as a Professional Friend"
+                        coins_required = settings['Elevator Cost']
+                    case "Employee":
+                        goal_str = "Become Employee of the Month"
+                        coins_required = 76
+                    case _:
+                        goal_str = goal
 
-            player.stats.set_stat("coins", coins)
-            player.stats.set_stat("coins_required", coins_required)
-            player.stats.set_stat("movement_abilities", [ability.name for ability in player.get_collected_items(movement_abilities)])
+                movement_abilities = [
+                    "Textbox",
+                    "Swim Course",
+                    "Apple Basket",
+                    "Safety Helmet",
+                    "Bug Net",
+                    "Soda Repair",
+                    "Parasol Repair",
+                    "AC Repair",
+                ]
 
-        case "Kingdom Hearts 2":
-            match settings['Goal']:
-                case "Three Proofs":
-                    goal_str = "Collect the Three Proofs of Connection, Nonexistence and Peace"
-                case "Hitlist":
-                    required = settings['Bounties Required']
-                    goal_str = f"Collect {required} Bounties"
-                case _:
-                    goal_str = settings['Goal']
+                player.stats.set_stat("coins", coins)
+                player.stats.set_stat("coins_required", coins_required)
+                player.stats.set_stat("movement_abilities", [ability.name for ability in player.get_collected_items(movement_abilities)])
 
-        case "Jigsaw":
-            dimensions = settings['Puzzle dimension'].split("×")
-            required = int(dimensions[0]) * int(dimensions[1])
-            goal_str = f"Complete a {settings['Puzzle dimension']} ({required} piece) Puzzle"
-
-        case "A Link to the Past":
-            # Goal matching
-            if settings['Goal'].endswith("Triforce Hunt"):
-                required_pieces = settings['Triforce Pieces Required']
-                goal_str = f"Collect {required_pieces} Triforce Pieces"
-            elif settings['Goal'] == "Ganon":
-                goal_str = "Defeat Agahnim 2 and Ganon in the Dark World"
-            else:
+            case "Kingdom Hearts 2":
                 match settings['Goal']:
-                    case "Crystals":
-                        required = settings['Crystals for Ganon']
-                        goal_str = f"Obtain {required} Crystals, then defeat Ganon in the Dark World"
-                    case "Bosses":
-                        goal_str = "Purge Hyrule of dungeon bosses"
-                    case "Pedestal":
-                        goal_str = "Prove yourself worthy of pulling the Master Sword from its pedestal"
+                    case "Three Proofs":
+                        goal_str = "Collect the Three Proofs of Connection, Nonexistence and Peace"
+                    case "Hitlist":
+                        required = settings['Bounties Required']
+                        goal_str = f"Collect {required} Bounties"
+                    case _:
+                        goal_str = settings['Goal']
 
-                if "Ganon" in settings['Goal'] and settings['Goal'] != "Ganon":
-                    goal_str += ", then Defeat Ganon"
+            case "Jigsaw":
+                dimensions = settings['Puzzle dimension'].split("×")
+                required = int(dimensions[0]) * int(dimensions[1])
+                goal_str = f"Complete a {settings['Puzzle dimension']} ({required} piece) Puzzle"
 
-        case "Ocarina of Time":
-            max_hearts = 20
-            starting_hearts = 3
-            heart_containers = player.get_item_count("Heart Container")
-            heart_pieces = player.get_item_count("Piece of Heart")
-            completed_heart_pieces = heart_pieces // 4
-            partial_hearts = heart_pieces % 4
+            case "A Link to the Past":
+                # Goal matching
+                if settings['Goal'].endswith("Triforce Hunt"):
+                    required_pieces = settings['Triforce Pieces Required']
+                    goal_str = f"Collect {required_pieces} Triforce Pieces"
+                elif settings['Goal'] == "Ganon":
+                    goal_str = "Defeat Agahnim 2 and Ganon in the Dark World"
+                else:
+                    match settings['Goal']:
+                        case "Crystals":
+                            required = settings['Crystals for Ganon']
+                            goal_str = f"Obtain {required} Crystals, then defeat Ganon in the Dark World"
+                        case "Bosses":
+                            goal_str = "Purge Hyrule of dungeon bosses"
+                        case "Pedestal":
+                            goal_str = "Prove yourself worthy of pulling the Master Sword from its pedestal"
 
-            current_hearts = starting_hearts + heart_containers + completed_heart_pieces
-            if current_hearts > max_hearts: current_hearts = max_hearts
-            player.stats.set_stat("current_hearts", current_hearts)
+                    if "Ganon" in settings['Goal'] and settings['Goal'] != "Ganon":
+                        goal_str += ", then Defeat Ganon"
 
-            match settings['Triforce Hunt']:
-                case "Yes":
-                    goal_pieces = settings['Required Triforce Pieces']
-                    goal_str = f"Collect {goal_pieces} Triforce Pieces from around Hyrule"
+            case "Ocarina of Time":
+                max_hearts = 20
+                starting_hearts = 3
+                heart_containers = player.get_item_count("Heart Container")
+                heart_pieces = player.get_item_count("Piece of Heart")
+                completed_heart_pieces = heart_pieces // 4
+                partial_hearts = heart_pieces % 4
 
-                    triforce_pieces = player.get_item_count("Triforce Piece")
-                case "No":
-                    goal_str = "Defeat Ganon and Save Hyrule"
+                current_hearts = starting_hearts + heart_containers + completed_heart_pieces
+                if current_hearts > max_hearts: current_hearts = max_hearts
+                player.stats.set_stat("current_hearts", current_hearts)
 
-            # TODO Get main inventory
+                match settings['Triforce Hunt']:
+                    case "Yes":
+                        goal_pieces = settings['Required Triforce Pieces']
+                        goal_str = f"Collect {goal_pieces} Triforce Pieces from around Hyrule"
 
-        case "Pokemon Emerald":
-            match settings['Goal']:
-                case "Champion":
-                    goal_str = "Become Champion of the Hoenn League"
+                        triforce_pieces = player.get_item_count("Triforce Piece")
+                    case "No":
+                        goal_str = "Defeat Ganon and Save Hyrule"
 
-        case "Simon Tatham's Portable Puzzle Collection":
-            required = round(settings['puzzle count']
-                                * (settings['Target Completion Percentage'] / 100))
-            count = player.collected_locations
-            goal_str = f"Solve {required} puzzles"
+                # TODO Get main inventory
 
-        case "Super Cat Planet":
-            match settings['Goal Ending']:
-                case "Crows":
-                    goal_str = "Evade Crows and Rescue the King of the Cats"
-                case "Final Boss":
-                    goal_str = "Best the Dark Angel"
+            case "Pokemon Emerald":
+                match settings['Goal']:
+                    case "Champion":
+                        goal_str = "Become Champion of the Hoenn League"
 
-        case "Super Mario World":
-            match settings['Goal']:
-                case "Yoshi Egg Hunt":
-                    eggs = player.get_item_count("Yoshi Egg")
-                    required = round(settings['Max Number of Yoshi Eggs'] * (settings['Required Percentage of Yoshi Eggs'] / 100))
-                    goal_str = f"Return {required} Yoshi Eggs to Yoshi's House"
+            case "Simon Tatham's Portable Puzzle Collection":
+                required = round(settings['puzzle count']
+                                    * (settings['Target Completion Percentage'] / 100))
+                count = player.collected_locations
+                goal_str = f"Solve {required} puzzles"
 
-                    player.stats.set_stat("collected_eggs", eggs)
-                    player.stats.set_stat("required_eggs", required)
-                case "Bowser":
-                    boss_tokens = player.get_item_count("Boss Token")
-                    required = settings['Bosses Required']
-                    player.stats.set_stat("collected_boss_tokens", boss_tokens)
-                    player.stats.set_stat("required_boss_tokens", required)
+            case "Super Cat Planet":
+                match settings['Goal Ending']:
+                    case "Crows":
+                        goal_str = "Evade Crows and Rescue the King of the Cats"
+                    case "Final Boss":
+                        goal_str = "Best the Dark Angel"
 
-                    goal_str = f"Defeat {required} Bosses, and then Bowser"
+            case "Super Mario World":
+                match settings['Goal']:
+                    case "Yoshi Egg Hunt":
+                        eggs = player.get_item_count("Yoshi Egg")
+                        required = round(settings['Max Number of Yoshi Eggs'] * (settings['Required Percentage of Yoshi Eggs'] / 100))
+                        goal_str = f"Return {required} Yoshi Eggs to Yoshi's House"
 
-            movement_abilities = [
-                "Climb",
-                "Swim",
-                "Progressive Powerup",
-            ] + [f"{color} Switch Palace" for color in ["Red", "Green", "Yellow", "Blue"]]
-        
-            player.stats.set_stat("movement_abilities", 
-                                  [ability.name for ability in player.get_collected_items(movement_abilities)])
+                        player.stats.set_stat("collected_eggs", eggs)
+                        player.stats.set_stat("required_eggs", required)
+                    case "Bowser":
+                        boss_tokens = player.get_item_count("Boss Token")
+                        required = settings['Bosses Required']
+                        player.stats.set_stat("collected_boss_tokens", boss_tokens)
+                        player.stats.set_stat("required_boss_tokens", required)
 
-        case "The Witness":
-            match settings["Victory Condition"]:
-                case "Panel Hunt":
-                    ph_total = settings["Total Panel Hunt panels"]
-                    ph_required = round(ph_total * (settings['Percentage of required Panel Hunt panels'] / 100))
-                    goal_str = f"Solve {ph_required} randomly selected panels to access a Secret"
-                case _:
-                    goal_str = settings["Victory Condition"]
+                        goal_str = f"Defeat {required} Bosses, and then Bowser"
 
-        case "Trackmania":
-            medals = ["Bronze Medal", "Silver Medal", "Gold Medal", "Author Medal"]
-            # From TMAP docs:
-            # "The quickest medal equal to or below target difficulty is made the progression medal."
-            if game.has_spoiler:
-                target_difficulty = settings['Target Time Difficulty']
-            else:
-                target_difficulty = player.slot_data['TargetTimeSetting'] * 100
-            progression_medal_lookup = target_difficulty // 100
-            progression_medal = medals[progression_medal_lookup]
-            player.stats.set_stat("progression_medal", progression_medal)
+                movement_abilities = [
+                    "Climb",
+                    "Swim",
+                    "Progressive Powerup",
+                ] + [f"{color} Switch Palace" for color in ["Red", "Green", "Yellow", "Blue"]]
 
-            medal_total = len([l for l in player.spoilers['locations'].values() if l.location.name.endswith("Target Time")])
-            medal_required = math.ceil(medal_total * (settings['Series Medal Percentage'] / 100))
-            goal_str = f"Race community maps to unlock items. Collect {medal_required} {progression_medal}s to win"
+                player.stats.set_stat("movement_abilities",
+                                      [ability.name for ability in player.get_collected_items(movement_abilities)])
 
-        case "TUNIC":
-            if settings['Hexagon Quest'] is True:
-                required = settings['Gold Hexagons Required']
-                gold_questagons = player.get_item_count("Gold Questagon")
-                goal_str = f"Collect {required} Hexagons and Return to the Heir"
-            else:
-                seal_questagons = player.get_collected_items(["Red Questagon", "Green Questagon", "Blue Questagon"]) 
-                player.stats.set_stat("collected_seal_questagons", [q.name for q in seal_questagons])
-                goal_str = "Claim Your Rightful Place"
+            case "The Witness":
+                match settings["Victory Condition"]:
+                    case "Panel Hunt":
+                        ph_total = settings["Total Panel Hunt panels"]
+                        ph_required = round(ph_total * (settings['Percentage of required Panel Hunt panels'] / 100))
+                        goal_str = f"Solve {ph_required} randomly selected panels to access a Secret"
+                    case _:
+                        goal_str = settings["Victory Condition"]
 
-            treasures = {
-                "DEF": ["Secret Legend", "Phonomath"],
-                "POTION": ["Spring Falls", "Just Some Pals", "Back To Work"],
-                "SP": ["Forever Friend", "Mr Mayor", "Power Up", "Regal Weasel"],
-                "MP": ["Sacred Geometry", "Vintage", "Dusty"]
-            }
+            case "Trackmania":
+                medals = ["Bronze Medal", "Silver Medal", "Gold Medal", "Author Medal"]
+                # From TMAP docs:
+                # "The quickest medal equal to or below target difficulty is made the progression medal."
+                if game.has_spoiler:
+                    target_difficulty = settings['Target Time Difficulty']
+                else:
+                    target_difficulty = player.slot_data['TargetTimeSetting'] * 100
+                progression_medal_lookup = target_difficulty // 100
+                progression_medal = medals[progression_medal_lookup]
+                player.stats.set_stat("progression_medal", progression_medal)
 
-            for stat in ["ATT", "DEF", "HP", "SP", "MP", "POTION"]:
-                player.stats.set_stat(
-                    f"logical_{stat.lower()}", 
-                    player.get_item_count(f"{stat} Offering") + 
-                    (len(player.get_collected_items(treasures[stat])) if stat in treasures else 0)
-                )
+                medal_total = len([l for l in player.spoilers['locations'].values() if l.location.name.endswith("Target Time")])
+                medal_required = math.ceil(medal_total * (settings['Series Medal Percentage'] / 100))
+                goal_str = f"Race community maps to unlock items. Collect {medal_required} {progression_medal}s to win"
 
-        case "Wario Land 4":
-            golden_treasure_count = settings['Golden Treasure Count']
-            jewels_required = settings['Required Jewels']
-            match settings['Goal']:
-                case "Golden Diva":
-                    goal_str = f"Complete {jewels_required} jewels to reach the depths of the Golden Pyramid, and defeat the Golden Diva"
-                case "Golden Treasure Hunt"|"Local Golden Treasure Hunt":
-                    goal_str = f"Complete {jewels_required} jewels and find {golden_treasure_count} treasures, then escape the Golden Pyramid"
-                case "Golden Diva Treasure Hunt"|"Local Golden Diva Treasure Hunt":
-                    goal_str = f"Complete {jewels_required} jewels and find {golden_treasure_count} treasures, then defeat the Golden Diva"
+            case "TUNIC":
+                if settings['Hexagon Quest'] is True:
+                    required = settings['Gold Hexagons Required']
+                    gold_questagons = player.get_item_count("Gold Questagon")
+                    goal_str = f"Collect {required} Hexagons and Return to the Heir"
+                else:
+                    seal_questagons = player.get_collected_items(["Red Questagon", "Green Questagon", "Blue Questagon"])
+                    player.stats.set_stat("collected_seal_questagons", [q.name for q in seal_questagons])
+                    goal_str = "Claim Your Rightful Place"
 
-        # MANUAL GAMES
-        case "Manual_PokemonPlatinum_Linneus":
-            match settings['goal']:
-                case "Pokemon League - Become Champion":
-                    goal_str = "Become Champion of the Sinnoh League"
-                case _:
-                    goal_str = settings['goal']
+                treasures = {
+                    "DEF": ["Secret Legend", "Phonomath"],
+                    "POTION": ["Spring Falls", "Just Some Pals", "Back To Work"],
+                    "SP": ["Forever Friend", "Mr Mayor", "Power Up", "Regal Weasel"],
+                    "MP": ["Sacred Geometry", "Vintage", "Dusty"]
+                }
 
-        case _:
-            pass
+                for stat in ["ATT", "DEF", "HP", "SP", "MP", "POTION"]:
+                    player.stats.set_stat(
+                        f"logical_{stat.lower()}",
+                        player.get_item_count(f"{stat} Offering") +
+                        (len(player.get_collected_items(treasures[stat])) if stat in treasures else 0)
+                    )
 
-    player.stats.goal_str = goal_str
+            case "Wario Land 4":
+                golden_treasure_count = settings['Golden Treasure Count']
+                jewels_required = settings['Required Jewels']
+                match settings['Goal']:
+                    case "Golden Diva":
+                        goal_str = f"Complete {jewels_required} jewels to reach the depths of the Golden Pyramid, and defeat the Golden Diva"
+                    case "Golden Treasure Hunt"|"Local Golden Treasure Hunt":
+                        goal_str = f"Complete {jewels_required} jewels and find {golden_treasure_count} treasures, then escape the Golden Pyramid"
+                    case "Golden Diva Treasure Hunt"|"Local Golden Diva Treasure Hunt":
+                        goal_str = f"Complete {jewels_required} jewels and find {golden_treasure_count} treasures, then defeat the Golden Diva"
+
+            # MANUAL GAMES
+            case "Manual_PokemonPlatinum_Linneus":
+                match settings['goal']:
+                    case "Pokemon League - Become Champion":
+                        goal_str = "Become Champion of the Sinnoh League"
+                    case _:
+                        goal_str = settings['goal']
+
+            case _:
+                pass
+
+        player.stats.goal_str = goal_str
+    except KeyError as err:
+        logger.error(f"Couldn't update state for player {player.name}: {err}",exc_info=True)
