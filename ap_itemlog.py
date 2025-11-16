@@ -145,6 +145,13 @@ def join_words(words):
     else:
         return words[0]
 
+def is_int(s) -> bool:
+    try:
+        int(s)
+        return True
+    except ValueError:
+        return False
+
 # Spoiler Log Processing
 
 def process_spoiler_log(seed_url):
@@ -277,7 +284,7 @@ def process_spoiler_log(seed_url):
                 try:
                     
                     key, value_str = parse_line(line)
-                    if key.startswith("Player ") and int(key.split(" ",1)[1]):
+                    if key.startswith("Player ") and is_int(key.split(" ",1)[1]):
                         # Extract the player ID from Player header
                         if int(key.split(" ",1)[1]):
                             game.players[working_player].id = int(key.split(" ",1)[1])
