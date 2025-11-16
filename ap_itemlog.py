@@ -360,6 +360,12 @@ def process_spoiler_log(seed_url):
     for player in game.players.values():
         if player.game == "gzDoom":
             try:
+                # Fix Win Conditions dict breaking
+                original = player.settings['Win conditions']
+                player.settings['Win conditions'] = parse_to_type(original)
+            except TypeError as err:
+                pass
+            try:
                 # Determine the real Included Levels list by Level Access items
                 levelaccess_mapname_match = re.compile(r'Level Access \((.+?)\)')
                 # if player.settings['Win conditions'].get('specific-maps', False):
