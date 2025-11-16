@@ -419,10 +419,10 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
 
         if response == "conditional progression":
             # Progression in certain settings, otherwise useful/filler
-            if item.game == "gzDoom":
-                # Weapons : extra copies can be filler
-                if isinstance(item, Item) and player.get_item_count(item.name) > 1:
-                    response = "filler"
+            # if item.game == "gzDoom":
+            #     # Weapons : extra copies can be filler
+            #     if isinstance(item, Item) and player.get_item_count(item.name) > 1:
+            #         response = "filler"
             if item.game == "Here Comes Niko!":
                 if item.name == "Snail Money" and (setting["Enable Achievements"] == "all_achievements" or setting['Snail Shop'] is True):
                     response = "progression"
