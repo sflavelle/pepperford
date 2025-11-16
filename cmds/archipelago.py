@@ -21,6 +21,7 @@ from discord.ext import commands
 from discord.ext.commands import Context
 from discord.ext.commands._types import BotT
 
+from ap_itemlog import MAX_MSG_LENGTH
 # from cmds.ap_scripts.archilogger import ItemLog
 from cmds.ap_scripts.emitter import event_emitter
 from collections import defaultdict
@@ -606,35 +607,45 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
 
         if not game_table:
             return await newpost.edit(content="Couldn't fetch the game table from the running Archipelago game.")
+
+        try:
         
-        msg_lines = []
+            msg_lines = []
 
-        msg_lines.append(f"## Archipelago Room Status")
+            msg_lines.append(f"## Archipelago Room Status")
 
-        with sqlcon.cursor() as cursor:
-            try:
-                cursor.execute("SELECT room_id, host, port from pepper.ap_all_rooms WHERE active = 'true' AND guild = %s;", (interaction.guild_id,))
-                room_id, host, port = cursor.fetchone()
-                msg_lines.append(f"**Room ID** [{room_id}](<https://{host}/room/{room_id}>) (`{host}:{port}`)")
-            except psql.Error as e:
-                pass
+            with sqlcon.cursor() as cursor:
+                try:
+                    cursor.execute("SELECT room_id, host, port from pepper.ap_all_rooms WHERE active = 'true' AND guild = %s;", (interaction.guild_id,))
+                    room_id, host, port = cursor.fetchone()
+                    msg_lines.append(f"**Room ID** [{room_id}](<https://{host}/room/{room_id}>) (`{host}:{port}`)")
+                except psql.Error as e:
+                    pass
 
-        msg_lines.append(f"This game is {round(game_table['collection_percentage'],2)}% complete. ({game_table['collected_locations']} out of {game_table['total_locations']} locations checked.)")
-        if game_table['running'] is False:
-            msg_lines.append("The game is currently spun down - visit the room page to bring it back up.")
+            msg_lines.append(f"This game is {round(game_table['collection_percentage'],2)}% complete. ({game_table['collected_locations']} out of {game_table['total_locations']} locations checked.)")
+            if game_table['running'] is False:
+                msg_lines.append("The game is currently spun down - visit the room page to bring it back up.")
 
-        msg_lines.append("")
+            msg_lines.append("")
 
-        for player in game_table['players'].values():
-            last_online = lambda player: "Online right now." if player['online'] is True else f"Last online <t:{int(player['last_online'])}:R>." if player['last_online'] is not None else "Never logged in."
-            if player['goaled'] is True:
-                msg_lines.append(f"- **{player['name']} ({player['game']})**: finished their game with {round(player['finished_percentage'], 2)}% checks collected.")
-            elif player['released'] is True and player['goaled'] is False:
-                msg_lines.append(f"- **{player['name']} ({player['game']})**: released from the game.")
-            else:
-                msg_lines.append(f"- **{player['name']} ({player['game']})**: {round(player['collection_percentage'], 2)}% complete. ({player['collected_locations']}/{player['total_locations']} checks.) {last_online(player)}")
-            if player['stats']['goal_str'] is not None:
-                msg_lines.append(f"  - Goal: {player['stats']['goal_str']}.")
+            for player in game_table['players'].values():
+                last_online = lambda player: "Online right now." if player['online'] is True else f"Last online <t:{int(player['last_online'])}:R>." if player['last_online'] is not None else "Never logged in."
+                if player['goaled'] is True:
+                    msg_lines.append(f"- **{player['name']} ({player['game']})**: finished their game with {round(player['finished_percentage'], 2)}% checks collected.")
+                elif player['released'] is True and player['goaled'] is False:
+                    msg_lines.append(f"- **{player['name']} ({player['game']})**: released from the game.")
+                else:
+                    msg_lines.append(f"- **{player['name']} ({player['game']})**: {round(player['collection_percentage'], 2)}% complete. ({player['collected_locations']}/{player['total_locations']} checks.) {last_online(player)}")
+                if player['stats']['goal_str'] is not None:
+                    msg_lines.append(f"  - Goal: {player['stats']['goal_str']}.")
+
+                if len("\n".join(msg_lines)) > MAX_MSG_LENGTH: raise ValueError("Message too long")
+        except ValueError as err:
+            # Remove the goal strings and try again
+            for l in msg_lines:
+                if l.startswith("  - Goal: "):
+                    msg_lines.remove(l)
+            if len("\n".join(msg_lines)) > MAX_MSG_LENGTH: raise ValueError("Message still too long")
             
 
         await newpost.edit(content="\n".join(msg_lines))
