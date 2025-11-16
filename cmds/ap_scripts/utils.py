@@ -41,6 +41,8 @@ cache_timeout = 1*60*60 # 1 hour(s)
 
 item_table = {}
 
+gzd = gzDoomMapNames()
+
 # def push_to_database(cursor: psql.cursor, game: Game, database: str, column: str, payload):
 #     try:
 #             cursor.execute(f"UPDATE {database} set {column} = %s WHERE room_id = %s", (payload, room_id))
@@ -1004,7 +1006,7 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                     if item.startswith("Level Access"):
                         item_match = item_regex.match(item)
                         access, mapname = item_match.groups()
-                        friendly = gzDoomMapNames.lookupMap(wadname=settings['WAD to play'], mapname=mapname)
+                        friendly = gzd.lookupMap(wadname=settings['WAD to play'], mapname=mapname)
                         if friendly is not None:
                             item = item.replace(mapname, f"{mapname}: {friendly}")
 
