@@ -20,14 +20,13 @@ from discord import app_commands
 from discord.ext import commands
 from discord.ext.commands import Context
 from discord.ext.commands._types import BotT
-
-from ap_itemlog import MAX_MSG_LENGTH
 # from cmds.ap_scripts.archilogger import ItemLog
 from cmds.ap_scripts.emitter import event_emitter
 from collections import defaultdict
 import time
 
 cfg = None
+MAX_MSG_LENGTH = 2000
 
 logger = logging.getLogger('discord.ap')
 
