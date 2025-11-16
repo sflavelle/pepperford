@@ -12,7 +12,7 @@ import discord
 from typing import Iterable, Any
 
 from cmds.ap_scripts.emitter import event_emitter
-# from cmds.ap_scripts.name_translations import gzDoomMapNames
+from cmds.ap_scripts.name_translations import gzDoomMapNames
 from zoneinfo import ZoneInfo
 
 # setup logging
@@ -1002,6 +1002,12 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                 case "gzDoom":
                     item_regex = re.compile(r"^([a-zA-Z]+) \((\S+)\)$")
                     if item.startswith("Level Access"):
+                        item_match = item_regex.match(item)
+                        access, mapname = item_match.groups()
+                        friendly = gzDoomMapNames.lookupMap(settings['WAD to play'], mapname)
+                        if friendly is not None:
+                            item = item.replace(mapname, f"{map}: {friendly}")
+
                         count = len([i for i in player.inventory if str(i).startswith("Level Access")])
                         # total = len(settings['Included levels'])
                         total = len([i for i in player.spoilers['items'] if str(i).startswith("Level Access")])
@@ -1050,7 +1056,7 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                     if item in ["Hairball City Fish", "Turbine Town Fish", "Salmon Creek Forest Fish", "Public Pool Fish", "Bathhouse Fish", "Tadpole HQ Fish"] and settings['Fishsanity'] == "Insanity":
                         required = 5
                         return f"{item} ({count}/{required})"
-                case "Hitman World of Assassination":
+                case "HITMAN World of Assasination": # sic
                     if item.startswith("Level - "):
                         count = len([i for i in player.inventory if str(i).startswith("Level - ")])
                         total = len([i for i in player.spoilers['items'] if str(i).startswith("Level - ")])

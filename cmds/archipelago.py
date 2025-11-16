@@ -646,7 +646,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
             if len("\n".join(msg_lines)) > MAX_MSG_LENGTH: raise ValueError("Message still too long")
             
 
-        await newpost.edit(content="\n".join(msg_lines))
+        return await newpost.edit(content="\n".join(msg_lines))
 
     @aproom.command(name="received")
     async def received_items(self, interaction: discord.Interaction):
