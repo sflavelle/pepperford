@@ -1003,7 +1003,8 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                     item_regex = re.compile(r"^([a-zA-Z]+) \((\S+)\)$")
                     if item.startswith("Level Access"):
                         count = len([i for i in player.inventory if str(i).startswith("Level Access")])
-                        total = len(settings['Included levels'])
+                        # total = len(settings['Included levels'])
+                        total = len([i for i in player.spoilers['items'] if str(i).startswith("Level Access")])
                         return f"{item} ({count}/{total})"
                     if item.startswith("Level Clear"):
                         count = len([i for i in player.inventory if str(i).startswith("Level Clear")])
@@ -1049,6 +1050,11 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                     if item in ["Hairball City Fish", "Turbine Town Fish", "Salmon Creek Forest Fish", "Public Pool Fish", "Bathhouse Fish", "Tadpole HQ Fish"] and settings['Fishsanity'] == "Insanity":
                         required = 5
                         return f"{item} ({count}/{required})"
+                case "Hitman World of Assassination":
+                    if item.startswith("Level - "):
+                        count = len([i for i in player.inventory if str(i).startswith("Level - ")])
+                        total = len([i for i in player.spoilers['items'] if str(i).startswith("Level - ")])
+                        return f"{item} ({count}/{total})"
                 case "Hollow Knight":
                     if item == "Grub":
                         total = 46
