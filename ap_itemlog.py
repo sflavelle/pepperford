@@ -229,6 +229,7 @@ def process_spoiler_log(seed_url):
         if line.startswith("Archipelago Version"):
             parse_mode = "Seed Info"
         if line.startswith("Player ") and working_player != line.strip().split(':', 1)[1].strip():
+            if game.players[working_player].game == "Wargroove": continue # for now, TODO handle game options starting with "Player"
             parse_mode = "Players"
 
             working_player = line.strip().split(':', 1)[1].strip()
