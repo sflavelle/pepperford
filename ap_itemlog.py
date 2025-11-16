@@ -1049,7 +1049,7 @@ def get_checkable_locations(found: bool = False):
                 locationtable[player.game][location_name] = location.is_location_checkable
     return jsonify(locationtable)
 
-@webview.route('/upload_data/<str:slotname>', methods=['POST'])
+@webview.route('/upload_data/<slotname>', methods=['POST'])
 def upload_data(slotname: str):
     player = game.get_player(slotname)
     if not player:
