@@ -241,9 +241,9 @@ def process_spoiler_log(seed_url):
             parse_mode = "Starting Items"
             logger.info("Parsing starting items")
         if line in ["Entrances:","Medallions:","Fairy Fountain Bottle Fill:", "Shops:", "Level Layout", "Animal Friends",
-                    "Spicy Mycena Waffles map", "MIAB Locations:", "Pokémon locations", "Charm Notches:"]:
+                    "MIAB Locations:","Charm Notches:"]:
             parse_mode = None
-        if line.startswith("Dungeon Entrances"):
+        if any(line.startswith(category) for category in ["Dungeon Entrances", "Spicy Mycena Waffles map","Pokémon locations"]):
             parse_mode = None
             continue
         if line.startswith("Spoiler and info for [Jigsaw]"):
