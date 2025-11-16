@@ -1008,7 +1008,10 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                         access, mapname = item_match.groups()
                         friendly = gzd.lookupMap(wadname=settings['WAD to play'], mapname=mapname)
                         if friendly is not None:
+                            logger.info(f"Got friendly name for {mapname}: {friendly}")
                             item = item.replace(mapname, f"{mapname}: {friendly}")
+                        else:
+                            logger.error(f"Couldn't lookup or find friendly name for {mapname}")
 
                         count = len([i for i in player.inventory if str(i).startswith("Level Access")])
                         # total = len(settings['Included levels'])
@@ -1114,6 +1117,22 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                         if count % 4 == 0:
                             return f"{item} (+1 Heart Container)"
                         else: return f"{item} ({count % 4}/4)"
+                    if item.startswith("Ocarina ") and item.endswith(" Button"):
+                        # Ocarina item buttons
+                        collected_str = ""
+                        if player.has_item("Ocarina A Button"):
+                            collected_str += "🅰️"
+                        if player.has_item("Ocarina C Down Button"):
+                            collected_str += "🔽"
+                        if player.has_item("Ocarina C Left Button"):
+                            collected_str += "◀️️"
+                        if player.has_item("Ocarina C Right Button"):
+                            collected_str += "▶️"
+                        if player.has_item("Ocarina C Up Button"):
+                            collected_str += "🔼"
+                        return f"{item} ({collected_str})"
+
+
                 case "Pokemon Mystery Dungeon Explorers of Sky":
                     sky_peaks = [ "1st Station Pass", "2nd Station Pass", "3rd Station Pass", "4th Station Pass",
                         "5th Station Pass", "6th Station Pass", "7th Station Pass", "8th Station Pass",
