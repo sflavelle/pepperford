@@ -1000,13 +1000,13 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                     if item == "Sky Fragment":
                         return f"{item} ({count})"
                 case "gzDoom":
-                    item_regex = re.compile(r"^([a-zA-Z]+) \((\S+)\)$")
+                    item_regex = re.compile(r"^([a-zA-Z ]+?) \((\S+)\)$")
                     if item.startswith("Level Access"):
                         item_match = item_regex.match(item)
                         access, mapname = item_match.groups()
                         friendly = gzDoomMapNames.lookupMap(settings['WAD to play'], mapname)
                         if friendly is not None:
-                            item = item.replace(mapname, f"{map}: {friendly}")
+                            item = item.replace(mapname, f"{mapname}: {friendly}")
 
                         count = len([i for i in player.inventory if str(i).startswith("Level Access")])
                         # total = len(settings['Included levels'])
@@ -1041,7 +1041,7 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                             if player.has_item(i): collected_string += i[0]
                             else: collected_string += "_"
                         if not player.has_item(f"Level Access ({map})"):
-                            collected_string = f"~~{collected_string}~~" # Strikethrough keys if not found
+                            collected_string = f"~~{collected_string}~~" # Strikethrough keys if map not found
                         return f"{item} ({collected_string})"
                 case "Here Comes Niko!":
                     if item == "Cassette":
