@@ -388,7 +388,7 @@ def process_spoiler_log(seed_url):
                 player.stats.set_stat("all_levels", complete_level_list)
                 player.stats.set_stat("goal_levels", goal_working_list)
                 player.settings['Win conditions']['specific-maps'] = goal_working_list
-            except KeyError as err:
+            except KeyError|TypeError as err:
                 logger.error(err, exc_info=True)
 
     logger.info("Done parsing the spoiler log")
