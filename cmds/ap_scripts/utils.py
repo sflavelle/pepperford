@@ -1146,7 +1146,7 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                             * (settings['Endless Stairs Star %'] / 100)
                         )
                         return f"{item} ({count}/{required})"
-                case "Super Mario World":
+                case "Super Mario World"|"SMW: Spicy Mycena Waffles":
                     if item == "Progressive Powerup":
                         prog_powerup = ["Super Mushroom", "Fire Flower", "Cape Feather"]
                         return f"{item} ({prog_powerup[count-1]})"
@@ -1158,6 +1158,10 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                     if item == "Boss Token" and settings['Goal'] == "Bowser":
                         required = settings['Bosses Required']
                         return f"{item} ({count}/{required})"
+                    if item == "Golden Yoshi Egg":
+                        required = round(settings['Golden Yoshi Eggs in Pool'] * (settings['Required Percentage of Golden Yoshi Eggs'] / 100))
+                        return f"{item} ({count}/{required})"
+
                 case "Trackmania":
                     medals = ["Bronze Medal", "Silver Medal", "Gold Medal", "Author Medal"]
                     # From TMAP docs: 
