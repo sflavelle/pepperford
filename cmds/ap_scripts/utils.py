@@ -1098,7 +1098,7 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                         total = round(song_count * (settings['Music Sheet Percentage'] / 100))
                         required = round(total / (settings['Music Sheets Needed to Win'] / 100))
                         return f"{item} ({count}/{required})"
-                case "Ocarina of Time":
+                case "Ocarina of Time"|"Ship of Harkinian":
                     if item == "Triforce Piece" and settings['Triforce Hunt'] is True:
                         required = settings['Required Triforce Pieces']
                         return f"{item} ({count}/{required})"
