@@ -277,7 +277,7 @@ def process_spoiler_log(seed_url):
                 try:
                     
                     key, value_str = parse_line(line)
-                    if key.startswith("Player "): 
+                    if key.startswith("Player ") and int(key.split(" ",1)[1]):
                         # Extract the player ID from Player header
                         if int(key.split(" ",1)[1]):
                             game.players[working_player].id = int(key.split(" ",1)[1])
