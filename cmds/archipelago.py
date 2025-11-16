@@ -943,7 +943,6 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
         await newpost.edit(content=hints_list)
 
     @aproom.command()
-    @app_commands.guilds(1424283904260706378)
     @app_commands.describe(slot="Linked slot to upload to", slot_file="File to upload. Run this command without for more info.")
     async def upload_data(self, interaction: discord.Interaction, slot: str, slot_file: discord.Attachment = None):
         """Upload a compatible file to enhance item log tracking."""
