@@ -357,35 +357,37 @@ def process_spoiler_log(seed_url):
     # Some game-specific handling
     for player in game.players.values():
         if player.game == "gzDoom":
+            try:
+                # Determine the real Included Levels list by Level Access items
+                levelaccess_mapname_match = re.compile(r'Level Access \((.+?)\)')
+                goal_patterns = list(player.settings['Win conditions']['specific-maps'])
 
-            # Determine the real Included Levels list by Level Access items
-            levelaccess_mapname_match = re.compile(r'Level Access \((.+?)\)')
-            goal_patterns = list(player.settings['Win conditions']['specific-maps'])
+                included_working_list = []
+                goal_working_list = []
 
-            included_working_list = []
-            goal_working_list = []
+                for location in player.locations.keys():
+                    map_name = None
+                    if not location.startswith("Level Access ("): continue
 
-            for location in player.locations.keys():
-                map_name = None
-                if not location.startswith("Level Access ("): continue
+                    if match := levelaccess_mapname_match.match(str(location)):
+                        map_name = match.group(1)
+                        included_working_list.add(map_name)
 
-                if match := levelaccess_mapname_match.match(str(location)):
-                    map_name = match.group(1)
-                    included_working_list.add(map_name)
+                        # If the map matches any of the goal patterns, add it to the goal list
+                        for pattern in goal_patterns:
+                            if fnmatch.fnmatch(map_name, pattern):
+                                goal_working_list.add(map_name)
 
-                    # If the map matches any of the goal patterns, add it to the goal list
-                    for pattern in goal_patterns:
-                        if fnmatch.fnmatch(map_name, pattern):
-                            goal_working_list.add(map_name)
-
-            # Remove duplicates and update Included Levels
-            complete_level_list = included_working_list
-            logger.info(f"Expanded gzDoom Included Levels for {player.name}: {complete_level_list}")
-            logger.info(f"Expanded gzDoom Goal Levels for {player.name}: {goal_working_list}")
-            player.settings["Included levels"] = complete_level_list
-            player.stats.set_stat("all_levels", complete_level_list)
-            player.stats.set_stat("goal_levels", goal_working_list)
-            player.settings['Win conditions']['specific-maps'] = goal_working_list
+                # Remove duplicates and update Included Levels
+                complete_level_list = included_working_list
+                logger.info(f"Expanded gzDoom Included Levels for {player.name}: {complete_level_list}")
+                logger.info(f"Expanded gzDoom Goal Levels for {player.name}: {goal_working_list}")
+                player.settings["Included levels"] = complete_level_list
+                player.stats.set_stat("all_levels", complete_level_list)
+                player.stats.set_stat("goal_levels", goal_working_list)
+                player.settings['Win conditions']['specific-maps'] = goal_working_list
+            except KeyError as err:
+                logger.error(err, exc_info=True)
 
     logger.info("Done parsing the spoiler log")
 
