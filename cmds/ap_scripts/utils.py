@@ -1004,7 +1004,7 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                     if item.startswith("Level Access"):
                         item_match = item_regex.match(item)
                         access, mapname = item_match.groups()
-                        friendly = gzDoomMapNames.lookupMap(settings['WAD to play'], mapname)
+                        friendly = gzDoomMapNames.lookupMap(wadname=settings['WAD to play'], mapname=mapname)
                         if friendly is not None:
                             item = item.replace(mapname, f"{mapname}: {friendly}")
 
