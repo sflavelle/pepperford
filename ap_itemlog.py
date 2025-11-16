@@ -228,8 +228,9 @@ def process_spoiler_log(seed_url):
 
         if line.startswith("Archipelago Version"):
             parse_mode = "Seed Info"
-        if line.startswith("Player "):
+        if line.startswith("Player ") and is_int(line.split(" ",1)[1].replace(':','')):
             parse_mode = "Players"
+
             working_player = line.strip().split(':', 1)[1].strip()
             logger.info(f"Parsing settings for player {working_player}")
         if line == "Locations:":
