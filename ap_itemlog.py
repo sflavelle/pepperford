@@ -288,6 +288,7 @@ def process_spoiler_log(seed_url):
                         # Extract the player ID from Player header
                         if int(key.split(" ",1)[1]):
                             game.players[working_player].id = int(key.split(" ",1)[1])
+                        continue
                     game.players[working_player].settings[key] = parse_value(value_str)
                     if type(game.players[working_player].settings[key]) == str and "," in game.players[working_player].settings[key]:
                         # Comma-separated string (no brackets), parse as list
