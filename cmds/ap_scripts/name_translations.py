@@ -26,19 +26,20 @@ class gzDoomMapNames(dict):
                     elif mapname.startswith("MAP"):
                         return self.DOOM2[mapname]
                     elif mapname.startswith("NV"):
-                        return self.NROTL[mapname[2:]] # strip 'NV_' prefix
+                        return self.NROTL[mapname[3:]] # strip 'NV_' prefix
                     elif mapname.startswith("LR"):
-                        return self.RUST[mapname[2:]] # strip 'LR_' prefix
+                        return self.RUST[mapname[3:]] # strip 'LR_' prefix
                     elif mapname.startswith("TN"):
-                        return self.TNT[mapname[2:]] # strip 'TN_' prefix
+                        return self.TNT[mapname[3:]] # strip 'TN_' prefix
                     elif mapname.startswith("PL"):
-                        return self.PLUTONIA[mapname[2:]] # strip 'PL_' prefix
+                        return self.PLUTONIA[mapname[3:]] # strip 'PL_' prefix
                     else:
                         return None
-                finally:
-                    return None
+                except KeyError:
+                    pass
             case _:
                 return None
+        return None
 
 
     DOOM1 = {
