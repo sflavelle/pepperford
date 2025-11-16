@@ -705,7 +705,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                     if item.get('received_timestamp', 0) > player_last_online and item['classification'] not in ["trap", "filler", "currency"]:
                         player_table[slot]['offline_items'].append({
                             "Item": item['name'],
-                            "Sender": item['sender'],
+                            "Sender": item['location']['player'],
                             "Receiver": item['receiver'],
                             "Classification": item['classification'],
                             "Location": item['location'],
@@ -718,7 +718,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                         if item['classification'] not in ["trap", "filler", "currency"]:
                             player_table[slot]['offline_items'].append({
                                 "Item": item['name'],
-                                "Sender": item['sender'],
+                                "Sender": item['location']['player'],
                                 "Receiver": item['receiver'],
                                 "Classification": item['classification'],
                                 "Location": item['location'],
@@ -730,7 +730,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                         if item['classification'] not in ["trap", "filler", "currency"]:
                             player_table[slot]['offline_items'].append({
                                 "Item": item['name'],
-                                "Sender": item['sender'],
+                                "Sender": item['location']['player'],
                                 "Receiver": item['receiver'],
                                 "Classification": item['classification'],
                                 "Location": item['location'],
@@ -888,7 +888,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                     if any([game_table['players'][item['receiver']]['released'],game_table['players'][item['receiver']]['goaled']]): continue
                     hint_table[slot].update({
                         item['location']: {"item": item['name'],
-                                    "sender": item['sender'],
+                                    "sender": item['location']['player'],
                                     "receiver": item['receiver'],
                                     "classification": item['classification'],
                                     "entrance": item['location_entrance'],
@@ -897,11 +897,11 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                 for item in game_table['players'][slot]['hints']['receiving']:
                     if item['found'] is True: continue
                     if item['classification'] in ["trap", "filler", "currency"]: continue
-                    if item['sender'] in linked_slots: continue
+                    if item['location']['player'] in linked_slots: continue
                     if any([game_table['players'][item['receiver']]['released'],game_table['players'][item['receiver']]['goaled']]): continue
                     hint_table[slot].update({
                         item['location']: {"item": item['name'],
-                                    "sender": item['sender'],
+                                    "sender": item['location']['player'],
                                     "receiver": item['receiver'],
                                     "classification": item['classification'],
                                     "entrance": item['location_entrance'],
