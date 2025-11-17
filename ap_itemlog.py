@@ -949,6 +949,9 @@ def watch_log(url, interval):
             tracker_sleep_count = 0
         time.sleep(interval)
         current_lines = fetch_log(url)
+        if len(current_lines) == 0:
+            # if fetch fails we don't want it to sync back '0' and then re-read the entire log file
+            continue
         if len(current_lines) > last_line:
             new_lines = current_lines[last_line:]
             with sqlcon.cursor() as cursor:
