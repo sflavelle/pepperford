@@ -509,7 +509,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                 FROM pepper.ap_room_players 
                 WHERE guild = %s 
                 AND player_name IN (
-                    SELECT player_name FROM pepper.ap_players WHERE discord_user IS %s
+                    SELECT player_name FROM pepper.ap_players WHERE discord_user = %s
                 )
             """, (ctx.guild_id,ctx.user.id))
             for row in cursor.fetchall():
