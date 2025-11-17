@@ -500,6 +500,27 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
         else:
             return [app_commands.Choice(name=opt,value=opt) for opt in permitted_values if current.lower() in opt.lower()]
 
+    async def user_linked_slots_complete(self, ctx: discord.Interaction, current: str) -> typing.List[app_commands.Choice[str]]:
+        """Complete the slot name for linking, only showing slots linked to the requesting player."""
+        players = []
+        with sqlcon.cursor() as cursor:
+            cursor.execute("""
+                SELECT player_name 
+                FROM pepper.ap_room_players 
+                WHERE guild = %s 
+                AND player_name IN (
+                    SELECT player_name FROM pepper.ap_players WHERE discord_user IS %s
+                )
+            """, (ctx.guild_id,ctx.user.id))
+            for row in cursor.fetchall():
+                players.append(row[0])
+
+        # permitted_values = self.ctx.extras['ap_rooms'][ctx.guild_id]['players']
+        if len(current) == 0:
+            return [app_commands.Choice(name=opt,value=opt) for opt in players]
+        else:
+            return [app_commands.Choice(name=opt,value=opt) for opt in players if current.lower() in opt.lower()]
+
     @aproom.command()
     @app_commands.autocomplete(slot_name=link_slot_unlinked_complete)
     async def link_slot(self, interaction: discord.Interaction, slot_name: str):
@@ -952,6 +973,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
         await newpost.edit(content=hints_list)
 
     @aproom.command()
+    @app_commands.autocomplete(slot=user_linked_slots_complete)
     @app_commands.describe(slot="Linked slot to upload to", slot_file="File to upload. Run this command without for more info.")
     async def upload_data(self, interaction: discord.Interaction, slot: str, slot_file: discord.Attachment = None):
         """Upload a compatible file to enhance item log tracking."""
