@@ -945,7 +945,7 @@ def watch_log(url, interval):
     while True:
         if tracker_sleep_count >= 10:
             game.fetch_tracker()
-            game.fetch_slot_data()
+            # game.fetch_slot_data()
             tracker_sleep_count = 0
         time.sleep(interval)
         current_lines = fetch_log(url)
