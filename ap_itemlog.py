@@ -390,7 +390,7 @@ def process_spoiler_log(seed_url):
                     for key, value in option.split(":"):
                         player.settings['Win conditions'][key.strip()] = parse_value(value.lstrip())
                 player.settings['Win conditions'] = smart_split(original)
-            except TypeError|ValueError as err:
+            except ValueError as err:
                 pass
             try:
                 # Determine the real Included Levels list by Level Access items
