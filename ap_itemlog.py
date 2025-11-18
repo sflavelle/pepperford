@@ -366,6 +366,7 @@ def process_spoiler_log(seed_url):
     # Handle odd settings (cast to bool, etc)
     for player in game.players.values():
         for setting, value in player.settings.items():
+            if type(value) != str: continue
             try:
                 if value.lower() in ["yes", "on"]:
                     player.settings[setting] = True
