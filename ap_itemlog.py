@@ -293,6 +293,13 @@ def process_spoiler_log(seed_url):
                         if is_int(key.split(" ",1)[1]):
                             game.players[working_player].id = int(key.split(" ",1)[1])
                             continue
+                    if key in ["Excluded Locations","Local Items","Non-Local Items",
+                       "Priority Locations", "Start Hints", "Start Location Hints"] and len(value_str) == 0:
+                        game.players[working_player].settings[key] = list()
+                        continue
+                    if key in ["Item Links", "Plando Items", "Start Inventory", "Start Inventory from Pool"] and len(value_str) == 0:
+                        game.players[working_player].settings[key] = dict()
+                        continue
                     game.players[working_player].settings[key] = parse_value(value_str)
                     if type(game.players[working_player].settings[key]) == str and "," in game.players[working_player].settings[key]:
                         # Comma-separated string (no brackets), parse as list
@@ -355,6 +362,19 @@ def process_spoiler_log(seed_url):
                         continue
             case _:
                 continue
+
+    # Handle odd settings (cast to bool, etc)
+    for player in game.players.values():
+        for setting, value in player.settings.items():
+            try:
+                if value.lower() in ["yes", "on"]:
+                    player.settings[setting] = True
+                elif value.lower() in ["no", "off"]:
+                    player.settings[setting] = False
+                else:
+                    pass
+            except ValueError:
+                pass
 
     # Some game-specific handling
     for player in game.players.values():
