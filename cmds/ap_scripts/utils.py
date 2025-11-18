@@ -1066,6 +1066,9 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                         count = len([i for i in player.inventory if str(i).startswith("Level - ")])
                         total = len([i for i in player.spoilers['items'] if str(i).startswith("Level - ")])
                         return f"{item} ({count}/{total})"
+                    if item == "Contract Piece":
+                        required = settings['Required Contract Pieces']
+                        return f"{item} (*{count}/{required}*)"
                 case "Hollow Knight":
                     if item == "Grub":
                         total = 46
@@ -1127,6 +1130,8 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                         if count % 4 == 0:
                             return f"{item} (+1 Heart Container)"
                         else: return f"{item} ({count % 4}/4)"
+                    if item.endswith(" Small Key"):
+                        return f"{item} ({count})"
                     if item.startswith("Ocarina ") and item.endswith(" Button"):
                         # Ocarina item buttons
                         collected_str = ""
