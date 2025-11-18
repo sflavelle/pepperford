@@ -383,7 +383,7 @@ def process_spoiler_log(seed_url):
             try:
                 # Fix Win Conditions dict breaking
                 original = player.settings['Win conditions']
-                player.settings['Win conditions'] = parse_to_type(original)
+                player.settings['Win conditions'] = smart_split(original)
             except TypeError as err:
                 pass
             try:

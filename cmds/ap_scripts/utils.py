@@ -1025,8 +1025,10 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                         if settings['Win conditions']['nrof-maps'] == "all":
                             required_num = len(settings['Included levels'])
                         else:
-                            required_num = int(settings['Win conditions']['nrof-maps'])
-                            required_maps = list(settings['Win conditions']['specific-maps'])
+                            if settings['Win conditions']['nrof-maps']:
+                                required_num = int(settings['Win conditions']['nrof-maps'])
+                            if settings['Win conditions']['specific-maps']:
+                                required_maps = list(settings['Win conditions']['specific-maps'])
 
                         if len(required_maps) > 0:
                             for map in required_maps:
