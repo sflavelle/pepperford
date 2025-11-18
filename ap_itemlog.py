@@ -383,12 +383,14 @@ def process_spoiler_log(seed_url):
             try:
                 # Fix Win Conditions dict breaking
                 original = player.settings['Win conditions']
+                logger.info(f"Attempting to parse GZDoom win conditions: {original}")
                 player.settings['Win conditions'] = {}
                 for option in original.split(","):
+                    logger.info(f"Option: '{option}'")
                     for key, value in option.split(":"):
                         player.settings['Win conditions'][key.strip()] = parse_value(value.lstrip())
                 player.settings['Win conditions'] = smart_split(original)
-            except TypeError as err:
+            except TypeError|ValueError as err:
                 pass
             try:
                 # Determine the real Included Levels list by Level Access items
