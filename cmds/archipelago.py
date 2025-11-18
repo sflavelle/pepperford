@@ -606,7 +606,12 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
         await newpost.edit(content=f"Set room for {interaction.guild.name} to {room_url} !")
 
     @aproom.command(name="status")
-    async def room_status(self, interaction: discord.Interaction, public: bool = False):
+    @app_commands.describe(
+        public="Publish the status to the room, instead of just to you",
+        filter_self="Filter to only your own slots",
+        show_slot_game = "Show the game that each slot is playing"
+    )
+    async def room_status(self, interaction: discord.Interaction, public: bool = False, filter_self: bool = False, show_slot_game: bool = False):
         """Get the status of the current Archipelago room."""
         deferpost = await interaction.response.defer(ephemeral=not public, thinking=True,)
         newpost = await interaction.original_response()
@@ -647,18 +652,32 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
 
             msg_lines.append("")
 
+            if filter_self:
+                linked_slots = []
+                with sqlcon.cursor() as cursor:
+                    cursor.execute(
+                        "SELECT rp.player_name FROM pepper.ap_room_players rp JOIN pepper.ap_players p ON rp.player_name = p.player_name WHERE rp.room_id = %s AND rp.guild = %s AND p.discord_user = %s;",
+                        (room["room_id"], interaction.guild_id, interaction.user.id),
+                    )
+                    linked_slots = [row[0] for row in cursor.fetchall()]
+                if len(linked_slots) == 0:
+                    return await newpost.edit(content=self.messages['no_slots_linked'])
+
+                game_table['players'] = {k: v for k,v in game_table['players'].copy() if v['name'] in linked_slots}
+
             for player in game_table['players'].values():
                 last_online = lambda player: "Online right now." if player['online'] is True else f"Last online <t:{int(player['last_online'])}:R>." if player['last_online'] is not None else "Never logged in."
+                showgame_ifenabled = lambda player: f" ({player['game']})" if show_slot_game else ''
                 if player['goaled'] is True:
-                    msg_lines.append(f"- **{player['name']} ({player['game']})**: finished their game with {round(player['finished_percentage'], 2)}% checks collected.")
+                    msg_lines.append(f"- **{player['name']}{showgame_ifenabled}**: finished their game with {round(player['finished_percentage'], 2)}% checks collected.")
                 elif player['released'] is True and player['goaled'] is False:
-                    msg_lines.append(f"- **{player['name']} ({player['game']})**: released from the game.")
+                    msg_lines.append(f"- **{player['name']}{showgame_ifenabled}**: released from the game.")
                 else:
-                    msg_lines.append(f"- **{player['name']} ({player['game']})**: {round(player['collection_percentage'], 2)}% complete. ({player['collected_locations']}/{player['total_locations']} checks.) {last_online(player)}")
+                    msg_lines.append(f"- **{player['name']}{showgame_ifenabled}**: {round(player['collection_percentage'], 1)}% complete. ({player['collected_locations']}/{player['total_locations']} checks.) {last_online(player)}")
                 if player['stats']['goal_str'] is not None:
                     msg_lines.append(f"  - Goal: {player['stats']['goal_str']}.")
 
-                if len("\n".join(msg_lines)) > MAX_MSG_LENGTH: raise ValueError("Message too long")
+            if len("\n".join(msg_lines)) > MAX_MSG_LENGTH: raise ValueError("Message too long")
         except ValueError as err:
             # Remove the goal strings and try again
             for l in msg_lines:
