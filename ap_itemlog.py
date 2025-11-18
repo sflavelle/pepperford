@@ -387,8 +387,8 @@ def process_spoiler_log(seed_url):
                 player.settings['Win conditions'] = {}
                 for option in original.split(","):
                     logger.info(f"Option: '{option}'")
-                    for key, value in option.split(":"):
-                        player.settings['Win conditions'][key.strip()] = parse_value(value.lstrip())
+                    for val in option.split(":"):
+                        player.settings['Win conditions'][val[0].strip()] = parse_value(val[1].lstrip())
                 player.settings['Win conditions'] = smart_split(original)
             except ValueError as err:
                 pass
