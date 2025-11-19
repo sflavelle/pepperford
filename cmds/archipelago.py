@@ -681,11 +681,13 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
             if len("\n".join(msg_lines)) > MAX_MSG_LENGTH: raise ValueError("Message too long")
         except ValueError as err:
             # Remove the goal strings and try again
+            logger.error(f"Couldn't send full AP status, message is {len("\n".join(msg_lines))} chars long.")
             for l in msg_lines:
                 if l.startswith("  - Goal: "):
                     msg_lines.remove(l)
             if len("\n".join(msg_lines)) > MAX_MSG_LENGTH:
                 # Still too long, this must be a large game
+                logger.error(f"Couldn't send AP status without goals, message is {len("\n".join(msg_lines))} chars long.")
                 # We're going to rebuild the message with minimal info
 
                 msg_lines = []
@@ -733,6 +735,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
 
                 if len("\n".join(msg_lines)) > MAX_MSG_LENGTH:
                     # i give up
+                    logger.error(f"Couldn't send minimal AP status, message is {len("\n".join(msg_lines))} chars long. Giving up.")
                     return await newpost.edit(content=f"There are too many players here to reliably list.\nVisit the [room page](https://{host}/room/{room_id}) to view.")
 
 
