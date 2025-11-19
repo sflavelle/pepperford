@@ -663,7 +663,8 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                 if len(linked_slots) == 0:
                     return await newpost.edit(content=self.messages['no_slots_linked'])
 
-                game_table['players'] = {k: v for k,v in game_table['players'].copy() if v['name'] in linked_slots}
+                filtered_player_list  = {k: v for k,v in game_table['players'].items() if v['name'] in linked_slots}
+                game_table['players'] = filtered_player_list
 
             for player in game_table['players'].values():
                 last_online = lambda player: "Online right now." if player['online'] is True else f"Last online <t:{int(player['last_online'])}:R>." if player['last_online'] is not None else "Never logged in."
