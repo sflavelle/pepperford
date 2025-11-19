@@ -683,8 +683,57 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
             for l in msg_lines:
                 if l.startswith("  - Goal: "):
                     msg_lines.remove(l)
-            if len("\n".join(msg_lines)) > MAX_MSG_LENGTH: raise ValueError("Message still too long")
-            
+            if len("\n".join(msg_lines)) > MAX_MSG_LENGTH:
+                # Still too long, this must be a large game
+                # We're going to rebuild the message with minimal info
+
+                msg_lines = []
+
+                with sqlcon.cursor() as cursor:
+                    try:
+                        cursor.execute(
+                            "SELECT room_id, host, port from pepper.ap_all_rooms WHERE active = 'true' AND guild = %s;",
+                            (interaction.guild_id,))
+                        room_id, host, port = cursor.fetchone()
+                        msg_lines.append(f"[**Archipelago Room Status**](https://{host}/room/{room_id})")
+                    except psql.Error as e:
+                        pass
+
+                msg_lines.append(
+                    f"{game_table['collected_locations']}/{game_table['total_locations']} total locations checked.")
+                if game_table['running'] is False:
+                    msg_lines.append("Open the room page to spin this server up.")
+
+                msg_lines.append("")
+
+                if filter_self:
+                    linked_slots = []
+                    with sqlcon.cursor() as cursor:
+                        cursor.execute(
+                            "SELECT rp.player_name FROM pepper.ap_room_players rp JOIN pepper.ap_players p ON rp.player_name = p.player_name WHERE rp.room_id = %s AND rp.guild = %s AND p.discord_user = %s;",
+                            (room["room_id"], interaction.guild_id, interaction.user.id),
+                        )
+                        linked_slots = [row[0] for row in cursor.fetchall()]
+                    if len(linked_slots) == 0:
+                        return await newpost.edit(content=self.messages['no_slots_linked'])
+
+                    game_table['players'] = {k: v for k, v in game_table['players'].copy() if v['name'] in linked_slots}
+
+                for player in game_table['players'].values():
+                    showgame_ifenabled = lambda player: f" ({player['game']})" if show_slot_game else ''
+                    if player['goaled'] is True:
+                        msg_lines.append(
+                            f"- **{player['name']}{showgame_ifenabled}**: finished.")
+                    elif player['released'] is True and player['goaled'] is False:
+                        msg_lines.append(f"- **{player['name']}{showgame_ifenabled}**: released.")
+                    else:
+                        msg_lines.append(
+                            f"- **{player['name']}{showgame_ifenabled}**: {player['collected_locations']}/{player['total_locations']} checks.")
+
+                if len("\n".join(msg_lines)) > MAX_MSG_LENGTH:
+                    # i give up
+                    return await newpost.edit(content=f"There are too many players here to reliably list.\nVisit the [room page](https://{host}/room/{room_id}) to view.")
+
 
         return await newpost.edit(content="\n".join(msg_lines))
 
