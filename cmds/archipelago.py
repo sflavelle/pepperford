@@ -670,11 +670,11 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                 last_online = lambda player: "Online right now." if player['online'] is True else f"Last online <t:{int(player['last_online'])}:R>." if player['last_online'] is not None else "Never logged in."
                 showgame_ifenabled = lambda player: f" ({player['game']})" if show_slot_game else ''
                 if player['goaled'] is True:
-                    msg_lines.append(f"- **{player['name']}{showgame_ifenabled}**: finished their game with {round(player['finished_percentage'], 2)}% checks collected.")
+                    msg_lines.append(f"- **{player['name']}{showgame_ifenabled(player)}**: finished their game with {round(player['finished_percentage'], 2)}% checks collected.")
                 elif player['released'] is True and player['goaled'] is False:
-                    msg_lines.append(f"- **{player['name']}{showgame_ifenabled}**: released from the game.")
+                    msg_lines.append(f"- **{player['name']}{showgame_ifenabled(player)}**: released from the game.")
                 else:
-                    msg_lines.append(f"- **{player['name']}{showgame_ifenabled}**: {round(player['collection_percentage'], 1)}% complete. ({player['collected_locations']}/{player['total_locations']} checks.) {last_online(player)}")
+                    msg_lines.append(f"- **{player['name']}{showgame_ifenabled(player)}**: {round(player['collection_percentage'], 1)}% complete. ({player['collected_locations']}/{player['total_locations']} checks.) {last_online(player)}")
                 if player['stats']['goal_str'] is not None:
                     msg_lines.append(f"  - Goal: {player['stats']['goal_str']}.")
 
