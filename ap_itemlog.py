@@ -383,13 +383,19 @@ def process_spoiler_log(seed_url):
             try:
                 # Fix Win Conditions dict breaking
                 original = player.settings['Win conditions']
+                winsettings = {
+                    "nrof-maps": None,
+                    "specific-maps": None
+                }
                 logger.info(f"Attempting to parse GZDoom win conditions: {original}")
                 player.settings['Win conditions'] = {}
                 for option in original.split(","):
                     logger.info(f"Option: '{option}'")
-                    for val in option.split(":"):
-                        player.settings['Win conditions'][val[0].strip()] = parse_value(val[1].lstrip())
-                player.settings['Win conditions'] = smart_split(original)
+                    if 'nrof-maps' in option:
+                        player.settings['Win conditions']["nrof-maps"] = option.split(':')[-1]
+                    if 'specific-maps' in option:
+                        player.settings['Win conditions']["specific-maps"] = option.split(':')[-1]
+                player.settings['Win conditions'] = winsettings
             except ValueError as err:
                 pass
             try:
