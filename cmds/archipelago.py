@@ -731,7 +731,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                         msg_lines.append(f"- **{player['name']}{showgame_ifenabled}**: released.")
                     else:
                         msg_lines.append(
-                            f"- **{player['name']}{showgame_ifenabled}**: {player['collected_locations']}/{player['total_locations']} checks.")
+                            f"- **{player['name']}{showgame_ifenabled}**: {round(player['collection_percentage'], 1)}% complete.")
 
                 if len("\n".join(msg_lines)) > MAX_MSG_LENGTH:
                     # i give up
