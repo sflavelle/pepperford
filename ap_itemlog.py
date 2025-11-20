@@ -976,7 +976,7 @@ def watch_log(url, interval):
 
     ### Main Loop
     while True:
-        if tracker_sleep_count >= 10:
+        if tracker_sleep_count >= 10 and game.running is False:
             game.fetch_tracker()
             # game.fetch_slot_data()
             tracker_sleep_count = 0
@@ -1091,6 +1091,11 @@ def inspect():
 @webview.route('/inspectgame', methods=['GET'])
 def get_game():
     return jsonify(game.to_dict())
+
+@webview.route('/refreshclassifications', methods=['GET'])
+def refresh_classifications():
+    global game
+    game.refresh_classifications()
 
 @webview.route('/locations/checkable/', methods=['GET'], defaults={'found': False})
 @webview.route('/locations/checkable/found', methods=['GET'], defaults={'found': True})
