@@ -876,7 +876,10 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                         if exhausted[slot]: continue
                         try:
                             item = next(player_table[slot]['offline_items'])
-                            item_lines[slot].append(f"- <t:{int(item['Timestamp'])}:R>: **{item['Item']}** from {item['Sender']} ({item['Location']})\n")
+                            line = f"- <t:{int(item['Timestamp'])}:R>: **{item['Item']}** from {item['Sender']} ({item['Location']})\n"
+                            if msglen + len(line) > 1900: break
+                            else:
+                                item_lines[slot].append(line)
                         except StopIteration:
                             exhausted[slot] = True
                             continue
@@ -886,7 +889,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                 msglen = len(rcv_lines) + linelen
                 iteration += 1
 
-            logger.info(f"Built received list for {len(linked_slots)} slots in {iteration} iterations. Length: {msglen} chars.")
+            logger.info(f"Built received list of {sum(len(lines) for lines in item_lines.values())} items for {len(linked_slots)} slots in {iteration} iterations. Length: {msglen} chars.")
 
             # Now join the lists together
             msg_lines = []
