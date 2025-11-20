@@ -878,7 +878,10 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                             item_lines[slot].append(f"- <t:{int(item['Timestamp'])}:R>: **{item['Item']}** from {item['Sender']} ({item['Location']})\n")
                         except StopIteration:
                             exhausted[slot] = True
+                            continue
                 iteration += 1
+
+            logger.info(f"Built received list for {len(linked_slots)} slots in {iteration} iterations.")
 
             # Now join the lists together
             msg_lines = []
