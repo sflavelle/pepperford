@@ -869,12 +869,12 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                 player_table[slot]['offline_items'] = iter(sorted(raw_list, key=lambda i: i['Timestamp'], reverse=True))
 
             iteration = 0
-            item_lines = []
-            exhausted = []
+            item_lines = {}
+            exhausted = {}
             for slot in linked_slots:
                 item_lines[slot] = []
                 exhausted[slot] = False
-            while (len("\n".join(rcv_lines)) + sum(len("\n".join(item_lines[slot])) for slot in linked_slots)) < MAX_MSG_LENGTH and not all(zzz for zzz in exhausted):
+            while (len("\n".join(rcv_lines)) + sum(len("\n".join(item_lines[slot])) for slot in linked_slots)) < MAX_MSG_LENGTH and not all(zzz for zzz in exhausted.values()):
                 if iteration == 0:
                     for slot in linked_slots:
                         last_online = player_table[slot]['last_online']
@@ -887,10 +887,13 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
 
                         if player_table[slot]['goaled'] or player_table[slot]['released']:
                             item_lines[slot] += "-# Finished playing (goaled or released)."
+                            exhausted[slot] = True
                         if not player_table[slot]['offline_items']:
                             item_lines[slot] += "No new items received since last played.\n"
+                            exhausted[slot] = True
                 else:
                     for slot in linked_slots:
+                        if exhausted[slot]: continue
                         try:
                             item = next(player_table[slot]['offline_items'])
                             item_lines[slot].append(f"- <t:{int(item['Timestamp'])}:R>: **{item['Item']}** from {item['Sender']} ({item['Location']})\n")
@@ -915,6 +918,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                 elif not player_table[slot]['offline_items']:
                     msg_lines += "No new items received since last played.\n"
                 else:
+                    # add the lists
                     msg_lines += item_lines[slot]
 
             await newpost.edit(content="\n".join(msg_lines))
