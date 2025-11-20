@@ -876,7 +876,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                         if exhausted[slot]: continue
                         try:
                             item = next(player_table[slot]['offline_items'])
-                            line = f"- <t:{int(item['Timestamp'])}:R>: **{item['Item']}** from {item['Sender']} ({item['Location']})\n"
+                            line = f"- <t:{int(item['Timestamp'])}:R>: **{item['Item']}** from {item['Sender']}\n"
                             if msglen + len(line) > 1500: break
                             else:
                                 item_lines[slot].append(line)
