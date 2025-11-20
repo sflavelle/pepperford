@@ -9,6 +9,7 @@ import signal
 import yaml
 import traceback
 import typing
+import itertools
 from io import BytesIO
 import psycopg2 as psql
 from psycopg2.extras import Json as psql_json
@@ -849,10 +850,11 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
             iteration = 0
             item_lines = {}
             exhausted = {}
+            msglen = 0
             for slot in linked_slots:
                 item_lines[slot] = []
                 exhausted[slot] = False
-            while (len("\n".join(rcv_lines)) + sum(len("\n".join(item_lines[slot])) for slot in linked_slots)) < 1800 or not all(zzz for zzz in exhausted.values()):
+            while (len("\n".join(rcv_lines)) + msglen < 1800) or not all(zzz for zzz in exhausted.values()):
                 # message length is a little under the 2000 max to allow a buffer
                 if iteration == 0:
                     for slot in linked_slots:
@@ -879,9 +881,10 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                         except StopIteration:
                             exhausted[slot] = True
                             continue
+                msglen = len(rcv_lines) + len(list(itertools.chain.from_iterable(item_lines)))
                 iteration += 1
 
-            logger.info(f"Built received list for {len(linked_slots)} slots in {iteration} iterations.")
+            logger.info(f"Built received list for {len(linked_slots)} slots in {iteration} iterations. Length: {msglen} chars.")
 
             # Now join the lists together
             msg_lines = []
