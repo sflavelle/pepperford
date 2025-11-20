@@ -877,7 +877,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                         try:
                             item = next(player_table[slot]['offline_items'])
                             line = f"- <t:{int(item['Timestamp'])}:R>: **{item['Item']}** from {item['Sender']} ({item['Location']})\n"
-                            if msglen + len(line) > 1900: break
+                            if msglen + len(line) > 1500: break
                             else:
                                 item_lines[slot].append(line)
                         except StopIteration:
@@ -887,7 +887,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                 for lines in item_lines.values():
                     linelen += len("\n".join(lines))
                 msglen = len(rcv_lines) + linelen
-                if msglen >= 1800: break
+                if msglen >= 1500: break
                 iteration += 1
 
             logger.info(f"Built received list of {sum(len(lines) for lines in item_lines.values())} items for {len(linked_slots)} slots in {iteration} iterations. Length: {msglen} chars.")
@@ -914,7 +914,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
 
             await newpost.edit(content="\n".join(msg_lines))
         except discord.errors.HTTPException as e:
-                logger.error(f"Couldn't post received items!",e,exc_info=True)
+                logger.error(f"Couldn't post received items!",e)
                 logger.error(f"Message was {len("\n".join(msg_lines))} chars long.")
                 await newpost.edit(content=f"Error: {e}\nShare this message with <@49288117307310080>:\n{"".join(traceback.format_exception(type(e), e, e.__traceback__))}")
 
