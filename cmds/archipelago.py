@@ -859,24 +859,24 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                     for slot in linked_slots:
                         last_online = player_table[slot]['last_online']
                         if player_table[slot]['online'] is True:
-                            rcv_lines.append(f"\n### {slot} (You're online right now!)\n")
+                            rcv_lines.append(f"\n### {slot} (You're online right now!)")
                         elif last_online == 0:
-                            rcv_lines.append(f"\n### {slot} (Never logged in)\n")
+                            rcv_lines.append(f"\n### {slot} (Never logged in)")
                         else:
-                            rcv_lines.append(f"\n### {slot} (Last online <t:{int(last_online)}:R>)\n")
+                            rcv_lines.append(f"\n### {slot} (Last online <t:{int(last_online)}:R>)")
 
                         if player_table[slot]['goaled'] or player_table[slot]['released']:
                             rcv_lines.append("-# Finished playing (goaled or released).")
                             exhausted[slot] = True
                         if not player_table[slot]['offline_items']:
-                            rcv_lines.append("No new items received since last played.\n")
+                            rcv_lines.append("No new items received since last played.")
                             exhausted[slot] = True
                 else:
                     for slot in linked_slots:
                         if exhausted[slot]: continue
                         try:
                             item = next(player_table[slot]['offline_items'])
-                            line = f"- <t:{int(item['Timestamp'])}:R>: **{item['Item']}** from {item['Sender']}\n"
+                            line = f"- <t:{int(item['Timestamp'])}:R>: **{item['Item']}** from {item['Sender']}"
                             if msglen + len(line) > 1800: break
                             else:
                                 item_lines[slot].append(line)
@@ -898,16 +898,16 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
             for slot in linked_slots:
                 last_online = player_table[slot]['last_online']
                 if player_table[slot]['online'] is True:
-                    msg_lines.append(f"\n### {slot} (You're online right now!)\n")
+                    msg_lines.append(f"\n### {slot} (You're online right now!)")
                 elif last_online == 0:
-                    msg_lines.append(f"\n### {slot} (Never logged in)\n")
+                    msg_lines.append(f"\n### {slot} (Never logged in)")
                 else:
-                    msg_lines.append(f"\n### {slot} (Last online <t:{int(last_online)}:R>)\n")
+                    msg_lines.append(f"\n### {slot} (Last online <t:{int(last_online)}:R>)")
 
                 if player_table[slot]['goaled'] or player_table[slot]['released']:
                     msg_lines.append("-# Finished playing (goaled or released).")
-                elif not player_table[slot]['offline_items']:
-                    msg_lines.append("No new items received since last played.\n")
+                elif len(item_lines[slot]) == 0:
+                    msg_lines.append("No new items received since last played.")
                 else:
                     # add the lists
                     msg_lines += item_lines[slot]
