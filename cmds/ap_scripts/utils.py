@@ -242,7 +242,7 @@ class Game(dict):
             pass # we already track this via the logs
 
         for p in tracker_json['hints']:
-            player = self.get_player(p['player'])
+            receiver = self.get_player(p['receiving_player'])
 
             # Can't do anything with this yet, but here's the structure:
             ### receiving_player: int # player ID
@@ -1008,7 +1008,7 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                         access, mapname = item_match.groups()
                         friendly = gzd.lookupMap(wadname=settings['WAD to play'], mapname=mapname)
                         if friendly is not None:
-                            logger.info(f"Got friendly name for {mapname}: {friendly}")
+                            logger.debug(f"Got friendly name for {mapname}: {friendly}")
                             item = item.replace(mapname, f"{mapname}: {friendly}")
                         else:
                             logger.error(f"Couldn't lookup or find friendly name for {mapname}")
