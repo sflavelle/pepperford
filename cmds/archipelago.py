@@ -690,7 +690,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                 logger.error(f"Couldn't send AP status without goals, message is {len("\n".join(msg_lines))} chars long.")
                 # We're going to rebuild the message with minimal info
 
-                msg_lines = []
+                msg_lines.clear()
 
                 with sqlcon.cursor() as cursor:
                     try:
@@ -736,7 +736,8 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                 if len("\n".join(msg_lines)) > MAX_MSG_LENGTH:
                     # i give up
                     logger.error(f"Couldn't send minimal AP status, message is {len("\n".join(msg_lines))} chars long. Giving up.")
-                    return await newpost.edit(content=f"There are too many players here to reliably list.\nVisit the [room page](https://{host}/room/{room_id}) to view.")
+                    return await newpost.edit(content=f"There are too many players here to reliably list.\nVisit the [room page](https://{host}/room/{room_id}) to view."
+                                              "\nYou can run this command again with `filter_self` to show the status of your own slots.")
 
 
         return await newpost.edit(content="\n".join(msg_lines))
