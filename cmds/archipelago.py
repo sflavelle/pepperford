@@ -838,100 +838,87 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
         if all(len(player_table[slot]['offline_items']) == 0 for slot in linked_slots):
             return await newpost.edit(content="You have not received any items since you last played.")
         
-        # Format the received items table
-        items_list = "## Received Items:\n"
+        rcv_lines = []
         # Group items by slot and sort by timestamp
         try: 
+            # for slot in linked_slots:
+            #     last_online = player_table[slot]['last_online']
+            #     if player_table[slot]['online'] is True:
+            #         items_list += f"\n### {slot} (You're online right now!)\n"
+            #     elif last_online == 0:
+            #         items_list += f"\n### {slot} (Never logged in)\n"
+            #     else:
+            #         items_list += f"\n### {slot} (Last online <t:{int(last_online)}:R>)\n"
+            #
+            #     if player_table[slot]['goaled'] or player_table[slot]['released']:
+            #         items_list += "-# Finished playing (goaled or released)."
+            #         continue
+            #
+            #     offline_items = sorted(player_table[slot]['offline_items'], key=lambda x: x['Timestamp'])
+            #     if not offline_items:
+            #         items_list += "No new items received since last played.\n"
+            #     else:
+            #         for item in offline_items:
+            #             items_list += (
+            #                 f"- <t:{int(item['Timestamp'])}:R>: **{item['Item']}** from {item['Sender']} ({item['Location']})\n"
+            #             )
+
+            # reverse sort each list (newest items first)
             for slot in linked_slots:
-                last_online = player_table[slot]['last_online']
-                if player_table[slot]['online'] is True:
-                    items_list += f"\n### {slot} (You're online right now!)\n"
-                elif last_online == 0:
-                    items_list += f"\n### {slot} (Never logged in)\n"
-                else:
-                    items_list += f"\n### {slot} (Last online <t:{int(last_online)}:R>)\n"
+                raw_list = player_table[slot]['offline_items']
+                player_table[slot]['offline_items'] = iter(sorted(raw_list, key=lambda i: i['Timestamp'], reverse=True))
 
-                if player_table[slot]['goaled'] or player_table[slot]['released']:
-                    items_list += "-# Finished playing (goaled or released)."
-                    continue
-
-                offline_items = sorted(player_table[slot]['offline_items'], key=lambda x: x['Timestamp'])
-                if not offline_items:
-                    items_list += "No new items received since last played.\n"
-                else:
-                    for item in offline_items:
-                        items_list += (
-                            f"- <t:{int(item['Timestamp'])}:R>: **{item['Item']}** from {item['Sender']} ({item['Location']})\n"
-                        )
-
-            await newpost.edit(content=items_list)
-        except discord.errors.HTTPException as e:
-            if len(items_list) > 2000:
-                # Exceeds Discord message limit, try making the list again without location
-                # and only post progression/unclassified items
-                items_list = "## Received Items:\n"
-
-                for slot in linked_slots:
-                    last_online = player_table[slot]['last_online']
-                    if player_table[slot]['online'] is True:
-                        items_list += f"\n### {slot} (You're online right now!)\n"
-                    elif last_online == 0:
-                        items_list += f"\n### {slot} (Never logged in)\n"
-                    else:
-                        items_list += f"\n### {slot} (Last online <t:{int(last_online)}:R>)\n"
-                    
-                    if player_table[slot]['goaled'] or player_table[slot]['released']:
-                        items_list += "-# Finished playing (goaled or released)."
-                        continue
-                    
-                    offline_items = sorted(player_table[slot]['offline_items'], key=lambda x: x['Timestamp'])
-                    if not offline_items:
-                        items_list += "No new items received since last played.\n"
-                    else:
-                        for item in offline_items:
-                            if item['Classification'] in ["progression", None]:
-                                items_list += (
-                                    f"- <t:{int(item['Timestamp'])}:R>: **{item['Item']}** from {item['Sender']}\n"
-                                )
-                try: 
-                    await newpost.edit(content=items_list)
-                except discord.errors.HTTPException as e:
-                    # Alright, we tried; just get the last 15 items received
-                    # (split between players) and note that we couldn't get everything
-                    MAX_ITEMS = 15
-                    PLAYER_ITEMS = MAX_ITEMS // len(linked_slots)
-
-                    items_list = "## Received Items:\n"
-                    items_list += ("-# Note: There were too many items received to safely post - "
-                    f"this list only shows the latest {PLAYER_ITEMS} items received per player.")
-
+            iteration = 0
+            item_lines = []
+            exhausted = []
+            for slot in linked_slots:
+                item_lines[slot] = []
+                exhausted[slot] = False
+            while (len("\n".join(rcv_lines)) + sum(len("\n".join(item_lines[slot])) for slot in linked_slots)) < MAX_MSG_LENGTH and not all(zzz for zzz in exhausted):
+                if iteration == 0:
                     for slot in linked_slots:
                         last_online = player_table[slot]['last_online']
                         if player_table[slot]['online'] is True:
-                            items_list += f"\n### {slot} (You're online right now!)\n"
+                            item_lines[slot] += f"\n### {slot} (You're online right now!)\n"
                         elif last_online == 0:
-                            items_list += f"\n### {slot} (Never logged in)\n"
+                            item_lines[slot] += f"\n### {slot} (Never logged in)\n"
                         else:
-                            items_list += f"\n### {slot} (Last online <t:{int(last_online)}:R>)\n"
-                        
+                            item_lines[slot] += f"\n### {slot} (Last online <t:{int(last_online)}:R>)\n"
+
                         if player_table[slot]['goaled'] or player_table[slot]['released']:
-                            items_list += "-# Finished playing (goaled or released)."
-                            continue
-                        
-                        offline_items = sorted(player_table[slot]['offline_items'], key=lambda x: x['Timestamp'])[0-PLAYER_ITEMS:]
-                        if not offline_items:
-                            items_list += "No new items received since last played.\n"
-                        else:
-                            for item in offline_items:
-                                if item['Classification'] in ["progression", None]:
-                                    items_list += (
-                                        f"- <t:{int(item['Timestamp'])}:R>: **{item['Item']}** from {item['Sender']}\n"
-                                    )
-                    try: 
-                        await newpost.edit(content=items_list)
-                    except discord.errors.HTTPException as e:
-                        raise
-            else:
+                            item_lines[slot] += "-# Finished playing (goaled or released)."
+                        if not player_table[slot]['offline_items']:
+                            item_lines[slot] += "No new items received since last played.\n"
+                else:
+                    for slot in linked_slots:
+                        try:
+                            item = next(player_table[slot]['offline_items'])
+                            item_lines[slot].append(f"- <t:{int(item['Timestamp'])}:R>: **{item['Item']}** from {item['Sender']} ({item['Location']})\n")
+                        except StopIteration:
+                            exhausted[slot] = True
+                iteration += 1
+
+            # Now join the lists together
+            msg_lines = []
+            # I'm going to rebuild the first iteration list so that I can add the other lists at the correct place
+            for slot in linked_slots:
+                last_online = player_table[slot]['last_online']
+                if player_table[slot]['online'] is True:
+                    msg_lines += f"\n### {slot} (You're online right now!)\n"
+                elif last_online == 0:
+                    msg_lines += f"\n### {slot} (Never logged in)\n"
+                else:
+                    msg_lines += f"\n### {slot} (Last online <t:{int(last_online)}:R>)\n"
+
+                if player_table[slot]['goaled'] or player_table[slot]['released']:
+                    msg_lines += "-# Finished playing (goaled or released)."
+                elif not player_table[slot]['offline_items']:
+                    msg_lines += "No new items received since last played.\n"
+                else:
+                    msg_lines += item_lines[slot]
+
+            await newpost.edit(content="\n".join(msg_lines))
+        except discord.errors.HTTPException as e:
                 logger.error(f"Couldn't post received items!",e,exc_info=True)
                 await newpost.edit(content=f"Error: {e}\nShare this message with <@49288117307310080>:\n{"".join(traceback.format_exception(type(e), e, e.__traceback__))}")
 
