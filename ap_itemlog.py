@@ -903,8 +903,7 @@ def fetch_log(url):
 ### Emitter events
 
 def handle_milestone_message(message):
-    # message_buffer.append(message)
-    pass
+    message_buffer.append(message)
 
 event_emitter.on("milestone", handle_milestone_message)
 
