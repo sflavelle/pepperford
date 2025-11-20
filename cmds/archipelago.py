@@ -859,17 +859,17 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                     for slot in linked_slots:
                         last_online = player_table[slot]['last_online']
                         if player_table[slot]['online'] is True:
-                            item_lines[slot] += f"\n### {slot} (You're online right now!)\n"
+                            rcv_lines.append(f"\n### {slot} (You're online right now!)\n")
                         elif last_online == 0:
-                            item_lines[slot] += f"\n### {slot} (Never logged in)\n"
+                            rcv_lines.append(f"\n### {slot} (Never logged in)\n")
                         else:
-                            item_lines[slot] += f"\n### {slot} (Last online <t:{int(last_online)}:R>)\n"
+                            rcv_lines.append(f"\n### {slot} (Last online <t:{int(last_online)}:R>)\n")
 
                         if player_table[slot]['goaled'] or player_table[slot]['released']:
-                            item_lines[slot] += "-# Finished playing (goaled or released)."
+                            rcv_lines.append("-# Finished playing (goaled or released).")
                             exhausted[slot] = True
                         if not player_table[slot]['offline_items']:
-                            item_lines[slot] += "No new items received since last played.\n"
+                            rcv_lines.append("No new items received since last played.\n")
                             exhausted[slot] = True
                 else:
                     for slot in linked_slots:
@@ -887,6 +887,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                 for lines in item_lines.values():
                     linelen += len("\n".join(lines))
                 msglen = len(rcv_lines) + linelen
+                if msglen >= 1800: break
                 iteration += 1
 
             logger.info(f"Built received list of {sum(len(lines) for lines in item_lines.values())} items for {len(linked_slots)} slots in {iteration} iterations. Length: {msglen} chars.")
