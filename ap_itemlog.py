@@ -389,12 +389,17 @@ def process_spoiler_log(seed_url):
                 }
                 logger.info(f"Attempting to parse GZDoom win conditions: {original}")
                 player.settings['Win conditions'] = {}
+
+                # match something like 'nrof-maps: 175'
+                option_regex = re.compile(r'^ ?(.+?): (.+)$')
+
                 for option in original.split(","):
                     logger.info(f"Option: '{option}'")
-                    if 'nrof-maps' in option:
-                        player.settings['Win conditions']["nrof-maps"] = option.split(':')[-1]
-                    if 'specific-maps' in option:
-                        player.settings['Win conditions']["specific-maps"] = option.split(':')[-1]
+
+                    if match := option_regex.match(option):
+                        key, val = match.groups()
+                        player.settings['Win conditions'][key] = val
+
                 player.settings['Win conditions'] = winsettings
             except ValueError as err:
                 pass
