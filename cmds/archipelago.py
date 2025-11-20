@@ -853,7 +853,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
             for slot in linked_slots:
                 item_lines[slot] = []
                 exhausted[slot] = False
-            while (len("\n".join(rcv_lines)) + msglen < 1800) or not all(zzz for zzz in exhausted.values()):
+            while (len("\n".join(rcv_lines)) + msglen < 1500) and not all(zzz for zzz in exhausted.values()):
                 # message length is a little under the 2000 max to allow a buffer
                 if iteration == 0:
                     for slot in linked_slots:
