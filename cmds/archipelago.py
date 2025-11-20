@@ -9,7 +9,6 @@ import signal
 import yaml
 import traceback
 import typing
-import itertools
 from io import BytesIO
 import psycopg2 as psql
 from psycopg2.extras import Json as psql_json
@@ -881,7 +880,10 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                         except StopIteration:
                             exhausted[slot] = True
                             continue
-                msglen = len(rcv_lines) + len(list(itertools.chain.from_iterable(item_lines)))
+                linelen = 0
+                for lines in item_lines.values():
+                    linelen += len("\n".join(lines))
+                msglen = len(rcv_lines) + linelen
                 iteration += 1
 
             logger.info(f"Built received list for {len(linked_slots)} slots in {iteration} iterations. Length: {msglen} chars.")
