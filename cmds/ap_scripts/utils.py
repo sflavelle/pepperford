@@ -242,7 +242,7 @@ class Game(dict):
             pass # we already track this via the logs
 
         for p in tracker_json['hints']:
-            receiver = self.get_player(p['receiving_player'])
+            player = self.get_player(p['player'])
 
             # Can't do anything with this yet, but here's the structure:
             ### receiving_player: int # player ID
