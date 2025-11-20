@@ -730,6 +730,12 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
                 if start_time is None:
                     logger.error(f"Failed to parse start time from timestamp: {timestamp}")
                 logger.info(f"Start time set to {start_time} (epoch)")
+
+                # Update "Starting Items" timestamps
+                for player in game.players.values():
+                    for item in player.inventory:
+                        if item.location.name == "Starting Items" and item.location.player == "Archipelago":
+                            item.received_timestamp = start_time
         elif match := regex_patterns['messages'].match(line):
             timestamp, sender, message = match.groups()
             if msg_webhooks:
