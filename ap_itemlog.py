@@ -994,12 +994,9 @@ def watch_log(url, interval):
         current_lines = fetch_log(url)
         if len(current_lines) == 0:
             # if fetch fails we don't want it to sync back '0' and then re-read the entire log file
-            continue
-        if len(current_lines) > last_line:
-            new_lines = current_lines[last_line:]
-            with sqlcon.cursor() as cursor:
-                game.pushdb(cursor, 'pepper.ap_all_rooms', 'last_line', len(current_lines))
-                sqlcon.commit()
+            pass
+        elif len(current_lines) > last_line:
+            new_lines = current_lines[last_line:
             process_new_log_lines(new_lines)
             if message_buffer:
                 try:
@@ -1038,6 +1035,10 @@ def watch_log(url, interval):
                     last_line = len(current_lines)
                 except requests.RequestException as e:
                     pass
+
+            with sqlcon.cursor() as cursor:
+                game.pushdb(cursor, 'pepper.ap_all_rooms', 'last_line', len(current_lines))
+                sqlcon.commit()
 
         if len(release_buffer) > 0:
             if any(datetime.now(ZoneInfo("UTC")).astimezone() - release_buffer[sender]['timestamp'] > RELEASE_DELTA for sender in release_buffer.keys()):
