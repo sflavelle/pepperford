@@ -853,7 +853,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
             for slot in linked_slots:
                 item_lines[slot] = []
                 exhausted[slot] = False
-            while (len("\n".join(rcv_lines)) + msglen < 1500) and not all(zzz for zzz in exhausted.values()):
+            while (len("\n".join(rcv_lines)) + msglen < 1800) and not all(zzz for zzz in exhausted.values()):
                 # message length is a little under the 2000 max to allow a buffer
                 if iteration == 0:
                     for slot in linked_slots:
@@ -877,7 +877,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                         try:
                             item = next(player_table[slot]['offline_items'])
                             line = f"- <t:{int(item['Timestamp'])}:R>: **{item['Item']}** from {item['Sender']}\n"
-                            if msglen + len(line) > 1500: break
+                            if msglen + len(line) > 1800: break
                             else:
                                 item_lines[slot].append(line)
                         except StopIteration:
@@ -887,7 +887,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                 for lines in item_lines.values():
                     linelen += len("\n".join(lines))
                 msglen = len(rcv_lines) + linelen
-                if msglen >= 1500: break
+                if msglen >= 1800: break
                 iteration += 1
 
             logger.info(f"Built received list of {sum(len(lines) for lines in item_lines.values())} items for {len(linked_slots)} slots in {iteration} iterations. Length: {msglen} chars.")
@@ -898,16 +898,16 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
             for slot in linked_slots:
                 last_online = player_table[slot]['last_online']
                 if player_table[slot]['online'] is True:
-                    msg_lines += f"\n### {slot} (You're online right now!)\n"
+                    msg_lines.append(f"\n### {slot} (You're online right now!)\n")
                 elif last_online == 0:
-                    msg_lines += f"\n### {slot} (Never logged in)\n"
+                    msg_lines.append(f"\n### {slot} (Never logged in)\n")
                 else:
-                    msg_lines += f"\n### {slot} (Last online <t:{int(last_online)}:R>)\n"
+                    msg_lines.append(f"\n### {slot} (Last online <t:{int(last_online)}:R>)\n")
 
                 if player_table[slot]['goaled'] or player_table[slot]['released']:
-                    msg_lines += "-# Finished playing (goaled or released)."
+                    msg_lines.append("-# Finished playing (goaled or released).")
                 elif not player_table[slot]['offline_items']:
-                    msg_lines += "No new items received since last played.\n"
+                    msg_lines.append("No new items received since last played.\n")
                 else:
                     # add the lists
                     msg_lines += item_lines[slot]
