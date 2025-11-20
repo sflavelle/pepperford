@@ -902,6 +902,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
             await newpost.edit(content="\n".join(msg_lines))
         except discord.errors.HTTPException as e:
                 logger.error(f"Couldn't post received items!",e,exc_info=True)
+                logger.error(f"Message was {len("\n".join(msg_lines))} chars long.")
                 await newpost.edit(content=f"Error: {e}\nShare this message with <@49288117307310080>:\n{"".join(traceback.format_exception(type(e), e, e.__traceback__))}")
 
 
