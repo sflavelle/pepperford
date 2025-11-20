@@ -837,32 +837,10 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
 
         if all(len(player_table[slot]['offline_items']) == 0 for slot in linked_slots):
             return await newpost.edit(content="You have not received any items since you last played.")
-        
-        rcv_lines = []
-        # Group items by slot and sort by timestamp
-        try: 
-            # for slot in linked_slots:
-            #     last_online = player_table[slot]['last_online']
-            #     if player_table[slot]['online'] is True:
-            #         items_list += f"\n### {slot} (You're online right now!)\n"
-            #     elif last_online == 0:
-            #         items_list += f"\n### {slot} (Never logged in)\n"
-            #     else:
-            #         items_list += f"\n### {slot} (Last online <t:{int(last_online)}:R>)\n"
-            #
-            #     if player_table[slot]['goaled'] or player_table[slot]['released']:
-            #         items_list += "-# Finished playing (goaled or released)."
-            #         continue
-            #
-            #     offline_items = sorted(player_table[slot]['offline_items'], key=lambda x: x['Timestamp'])
-            #     if not offline_items:
-            #         items_list += "No new items received since last played.\n"
-            #     else:
-            #         for item in offline_items:
-            #             items_list += (
-            #                 f"- <t:{int(item['Timestamp'])}:R>: **{item['Item']}** from {item['Sender']} ({item['Location']})\n"
-            #             )
 
+        rcv_lines = ["## Received Items"]
+        # Group items by slot and sort by timestamp
+        try:
             # reverse sort each list (newest items first)
             for slot in linked_slots:
                 raw_list = player_table[slot]['offline_items']
@@ -874,7 +852,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
             for slot in linked_slots:
                 item_lines[slot] = []
                 exhausted[slot] = False
-            while (len("\n".join(rcv_lines)) + sum(len("\n".join(item_lines[slot])) for slot in linked_slots)) < MAX_MSG_LENGTH and not all(zzz for zzz in exhausted.values()):
+            while (len("\n".join(rcv_lines)) + sum(len("\n".join(item_lines[slot])) for slot in linked_slots)) < MAX_MSG_LENGTH or not all(zzz for zzz in exhausted.values()):
                 if iteration == 0:
                     for slot in linked_slots:
                         last_online = player_table[slot]['last_online']
