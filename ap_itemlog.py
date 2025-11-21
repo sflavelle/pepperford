@@ -1032,7 +1032,8 @@ def watch_log(url, interval):
 
                     # Clear the buffer and sync last_line if successful
                     message_buffer.clear()
-                    last_line = len(current_lines)
+                    if len(current_lines) > last_line:
+                        last_line = len(current_lines)
                 except requests.RequestException as e:
                     pass
 
