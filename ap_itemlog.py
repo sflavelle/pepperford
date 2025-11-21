@@ -996,7 +996,7 @@ def watch_log(url, interval):
             # if fetch fails we don't want it to sync back '0' and then re-read the entire log file
             pass
         elif len(current_lines) > last_line:
-            new_lines = current_lines[last_line:
+            new_lines = current_lines[last_line:]
             process_new_log_lines(new_lines)
             if message_buffer:
                 try:
@@ -1107,6 +1107,7 @@ def get_game():
 def refresh_classifications():
     global game
     game.refresh_classifications()
+    return "Refreshed game classifications."
 
 @webview.route('/locations/checkable/', methods=['GET'], defaults={'found': False})
 @webview.route('/locations/checkable/found', methods=['GET'], defaults={'found': True})
