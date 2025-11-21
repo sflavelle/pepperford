@@ -627,10 +627,11 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
         if not room:
             return await newpost.edit(content="No Archipelago room is currently set for this server.")
 
-        game_table = requests.get(f"http://localhost:{api_port}/inspectgame", timeout=10).json()
-
-        if not game_table:
-            return await newpost.edit(content="Couldn't fetch the game table from the running Archipelago game.")
+        try:
+            game_table = requests.get(f"http://localhost:{api_port}/inspectgame", timeout=10).json()
+        except ConnectionError:
+            return await newpost.edit(
+                content="Couldn't connect to the running Archipelago game. It might be restarting.\nTry again in a minute or two.")
 
         try:
         
@@ -760,7 +761,10 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
         if not room:
             return await newpost.edit(content="No Archipelago room is currently set for this server.")
 
-        game_table = requests.get(f"http://localhost:{api_port}/inspectgame", timeout=10).json()
+        try:
+            game_table = requests.get(f"http://localhost:{api_port}/inspectgame", timeout=10).json()
+        except ConnectionError:
+            return await newpost.edit(content="Couldn't connect to the running Archipelago game. It might be restarting.\nTry again in a minute or two.")
 
         linked_slots = []
         with sqlcon.cursor() as cursor:
@@ -951,7 +955,11 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
             return await newpost.edit(content=self.messages['no_slots_linked'])
 
         # Get the game table
-        game_table = requests.get(f"http://localhost:{api_port}/inspectgame", timeout=10).json()
+        try:
+            game_table = requests.get(f"http://localhost:{api_port}/inspectgame", timeout=10).json()
+        except ConnectionError:
+            return await newpost.edit(
+                content="Couldn't connect to the running Archipelago game. It might be restarting.\nTry again in a minute or two.")
 
         # Build the hint table
         hint_table = {}
