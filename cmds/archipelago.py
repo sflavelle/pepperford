@@ -887,12 +887,18 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                         except StopIteration:
                             exhausted[slot] = True
                             continue
+
                 linelen = 0
                 for lines in item_lines.values():
                     linelen += len("\n".join(lines))
                 msglen = len(rcv_lines) + linelen
                 if msglen >= 1800: break
                 iteration += 1
+
+            # Mark slot feeds that didn't exhaust (got truncated due to msg length)
+            for slot in linked_slots:
+                if not exhausted[slot]:
+                    item_lines[slot].append("- *Ran out of room...*")
 
             logger.info(f"Built received list of {sum(len(lines) for lines in item_lines.values())} items for {len(linked_slots)} slots in {iteration} iterations. Length: {msglen} chars.")
 
