@@ -6,6 +6,8 @@ import subprocess
 import requests
 import logging
 import signal
+
+import urllib3.exceptions
 import yaml
 import traceback
 import typing
@@ -629,7 +631,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
 
         try:
             game_table = requests.get(f"http://localhost:{api_port}/inspectgame", timeout=10).json()
-        except ConnectionError:
+        except ConnectionError|urllib3.exceptions.MaxRetryError:
             return await newpost.edit(
                 content="Couldn't connect to the running Archipelago game. It might be restarting.\nTry again in a minute or two.")
 
