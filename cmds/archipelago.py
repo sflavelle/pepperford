@@ -631,7 +631,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
 
         try:
             game_table = requests.get(f"http://localhost:{api_port}/inspectgame", timeout=10).json()
-        except ConnectionError|urllib3.exceptions.MaxRetryError:
+        except ConnectionError|urllib3.exceptions.MaxRetryError|requests.exceptions.ConnectionError:
             return await newpost.edit(
                 content="Couldn't connect to the running Archipelago game. It might be restarting.\nTry again in a minute or two.")
 
@@ -989,7 +989,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                                     "sender": item['location']['player'],
                                     "receiver": item['receiver'],
                                     "classification": item['classification'],
-                                    "entrance": item['location_entrance'],
+                                    "entrance": item['location']['entrance'],
                                     "costs": item['location_costs'],
                                     } })
                 for item in game_table['players'][slot]['hints']['receiving']:
@@ -999,12 +999,12 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                     if any([game_table['players'][item['receiver']]['released'],game_table['players'][item['receiver']]['goaled']]): continue
                     hint_table[slot].update({
                         item['location']: {"item": item['name'],
-                                    "sender": item['location']['player'],
-                                    "receiver": item['receiver'],
-                                    "classification": item['classification'],
-                                    "entrance": item['location_entrance'],
-                                    "costs": item['location_costs'],
-                                    } })
+                                           "sender": item['location']['player'],
+                                           "receiver": item['receiver'],
+                                           "classification": item['classification'],
+                                           "entrance": item['location']['entrance'],
+                                           "costs": item['location_costs'],
+                                           }})
 
         # Format the hint table
         hint_table_list = []
