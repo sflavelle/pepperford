@@ -1115,7 +1115,7 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                                 level = "Timeless River"
                             return f"{item} ({level} Unlocked!)"
                         else:
-                            return f"{item} ({level} {count} Unlocked!"
+                            return f"{item} ({level} {count} Unlocked!)"
                 case "A Link to the Past":
                     if item == "Triforce Piece" and "Triforce Hunt" in settings['Goal']:
                         required = settings['Triforce Pieces Required']
