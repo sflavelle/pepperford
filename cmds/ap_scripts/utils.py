@@ -1086,9 +1086,36 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                         total_pieces = starting_pieces + (pieces_per_item * item_count)
                         return f"{item} ({total_pieces} Available)"
                 case "Kingdom Hearts 2":
+
+                    world_unlocks = {
+                        "Naminé's Sketches": "Simulated Twilight Town",
+                        "Ice Cream": "Twilight Town",
+                        "Membership Card": "Hollow Bastion",
+                        "Sword of the Ancestor": "Land of Dragons",
+                        "Beast's Claw": "Beast's Castle",
+                        "Battlefields of War": "Olympus",
+                        "Disney Castle Key": "Disney Castle",
+                        "Skill & Crossbones": "Port Royal",
+                        "Scimitar": "Agrabah",
+                        "Bone Fist": "Halloween Town",
+                        "Proud Fang": "Pride Lands",
+                        "Identity Disk": "Space Paranoids",
+                        "Way to the Dawn": "World that Never Was",
+                        "Torn Page": "Hundred Acre Wood",
+                    }
+
                     if item == "Bounty" and settings["Goal"] == "Hitlist":
                         required = settings['Bounties Required']
                         return f"{item} (*{count}/{required}*)"
+
+                    if item in world_unlocks.keys():
+                        level = world_unlocks[item]
+                        if level == "Disney Castle":
+                            if count == 2:
+                                level = "Timeless River"
+                            return f"{item} ({level} Unlocked!)"
+                        else:
+                            return f"{item} ({level} {count} Unlocked!"
                 case "A Link to the Past":
                     if item == "Triforce Piece" and "Triforce Hunt" in settings['Goal']:
                         required = settings['Triforce Pieces Required']
