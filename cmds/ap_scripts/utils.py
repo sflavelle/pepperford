@@ -1146,10 +1146,10 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                         required = 50
                         return f"{item} ({count}/{required})"
                     if item == "Progressive Wallet":
-                        capacities = ["99", "200", "500", "999"]
+                        capacities = ["200", "500", "999"]
                         if game == "Ship of Harkinian" and settings["Shuffle Child's Wallet"] is True:
-                            capacities.insert(0, "0")
-                        return f"{item} ({capacities[player.get_item_count(item)]} Capacity)"
+                            capacities.insert(0, "99")
+                        return f"{item} ({capacities[player.get_item_count(item)-1]} Capacity)"
                     if item == "Progressive Scale":
                         tiers = ["Silver Scale", "Gold Scale"]
                         if game == "Ship of Harkinian" and settings["Shuffle Swim"] is True:
