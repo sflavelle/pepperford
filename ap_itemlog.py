@@ -898,7 +898,7 @@ def fetch_log(url):
         return response.text.splitlines()
     except requests.RequestException as e:
         logger.error(f"Error fetching log file: {e}")
-        return []
+        return False
 
 ### Emitter events
 
@@ -992,7 +992,7 @@ def watch_log(url, interval):
             tracker_sleep_count = 0
         time.sleep(interval)
         current_lines = fetch_log(url)
-        if len(current_lines) == 0:
+        if current_lines is False:
             # if fetch fails we don't want it to sync back '0' and then re-read the entire log file
             pass
         elif len(current_lines) > last_line:
@@ -1047,7 +1047,7 @@ def watch_log(url, interval):
                 logger.info(f"Release buffer period has already passed, sending.")
                 send_release_messages()
 
-        if len(message_buffer) == 0:
+        if len(message_buffer) == 0 and bool(current_lines) and len(current_lines) > last_line:
             # If we have no messages to send but the log has updated, sync last_line anyway
             last_line = len(current_lines)
 
