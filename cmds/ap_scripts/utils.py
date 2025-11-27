@@ -1295,7 +1295,7 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
 
                         return f"{item} ({count}/{next_req})"
                     if item in ["Blue Questagon", "Red Questagon", "Green Questagon"]:
-                        count = len(i for i in ["Blue Questagon", "Red Questagon", "Green Questagon"] if i in player.inventory)
+                        count = len(player.get_collected_items(["Blue Questagon", "Red Questagon", "Green Questagon"]))
                         required = 3
                         return f"{item} (*{count}/{required}*)"
                     if item == "Sword Upgrade":
