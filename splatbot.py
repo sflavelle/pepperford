@@ -25,6 +25,8 @@ with open('config.yaml', 'r', encoding='UTF-8') as file:
 
 # configure subscribed intents
 intents = discord.Intents.default()
+intents.message_content = True
+intents.reactions = True
 
 class Splatbot(commands.Bot):
     procs: dict = {}
