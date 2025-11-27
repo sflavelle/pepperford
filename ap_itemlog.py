@@ -508,6 +508,7 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
             # Mark item as collected
             try:
                 Item = game.get_or_create_item(game.players[sender],game.players[receiver],item,item_location,received_timestamp=timestamp)
+                if Item.found: continue # log attempted to reprocess an item already found
                 game.players[sender].collect_item(Item)
                 game.spoiler_log[sender].update({item_location: Item})
 
