@@ -751,8 +751,16 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
         return await newpost.edit(content="\n".join(msg_lines))
 
     @aproom.command(name="received")
-    async def received_items(self, interaction: discord.Interaction):
+    @app_commands.choices(minimum_importance=[
+        app_commands.Choice(name="Useful", value="useful"),
+        app_commands.Choice(name="Progression", value="progression")
+    ])
+    async def received_items(self, interaction: discord.Interaction, minimum_importance: str = "useful"):
         """Get a list of items you received since last played."""
+
+        show_classifications = ["useful", "progression"]
+        if minimum_importance == "progression":
+            show_classifications = ["progression"]
 
         deferpost = await interaction.response.defer(ephemeral=True, thinking=True,)
         newpost = await interaction.original_response()
@@ -807,7 +815,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
 
             for item in player['inventory']:
                 try:
-                    if item.get('received_timestamp', 0) > player_last_online and item['classification'] not in ["trap", "filler", "currency"]:
+                    if item.get('received_timestamp', 0) > player_last_online and item['classification'] in show_classifications:
                         player_table[slot]['offline_items'].append({
                             "Item": item['name'],
                             "Sender": item['location']['player'],
@@ -820,7 +828,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                     # received_timestamp or player_last_online is probably None
                     # if the player is online right now and player_last_online is None, then add the item
                     if player_last_online is None and player_table[slot]['online'] is True:
-                        if item['classification'] not in ["trap", "filler", "currency"]:
+                        if item['classification'] in show_classifications:
                             player_table[slot]['offline_items'].append({
                                 "Item": item['name'],
                                 "Sender": item['location']['player'],
