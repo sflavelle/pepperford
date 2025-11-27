@@ -998,6 +998,11 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                         if settings["Secret Levels"] is True:
                             required = required + 2 # Wolfenstein/Grosse
                         return f"{item} ({count}/{required})"
+                case "Final Fantasy IV Free Enterprise":
+                    if item == "DkMatter" and settings['Find The Dark Matter'] is True:
+                        required = 30
+                        total = 45
+                        return f"{item} (*{count}/{required}*)"
                 case "Final Fantasy Mystic Quest":
                     if item == "Sky Fragment":
                         return f"{item} ({count})"
