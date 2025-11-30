@@ -64,6 +64,7 @@ session_cookie = os.getenv('SESSION_COOKIE')
 # Extra info for additional features
 seed_url = os.getenv('SPOILER_URL')
 msg_webhooks = [os.getenv('MSGHOOK_URL')]
+meta_webhook = [os.getenv('METAHOOK_URL')]
 
 # Pull extra configuration if this itemlog is stored in config.yaml, by checking the log_url
 if cfg is not None and 'bot' in cfg and 'archipelago' in cfg['bot'] and 'itemlogs' in cfg['bot']['archipelago']:
@@ -724,7 +725,7 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
                         sqlcon.commit()
                     if seed_address_was is not None:
                         message = f"**The seed address has changed.** Use this updated address: `{address}`"
-                        send_chat("Archipelago", message)
+                        send_meta("Archipelago", message)
                         message_buffer.append(message)
             if start_time is None:
                 start_time = parse_to_datetime(timestamp)
@@ -827,6 +828,19 @@ def send_log(message):
         except requests.RequestException as e:
             logging.error(f"Error sending log message to webhook: {e}")
 
+def send_meta(sender,message):
+    payload = {
+        "username": sender,
+        "content": message
+    }
+
+    try:
+        response = requests.post(meta_webhook, json=payload, timeout=5)
+        response.raise_for_status()
+        # log_to_file(message)  # Log the message to a file
+    except requests.RequestException as e:
+        logging.error(f"Error sending meta message to webhook: {e}")
+
 
 def send_release_messages():
     global release_buffer
@@ -866,6 +880,7 @@ def send_release_messages():
         return itemlist
 
     for sender, data in release_buffer.copy().items():
+        if len(data) == 0: continue
         if time.time() - data['timestamp'].timestamp() > 1:
             message = f"**{sender}** has released their remaining items."
             running_message = message

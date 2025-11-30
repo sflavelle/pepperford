@@ -1199,6 +1199,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                 env['SESSION_COOKIE'] = log['session_cookie']
                 env['SPOILER_URL'] = log['spoiler_url'] if log['spoiler_url'] else None
                 env['MSGHOOK_URL'] = log['msghooks'][0] if len(log['msghooks']) > 0 else None
+                env['METAHOOK_URL'] = log['meta_webhook'] if 'meta_webhook' in log else None
 
                 try:
                     script_path = os.path.join(os.path.dirname(__file__), '..', 'ap_itemlog.py')
