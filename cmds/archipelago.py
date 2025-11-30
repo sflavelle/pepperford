@@ -998,7 +998,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                                     "receiver": item['receiver'],
                                     "classification": item['classification'],
                                     "entrance": item['location']['entrance'],
-                                    "costs": item['location_costs'],
+                                    "costs": item['location']['requirements'],
                                     } })
                 for item in game_table['players'][slot]['hints']['receiving']:
                     if item['found'] is True: continue
@@ -1011,7 +1011,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                                            "receiver": item['receiver'],
                                            "classification": item['classification'],
                                            "entrance": item['location']['entrance'],
-                                           "costs": item['location_costs'],
+                                           "costs": item['location']['requirements'],
                                            }})
 
         # Format the hint table
@@ -1040,11 +1040,11 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
             if hint["Sender"] == hint["Receiver"]:
                 hints_list += f"\n**Your {hint['Item']}** is on {hint['Location']}{f" at {hint['Entrance']}" if hint['Entrance'] else ""}."
                 if bool(hint['Costs']):
-                    hints_list += f"\n> -# This will cost {join_words(hint['Costs'])} to obtain."
+                    hints_list += f"\n> -# This will require {join_words(hint['Costs'])} to obtain."
             else:
                 hints_list += f"\n**{hint['Receiver']}'s {hint['Item']}** is on {hint['Location']}{f" at {hint['Entrance']}" if hint['Entrance'] else ""}."
                 if bool(hint['Costs']):
-                    hints_list += f"\n> -# This will cost {join_words(hint['Costs'])} to obtain."
+                    hints_list += f"\n> -# This will require {join_words(hint['Costs'])} to obtain."
 
         hints_list += "\n\n## To Be Found:"
         for hint in hint_table_list:
