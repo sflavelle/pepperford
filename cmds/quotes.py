@@ -168,7 +168,7 @@ class Quotes(commands.GroupCog, group_name="quote"):
                 await qmsg.clear_reactions()
             except Exception as error:
                 quoteview.set_footer(text=f"Score: {'+' if karma > 0 else ''}{karma} (no change due to error: {error}")
-                logger.error(f"Error updating karma for quote {qid} in guild {interaction.guild_id}: {error}")
+                logger.error(f"Error updating karma for quote {qid} in guild {interaction.guild_id}: {error}", exc_info=True)
                 await qmsg.edit(embed=quoteview)
 
     @app_commands.command(name="add")

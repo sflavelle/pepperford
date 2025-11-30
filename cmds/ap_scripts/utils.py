@@ -1317,7 +1317,7 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                         return f"{item} ({count}/{required})"
                     if item == "Locust Idol" or item == "Lucky Locust Idol":
                         OneCount = player.get_item_count("Locust Idol")
-                        ThreeCount = Player.get_item_count("Lucky Locust Idol")
+                        ThreeCount = player.get_item_count("Lucky Locust Idol")
                         count = OneCount + (ThreeCount * 3)
                         return f"{item} ({count})"
                 case "Wario Land 4":
