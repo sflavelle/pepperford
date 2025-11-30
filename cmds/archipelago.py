@@ -778,8 +778,9 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
 
         try:
             game_table = requests.get(f"http://localhost:{api_port}/inspectgame", timeout=10).json()
-        except ConnectionError:
-            return await newpost.edit(content="Couldn't connect to the running Archipelago game. It might be restarting.\nTry again in a minute or two.")
+        except ConnectionError|urllib3.exceptions.MaxRetryError|requests.exceptions.ConnectionError:
+            return await newpost.edit(
+                content="Couldn't connect to the running Archipelago game. It might be restarting.\nTry again in a minute or two.")
 
         linked_slots = []
         with sqlcon.cursor() as cursor:
@@ -978,7 +979,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
         # Get the game table
         try:
             game_table = requests.get(f"http://localhost:{api_port}/inspectgame", timeout=10).json()
-        except ConnectionError:
+        except ConnectionError|urllib3.exceptions.MaxRetryError|requests.exceptions.ConnectionError:
             return await newpost.edit(
                 content="Couldn't connect to the running Archipelago game. It might be restarting.\nTry again in a minute or two.")
 
