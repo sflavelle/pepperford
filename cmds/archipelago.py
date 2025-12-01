@@ -690,7 +690,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
 
             other_players_list = iter(sorted(other_players_list.items(), key=lambda p: (not p[1]['online'], -int(p[1].get('last_online') or 0) )))
 
-            msg_lines.append("## Other Players:")
+            msg_lines.append(f"## {len(other_players_list)} Other Players:")
             while (len("\n".join(msg_lines)) < 1900):
 
                     try:
