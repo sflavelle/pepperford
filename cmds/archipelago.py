@@ -648,63 +648,61 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
             if player['stats']['goal_str'] is not None:
                 status_lines.append(f"  - Goal: {player['stats']['goal_str']}.")
             return status_lines
-
-        try:
         
-            msg_lines = []
+        msg_lines = []
 
-            msg_lines.append(f"## Archipelago Room Status")
+        msg_lines.append(f"## Archipelago Room Status")
 
-            with sqlcon.cursor() as cursor:
-                try:
-                    cursor.execute("SELECT room_id, host, port from pepper.ap_all_rooms WHERE active = 'true' AND guild = %s;", (interaction.guild_id,))
-                    room_id, host, port = cursor.fetchone()
-                    msg_lines.append(f"**Room ID** [{room_id}](<https://{host}/room/{room_id}>) (`{host}:{port}`)")
-                except psql.Error as e:
-                    pass
+        with sqlcon.cursor() as cursor:
+            try:
+                cursor.execute("SELECT room_id, host, port from pepper.ap_all_rooms WHERE active = 'true' AND guild = %s;", (interaction.guild_id,))
+                room_id, host, port = cursor.fetchone()
+                msg_lines.append(f"**Room ID** [{room_id}](<https://{host}/room/{room_id}>) (`{host}:{port}`)")
+            except psql.Error as e:
+                pass
 
-            msg_lines.append(f"This game is {round(game_table['collection_percentage'],2)}% complete. ({game_table['collected_locations']} out of {game_table['total_locations']} locations checked.)")
-            if game_table['running'] is False:
-                msg_lines.append("The game is currently spun down - visit the room page to bring it back up.")
+        msg_lines.append(f"This game is {round(game_table['collection_percentage'],2)}% complete. ({game_table['collected_locations']} out of {game_table['total_locations']} locations checked.)")
+        if game_table['running'] is False:
+            msg_lines.append("The game is currently spun down - visit the room page to bring it back up.")
 
+        msg_lines.append("")
+
+        linked_slots = []
+        with sqlcon.cursor() as cursor:
+            cursor.execute(
+                "SELECT rp.player_name FROM pepper.ap_room_players rp JOIN pepper.ap_players p ON rp.player_name = p.player_name WHERE rp.room_id = %s AND rp.guild = %s AND p.discord_user = %s;",
+                (room["room_id"], interaction.guild_id, interaction.user.id),
+            )
+            linked_slots = [row[0] for row in cursor.fetchall()]
+        if len(linked_slots) == 0:
+            return await newpost.edit(content=self.messages['no_slots_linked'])
+
+        linked_player_list  = {k: v for k,v in game_table['players'].items() if v['name'] in linked_slots}
+        other_players_list = {k: v for k,v in game_table['players'].items() if v['name'] not in linked_slots}
+
+        msg_lines.append("### Your Slots:")
+        for slot_name, data in linked_player_list.items():
+            msg_lines.extend(player_status(data))
+
+        if not filter_self:
             msg_lines.append("")
 
-            linked_slots = []
-            with sqlcon.cursor() as cursor:
-                cursor.execute(
-                    "SELECT rp.player_name FROM pepper.ap_room_players rp JOIN pepper.ap_players p ON rp.player_name = p.player_name WHERE rp.room_id = %s AND rp.guild = %s AND p.discord_user = %s;",
-                    (room["room_id"], interaction.guild_id, interaction.user.id),
-                )
-                linked_slots = [row[0] for row in cursor.fetchall()]
-            if len(linked_slots) == 0:
-                return await newpost.edit(content=self.messages['no_slots_linked'])
+            other_players_list = iter(sorted(other_players_list.items(), key=lambda p: (-p['online'], -int(p['last_online']))))
 
-            linked_player_list  = {k: v for k,v in game_table['players'].items() if v['name'] in linked_slots}
-            other_players_list = {k: v for k,v in game_table['players'].items() if v['name'] not in linked_slots}
+            msg_lines.append("### Other Players:")
+            while (len("\n".join(msg_lines)) < 1900):
 
-            msg_lines.append("### Your Slots:")
-            for slot_name, data in linked_player_list.items():
-                msg_lines.extend(player_status(data))
-
-            if not filter_self:
-                msg_lines.append("")
-
-                other_players_list = iter(sorted(other_players_list.items(), key=lambda p: (-p['online'], -int(p['last_online']))))
-
-                msg_lines.append("### Other Players:")
-                while (len("\n".join(msg_lines)) < 1900):
-
-                        try:
-                            player = next(other_players_list)[1]
-                            new_lines = player_status(player)
-                            
-                            if len("\n".join(msg_lines)) + len("\n".join(new_lines)) > 1800: 
-                                msg_lines.append("- ...and more players not shown to avoid message length limits.")
-                                break
-                            else:
-                                msg_lines.extend(new_lines)
-                        except StopIteration:
+                    try:
+                        player = next(other_players_list)[1]
+                        new_lines = player_status(player)
+                        
+                        if len("\n".join(msg_lines)) + len("\n".join(new_lines)) > 1800: 
+                            msg_lines.append("- ...and more players not shown to avoid message length limits.")
                             break
+                        else:
+                            msg_lines.extend(new_lines)
+                    except StopIteration:
+                        break
 
 
         return await newpost.edit(content="\n".join(msg_lines))
