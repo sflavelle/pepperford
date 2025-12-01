@@ -687,7 +687,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
         if not filter_self:
             msg_lines.append("")
 
-            other_players_list = iter(sorted(other_players_list, key=lambda p: (not p['online'], -int(p['last_online'])) ))
+            other_players_list = iter(sorted(other_players_list.items(), key=lambda p: (not p[1]['online'], -int(p[1].get('last_online') or 0) )))
 
             msg_lines.append("### Other Players:")
             while (len("\n".join(msg_lines)) < 1900):
