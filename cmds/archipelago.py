@@ -611,9 +611,10 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
     @app_commands.describe(
         public="Publish the status to the room, instead of just to you",
         filter_self="Show only your own slots",
-        show_slot_game = "Show the game that each slot is playing"
+        show_slot_game = "Show the game that each slot is playing",
+        show_goals = "Show each player's goal in the status"
     )
-    async def room_status(self, interaction: discord.Interaction, public: bool = False, filter_self: bool = False, show_slot_game: bool = True):
+    async def room_status(self, interaction: discord.Interaction, public: bool = False, filter_self: bool = False, show_slot_game: bool = True, show_goals: bool = True):
         """Get the status of the current Archipelago room."""
         deferpost = await interaction.response.defer(ephemeral=not public, thinking=True,)
         newpost = await interaction.original_response()
@@ -645,7 +646,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                 status_lines.append(f"- **{player['name']}{showgame_ifenabled(player)}**: released from the game.")
             else:
                 status_lines.append(f"- **{player['name']}{showgame_ifenabled(player)}**: {round(player['collection_percentage'], 1)}% complete. ({player['collected_locations']}/{player['total_locations']} checks.) {last_online(player)}")
-            if player['stats']['goal_str'] is not None:
+            if player['stats']['goal_str'] is not None and show_goals:
                 status_lines.append(f"  - Goal: {player['stats']['goal_str']}.")
             return status_lines
         
@@ -680,7 +681,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
         linked_player_list  = {k: v for k,v in game_table['players'].items() if v['name'] in linked_slots}
         other_players_list = {k: v for k,v in game_table['players'].items() if v['name'] not in linked_slots}
 
-        msg_lines.append("### Your Slots:")
+        msg_lines.append("## Your Slots:")
         for slot_name, data in linked_player_list.items():
             msg_lines.extend(player_status(data))
 
@@ -689,7 +690,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
 
             other_players_list = iter(sorted(other_players_list.items(), key=lambda p: (not p[1]['online'], -int(p[1].get('last_online') or 0) )))
 
-            msg_lines.append("### Other Players:")
+            msg_lines.append("## Other Players:")
             while (len("\n".join(msg_lines)) < 1900):
 
                     try:
