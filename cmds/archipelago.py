@@ -611,10 +611,11 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
     @app_commands.describe(
         public="Publish the status to the room, instead of just to you",
         filter_self="Show only your own slots",
+        filter_active="Show only players that have not finished or released",
         show_slot_game = "Show the game that each slot is playing",
         show_goals = "Show each player's goal in the status"
     )
-    async def room_status(self, interaction: discord.Interaction, public: bool = False, filter_self: bool = False, show_slot_game: bool = True, show_goals: bool = True):
+    async def room_status(self, interaction: discord.Interaction, public: bool = False, filter_self: bool = False, filter_active: bool = False, show_slot_game: bool = True, show_goals: bool = True):
         """Get the status of the current Archipelago room."""
         deferpost = await interaction.response.defer(ephemeral=not public, thinking=True,)
         newpost = await interaction.original_response()
@@ -680,6 +681,8 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
 
         linked_player_list  = {k: v for k,v in game_table['players'].items() if v['name'] in linked_slots}
         other_players_list = {k: v for k,v in game_table['players'].items() if v['name'] not in linked_slots}
+        if filter_active:
+            other_players_list = {k: v for k, v in other_players_list.items() if not v['goaled'] or not v['released']}
 
         msg_lines.append("## Your Slots:")
         for slot_name, data in linked_player_list.items():
