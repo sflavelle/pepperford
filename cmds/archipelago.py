@@ -682,7 +682,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
         linked_player_list  = {k: v for k,v in game_table['players'].items() if v['name'] in linked_slots}
         other_players_list = {k: v for k,v in game_table['players'].items() if v['name'] not in linked_slots}
         if filter_active:
-            other_players_list = {k: v for k, v in other_players_list.items() if not v['goaled'] or not v['released']}
+            other_players_list = {k: v for k, v in other_players_list.items() if not v['goaled'] and not v['released']}
 
         msg_lines.append("## Your Slots:")
         for slot_name, data in linked_player_list.items():
