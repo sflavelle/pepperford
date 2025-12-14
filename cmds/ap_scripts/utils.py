@@ -1363,7 +1363,7 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                         if item.startswith("Level Access"):
                             item_match = item_regex.match(item)
                             access, mapname = item_match.groups()
-                            friendly = gzd.lookupMap(wadname=settings['WAD to play'], mapname=mapname)
+                            friendly = gzd.lookupMap(game=game, mapname=mapname)
                             if friendly is not None:
                                 logger.debug(f"Got friendly name for {mapname}: {friendly}")
                                 item = item.replace(mapname, f"{mapname}: {friendly}")
@@ -1400,7 +1400,7 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                             subitem,map = item_match.groups()
                             collected_string = str()
                             keys = [f"{color}{key}" for color in ["Blue","Yellow","Red"] for key in ["Skull", "Card", " Security Card", " Skull Key"]]
-                            map_keys = sorted([i for i in item_table['gzDoom'].keys() if (i.endswith(f"({map})") and any([key in i for key in keys]))])
+                            map_keys = sorted([i for i in item_table[game].keys() if (i.endswith(f"({map})") and any([key in i for key in keys]))])
                             for i in map_keys:
                                 if player.has_item(i): collected_string += i[0]
                                 else: collected_string += "_"
