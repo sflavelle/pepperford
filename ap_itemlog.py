@@ -1039,13 +1039,11 @@ def watch_log(url, interval):
                     message_buffer.clear()
                     if len(current_lines) > last_line:
                         last_line = len(current_lines)
+                        with sqlcon.cursor() as cursor:
+                            game.pushdb(cursor, 'pepper.ap_all_rooms', 'last_line', len(current_lines))
+                            sqlcon.commit()
                 except requests.RequestException as e:
                     pass
-
-        if len(current_lines) > last_line:
-            with sqlcon.cursor() as cursor:
-                game.pushdb(cursor, 'pepper.ap_all_rooms', 'last_line', len(current_lines))
-                sqlcon.commit()
 
         if len(release_buffer) > 0:
             if any(datetime.now(ZoneInfo("UTC")).astimezone() - release_buffer[sender]['timestamp'] > RELEASE_DELTA for sender in release_buffer.keys()):
