@@ -338,6 +338,8 @@ class Game(dict):
     ### DATABASE COMMANDS
 
     def pushdb(self, cursor, database: str, column: str, payload):
+        """Push a value to the database for this game."""
+        logger.info(f"Pushing to database {database}, column {column}, payload {payload}")
         try:
             cursor.execute(f"UPDATE {database} set {column} = %s WHERE room_id = %s", (payload, self.room_id))
         except Exception as e:

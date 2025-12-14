@@ -978,18 +978,6 @@ def watch_log(url, interval):
 
     message_buffer.clear() # Clear buffer in case we have any old messages
 
-    if len(previous_lines) < 8: # If the seed has just started, post some info
-        message = f'''
-        **So begins another Archipelago...**
-        **Seed ID:** `{game.seed}`
-        **Seed Address:** `{seed_address}`
-        **Archipelago Version:** `{game.version_generator}`
-        **Players:** `{game.world_settings["Players"]}`
-        **Total Checks:** `{game.total_locations}*`'''
-
-        message_buffer.append(message)
-        logger.info("New room: Queuing initial message to Discord.")
-        del message
     # classification_thread = threading.Thread(target=save_classifications)
     # classification_thread.start()
 
@@ -1013,7 +1001,8 @@ def watch_log(url, interval):
             pass
         elif len(current_lines) > last_line:
             new_lines = current_lines[last_line:]
-            process_new_log_lines(new_lines)
+            if len(new_lines) > 0:
+                process_new_log_lines(new_lines)
             if message_buffer:
                 try:
                     # Join all messages with newlines
@@ -1066,6 +1055,9 @@ def watch_log(url, interval):
         if len(message_buffer) == 0 and bool(current_lines) and len(current_lines) > last_line:
             # If we have no messages to send but the log has updated, sync last_line anyway
             last_line = len(current_lines)
+            with sqlcon.cursor() as cursor:
+                game.pushdb(cursor, 'pepper.ap_all_rooms', 'last_line', len(current_lines))
+                sqlcon.commit()
 
         # Check if all players have finished
         if all(p.is_finished() for p in game.players.values()) and len(message_buffer) == 0 and len(release_buffer) == 0:
@@ -1086,6 +1078,19 @@ def watch_log(url, interval):
             logger.info("Sleeping forever now. (Keeping the API open) Goodnight!")
             while True:
                 time.sleep(600)
+
+        if len(previous_lines) < 8: # If the seed has just started, post some info
+            message = f'''
+            **So begins another Archipelago...**
+            **Seed ID:** `{game.seed}`
+            **Seed Address:** `{seed_address}`
+            **Archipelago Version:** `{game.version_generator}`
+            **Players:** `{game.world_settings["Players"]}`
+            **Total Checks:** `{game.total_locations}*`'''
+
+            message_buffer.append(message)
+            logger.info("New room: Queuing initial message to Discord.")
+            del message
 
         logger.debug(f"Message buffer has {len(message_buffer)} messages queued.")
         tracker_sleep_count += 1
