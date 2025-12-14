@@ -1042,10 +1042,10 @@ def watch_log(url, interval):
                 except requests.RequestException as e:
                     pass
 
-            if len(current_lines) > last_line:
-                with sqlcon.cursor() as cursor:
-                    game.pushdb(cursor, 'pepper.ap_all_rooms', 'last_line', len(current_lines))
-                    sqlcon.commit()
+        if len(current_lines) > last_line:
+            with sqlcon.cursor() as cursor:
+                game.pushdb(cursor, 'pepper.ap_all_rooms', 'last_line', len(current_lines))
+                sqlcon.commit()
 
         if len(release_buffer) > 0:
             if any(datetime.now(ZoneInfo("UTC")).astimezone() - release_buffer[sender]['timestamp'] > RELEASE_DELTA for sender in release_buffer.keys()):
@@ -1055,9 +1055,6 @@ def watch_log(url, interval):
         if len(message_buffer) == 0 and bool(current_lines) and len(current_lines) > last_line:
             # If we have no messages to send but the log has updated, sync last_line anyway
             last_line = len(current_lines)
-            with sqlcon.cursor() as cursor:
-                game.pushdb(cursor, 'pepper.ap_all_rooms', 'last_line', len(current_lines))
-                sqlcon.commit()
 
         # Check if all players have finished
         if all(p.is_finished() for p in game.players.values()) and len(message_buffer) == 0 and len(release_buffer) == 0:
