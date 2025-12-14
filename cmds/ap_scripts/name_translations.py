@@ -1,7 +1,15 @@
 class gzDoomMapNames(dict):
 
-    def lookupMap(self, wadname: str, mapname: str):
+    def lookupMap(self, game: str, mapname: str, wadname: str = None):
         """Return a map's 'friendly' name for a supported WAD."""
+
+        if game.startswith("GZDoom"): # Parse GZDoom worlds named in format eg. "GZDoom (Doom 64)"
+            gzd_match = game.split("(", 1)
+            if len(gzd_match) == 2:
+                try:
+                    wadname = gzd_match[1].rstrip(") ")
+                except IndexError:
+                    pass
 
         match wadname:
             case "Doom":
@@ -14,6 +22,8 @@ class gzDoomMapNames(dict):
                 return self.TNT[mapname]
             case "Plutonia":
                 return self.PLUTONIA[mapname]
+            case "Doom 64":
+                return self.DOOM64[mapname]
             case "WadFusion":
                 try:
                     # different lookups based on prefix
@@ -254,4 +264,81 @@ class gzDoomMapNames(dict):
 
         "MAP31": "Cyberden",
         "MAP32": "Go 2 It",
+    }
+
+    DOOM64 = { # Doom 64, specifically the Nightdive release
+        # Main Campaign
+
+        "MAP01": "Staging Area",
+        "MAP02": "The Terraformer",
+        "MAP03": "Main Engineering",
+        "MAP04": "Holding Area",
+        "MAP05": "Tech Center",
+        "MAP06": "Alpha Quadrant",
+        "MAP07": "Research Lab",
+        "MAP08": "Final Outpost",
+        "MAP09": "Even Simpler",
+
+        "MAP10": "The Bleeding",
+        "MAP11": "Terror Core",
+        "MAP12": "Altar of Pain",
+        "MAP13": "Dark Citadel",
+        "MAP14": "Eye Of The Storm",
+        "MAP15": "Dark Entries",
+        "MAP16": "Blood Keep",
+        "MAP17": "Watch Your Step",
+        "MAP18": "Spawned Fear",
+        "MAP19": "The Spiral",
+
+        "MAP20": "Breakdown",
+        "MAP21": "Pitfalls",
+        "MAP22": "Burnt Offerings",
+        "MAP23": "Unholy Temple",
+        "MAP24": "No Escape",
+        "MAP28": "The Absolution",
+
+        "MAP25": "Cat and Mouse",
+        "MAP26": "Hardcore",
+        "MAP27": "Playground",
+
+        # Absolution Levels (from Doom 64 TC)
+        "ABS01": "Nukage Facility",
+        "ABS02": "Crisis",
+        "ABS03": "Death Labs",
+        "ABS04": "Shadows Watching",
+        "ABS05": "Forbidden Deeper",
+        "ABS06": "Doom 64 Museum",
+
+        # Outcast Levels (also from Doom 64 TC)
+        "OUT01": "Destroy",
+        "OUT02": "Stepwalk",
+        "OUT03": "Control",
+        "OUT04": "Forge",
+        "OUT05": "Portal",
+        "OUT06": "Darkened",
+        "OUT07": "Traps",
+        "OUT08": "Derelict",
+        "OUT09": "Nebula",
+        "OUT10": "Radiant",
+
+        # Redemption Denied (D64TC addon)
+        "RDM01": "The Metacenter",
+        "RDM02": "Secondary Complex",
+        "RDM03": "Deep Sector",
+        "RDM04": "Command Center",
+        "RDM05": "Operations Base",
+        "RDM06": "Processing Area",
+        "RDM07": "Networking Station",
+        "RDM08": "The Sanctum",
+
+        # The Reckoning (D64TC addon)
+        "REC01": "Tunnels",
+        "REC02": "The Hazard Pits",
+        "REC03": "Delta Quadrant",
+        "REC04": "Data Labs",
+        "REC05": "Portal Core",
+        "REC06": "Incinerated Offerings",
+        "REC07": "Shadow Crypt",
+        "REC08": "The Circle of Chaos",
+        "REC09": "Source of Evil",
     }
