@@ -1096,14 +1096,14 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
 
     def fetch_guild_room(self, guild_id: int) -> dict:
         room = self.ctx.extras['ap_rooms'].get(guild_id, {})
-        if room and room.get('last_activity'):
+        if room and room.get('last_activity') and room.get('port'):
             if time.time() - room['last_activity'] < 3600:
                 return room
             else:
                 # Expire cache after 1 hour
                 self.ctx.extras['ap_rooms'][guild_id] = {}
                 return False
-        elif room:
+        elif room and room.get('port'):
             return room
         else:
             with sqlcon.cursor() as cursor:
