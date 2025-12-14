@@ -207,7 +207,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
             await interaction.response.send_message("Here's the result, as a file:",file=discord.File(BytesIO(responsefile), 'result.txt'),ephemeral=not public)
 
     @is_aphost()
-    @db.command(name='update_item_classification')
+    @db.command(name='classify_item')
     @app_commands.describe(game="The game that contains the item",
                            item="The item to act on (wildcards: ? one, % many)",
                            classification="The item's importance")
@@ -231,7 +231,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
 
     @is_aphost()
     @app_commands.default_permissions(send_messages=True)
-    @db.command(name='set_item_description')
+    @db.command(name='describe_item')
     @app_commands.describe(game="The game that contains the item",
                            item="The item to act on")
     @app_commands.autocomplete(game=db_game_complete,item=db_item_complete)
