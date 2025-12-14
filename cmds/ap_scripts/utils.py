@@ -1358,6 +1358,56 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                         # return f"{item} ({jewel_count}/{jewel_pieces}P|{jewels_complete}/{jewels_required}C)"
                         return f"{item} ({jewels_complete}/{jewels_required}C)"
                 case _:
+                    if game.startswith("GZDoom"):
+                        item_regex = re.compile(r"^([a-zA-Z ]+?) \((\S+)\)$")
+                        if item.startswith("Level Access"):
+                            item_match = item_regex.match(item)
+                            access, mapname = item_match.groups()
+                            friendly = gzd.lookupMap(wadname=settings['WAD to play'], mapname=mapname)
+                            if friendly is not None:
+                                logger.debug(f"Got friendly name for {mapname}: {friendly}")
+                                item = item.replace(mapname, f"{mapname}: {friendly}")
+                            else:
+                                logger.error(f"Couldn't lookup or find friendly name for {mapname}")
+
+                            count = len([i for i in player.inventory if str(i).startswith("Level Access")])
+                            # total = len(settings['Included levels'])
+                            total = len([i for i in player.spoilers['items'] if str(i).startswith("Level Access")])
+                            return f"{item} ({count}/{total})"
+                        if item.startswith("Level Clear"):
+                            count = len([i for i in player.inventory if str(i).startswith("Level Clear")])
+                            required_num = 0
+                            required_maps = []
+                            req_maps_formatted = []
+                            if settings['Win conditions']['nrof-maps'] == "all":
+                                required_num = len(settings['Included levels'])
+                            else:
+                                if settings['Win conditions']['nrof-maps']:
+                                    required_num = int(settings['Win conditions']['nrof-maps'])
+                                if settings['Win conditions']['specific-maps']:
+                                    required_maps = list(settings['Win conditions']['specific-maps'])
+
+                            if len(required_maps) > 0:
+                                for map in required_maps:
+                                    if player.has_item(f"Level Clear ({map})"):
+                                        req_maps_formatted.append(f"~~{map}~~")
+                                    else:
+                                        req_maps_formatted.append(map)
+
+                            return f"{item} ({count}/{required_num}{f"+{",".join(req_maps_formatted)}" if len(required_maps) > 0 else ""})"
+                        if any([str(item).startswith(color) for color in ["Blue","Yellow","Red"]]) and not str(item) == "BlueArmor":
+                            item_match = item_regex.match(item)
+                            subitem,map = item_match.groups()
+                            collected_string = str()
+                            keys = [f"{color}{key}" for color in ["Blue","Yellow","Red"] for key in ["Skull", "Card", " Security Card", " Skull Key"]]
+                            map_keys = sorted([i for i in item_table['gzDoom'].keys() if (i.endswith(f"({map})") and any([key in i for key in keys]))])
+                            for i in map_keys:
+                                if player.has_item(i): collected_string += i[0]
+                                else: collected_string += "_"
+                            if not player.has_item(f"Level Access ({map})"):
+                                collected_string = f"~~{collected_string}~~" # Strikethrough keys if map not found
+                            return f"{item} ({collected_string})"
+
                     return item
         except Exception as e:
             logger.error(f"Error while parsing tracking info for item {item} in game {game}:", e)
