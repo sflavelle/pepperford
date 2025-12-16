@@ -1559,7 +1559,7 @@ def handle_location_hinting(player: Player, location: Location) -> tuple[list[st
 
 
     if bool(requirements):
-        logger.info(f"Updating item's location {location.name} with requirements: {requirements}")
+        logger.info(f"Updating item's location {l.name} with requirements: {requirements}")
     return (requirements, extra_info)
 
 def handle_state_tracking(player: Player, game: Game):
