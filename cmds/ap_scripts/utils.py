@@ -1543,6 +1543,20 @@ def handle_location_hinting(player: Player, location: Location) -> tuple[list[st
                 if "Chatsanity" in location and settings['Textbox'] is True:
                     requirements.append("Textbox")
 
+            case "Hollow Knight":
+                # Some items that are bought have costs in the slot data
+                if bool(player.slot_data) and bool(player.slot_data.get('location_costs')):
+                    loc_costs = player.slot_data['location_costs']
+                    if location in loc_costs:
+                        for k, v in loc_costs[location].items():
+                            requirements.append(f"{v} {k.replace('RANCIDEGGS', 'Rancid Eggs').title()}")
+            
+            case "Ship of Harkinian":
+                if bool(player.slot_data) and bool(player.slot_data.get('shop_prices')):
+                    shop_prices = player.slot_data['shop_prices']
+                    if location in shop_prices:
+                        requirements.append(f"{shop_prices[location]} Rupees")
+
 
     if bool(requirements):
         logger.info(f"Updating item's location {location.name} with requirements: {requirements}")
@@ -1682,6 +1696,8 @@ def handle_state_tracking(player: Player, game: Game):
 
                 match goal:
                     # Some of these I'll have to ask for clarification on, but for now:
+                    case "Any":
+                        goal_str = "Complete the Game by any means necessary"
                     case "Hollowknight":
                         goal_str = "Defeat the Hollow Knight"
                     case "Siblings":
