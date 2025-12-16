@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import json
 import os
 import sys
@@ -96,7 +96,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
             logger.info("No archivist channel set; skipping log.")
             return False
 
-        channel = interaction.client.get_channel(channel_id)
+        channel = self.ctx.get_channel(channel_id)
         if not channel:
             logger.error("Archivist channel ID is invalid; cannot log.")
             return False
@@ -108,11 +108,17 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                 type = "Item Description"
             case _:
                 pass
-
-        embed = discord.Embed(title=f"Archival Log: {type.title()}", description=message, timestamp=datetime.now(datetime.timezone.utc))
-        embed.set_footer(text=f"Action by {interaction.user.display_name}", icon_url=interaction.user.display_avatar.url)
-        await channel.send(embed=embed)
-        logger.info(f"Logged action to archivist channel: {type}")
+        
+        try:
+            embed = discord.Embed(
+                title=f"Archival Log: {type.title()}", 
+                description=message, 
+                timestamp=datetime.now(timezone.utc))
+            embed.set_footer(text=f"Action by {interaction.user.display_name}", icon_url=interaction.user.display_avatar.url)
+            await channel.send(embed=embed)
+            logger.info(f"Logged action to archivist channel: {type}")
+        except AttributeError as err:
+            raise AttributeError("Action successful, but couldn't log to channel: " + str(err))
 
     @app_commands.command()
     @app_commands.describe(room_url="Link to the Archipelago room",
