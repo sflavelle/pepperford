@@ -538,6 +538,17 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
             # Live-Classify if the item is Conditional Progression
             Item = live_classification(Item)
 
+            icon: str = None
+            item_with_icon = lambda item, icon: f"{icon} {item}" if bool(icon) else item
+
+            match Item.classification:
+                case "progression":
+                    icon = ":progression:"
+                case None:
+                    icon = ":unclassified:"
+                case _:
+                    pass
+
             if not skip_msg: logger.info(f"{sender}: ({str(game.players[sender].collected_locations)}/{str(game.players[sender].total_locations)}/{str(round(game.players[sender].collection_percentage,2))}%) {item_location} -> {receiver}'s {item} ({Item.classification})")
 
             # By vote of spotzone: if it's filler, don't post it
@@ -609,17 +620,17 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
                         ]
 
                     message = random.choice(trap_messages)
-                    message = dim_if_goaled(receiver) + trapmsg_substvars(message, sender, receiver, item) + f" ({location})"
+                    message = dim_if_goaled(receiver) + trapmsg_substvars(message, sender, receiver, item_with_icon(item, icon)) + f" ({location})"
                     if not skip_msg: message_buffer.append(message.replace("_", r"\_"))
                 else:
                     if sender == receiver:
                         message = f"**{sender}** found **their own {
                             "hinted " if bool(game.spoiler_log[sender][item_location].hinted) else ""
-                            }{item}** ({location})"
+                            }{item_with_icon(item, icon)}** ({location})"
                     elif bool(game.spoiler_log[sender][item_location].hinted):
-                        message = f"{dim_if_goaled(receiver)}{sender} found **{receiver}'s hinted {item}** ({location})"
+                        message = f"{dim_if_goaled(receiver)}{sender} found **{receiver}'s hinted {item_with_icon(item, icon)}** ({location})"
                     else:
-                        message = f"{dim_if_goaled(receiver)}{sender} sent **{item}** to **{receiver}** ({location})"
+                        message = f"{dim_if_goaled(receiver)}{sender} sent **{item_with_icon(item, icon)}** to **{receiver}** ({location})"
                     if not skip_msg: message_buffer.append(message.replace("_",r"\_"))
 
                 # Handle completion milestones
@@ -934,6 +945,7 @@ def watch_log(url, interval):
 
     game.fetch_room_api()
     game.fetch_static_tracker()
+    game.fetch_slot_data()
 
     if seed_url:
         logger.info("Processing spoiler log.")
@@ -992,7 +1004,6 @@ def watch_log(url, interval):
     while True:
         if tracker_sleep_count >= 10 and game.running is False:
             game.fetch_tracker()
-            # game.fetch_slot_data()
             tracker_sleep_count = 0
         time.sleep(interval)
         current_lines = fetch_log(url)
