@@ -260,7 +260,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
             try:
                 cursor.execute("UPDATE archipelago.item_classifications SET classification = %s where game = %s and item = %s", (classification.lower(), game, item))
                 logger.info(f"Classified '{item}' in {game} to {classification}")
-                self.archivist_log(interaction, "classify", f"Classified **{item}** in **{game}** to **{classification.title()}**.")
+                await self.archivist_log(interaction, "classify", f"Classified **{item}** in **{game}** to **{classification.title()}**.")
                 return await interaction.response.send_message(f"Classification for {game}'s '{item}' was successful.",ephemeral=True)
             finally:
                 pass
@@ -303,8 +303,8 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                 cursor.execute("UPDATE archipelago.item_classifications SET description = %s WHERE game = %s AND item = %s",
                                (description, self.game, self.item))
                 await interaction.response.send_message(f"Description for {self.game}'s '{self.item}' has been set.", ephemeral=True)
-                cogself.archivist_log(interaction, "describe", f"Set description for **{self.item}** in **{self.game}**.")
-                logger.info(f"User {interaction.user.display_name} ({interaction.user.id}) set description for {game}'s {item}.")
+                await self.cogself.archivist_log(interaction, "describe", f"Set description for **{self.item}** in **{self.game}**.")
+                logger.info(f"User {interaction.user.display_name} ({interaction.user.id}) set description for {self.game}'s {self.item}.")
 
         # Create the modal and send it to the user
         return await interaction.response.send_modal(DescriptionForm(self, game, item))
