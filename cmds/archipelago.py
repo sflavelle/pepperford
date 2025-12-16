@@ -448,7 +448,13 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
         responsefile = bytes(response,encoding='UTF-8')
         return await interaction.response.send_message("Here's the result, as a file:",file=discord.File(BytesIO(responsefile), 'result.txt'),ephemeral=True)
 
-                
+    @db_update_item_classification.error
+    @db_set_item_description.error
+    async def db_permissions_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
+        if isinstance(error, app_commands.MissingRole):
+            return await interaction.response.send_message("You need the `archivist` role in order to manipulate the bot's Archipelago database.",ephemeral=True)
+        else:
+            return await interaction.response.send_message(f"Database command error: {error}",ephemeral=True)
 
     aproom = app_commands.Group(name="room",description="Commands to do with the current room")
 
