@@ -62,6 +62,11 @@ def is_aphost():
         return ctx.user.get_role(1234064646491602944) is not None
     return commands.check(predicate)
 
+def is_classifier():
+    async def predicate(ctx):
+        return ctx.user.get_role(1450512048583610502) is not None
+    return commands.check(predicate)
+
 class Archipelago(commands.GroupCog, group_name="archipelago"):
     """Commands relating to the Archipelago randomizer"""
 
@@ -206,7 +211,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
             responsefile = bytes(str_response,encoding='UTF-8')
             await interaction.response.send_message("Here's the result, as a file:",file=discord.File(BytesIO(responsefile), 'result.txt'),ephemeral=not public)
 
-    @is_aphost()
+    @is_classifier()
     @db.command(name='classify_item')
     @app_commands.describe(game="The game that contains the item",
                            item="The item to act on (wildcards: ? one, % many)",
@@ -229,8 +234,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
             finally:
                 pass
 
-    @is_aphost()
-    @app_commands.default_permissions(send_messages=True)
+    @is_classifier()
     @db.command(name='describe_item')
     @app_commands.describe(game="The game that contains the item",
                            item="The item to act on")
@@ -270,30 +274,6 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
 
         # Create the modal and send it to the user
         await interaction.response.send_modal(DescriptionForm(game, item))
-
-
-    @is_aphost()
-    @db.command(name='update_location_checkability')
-    @app_commands.describe(game="The game that contains the location",
-                           location="The location to act on (wildcards: ? one, % many)",
-                           is_checkable="Can the location be checked by a player?")
-    @app_commands.autocomplete(game=db_game_complete,location=db_location_complete)
-    async def db_update_location_checkability(self, interaction: discord.Interaction, game: str, location: str, is_checkable: bool):
-        """Update the checkability of a game's location. Non-checkable locations are classified as Events in Archipelago."""
-        cursor = sqlcon.cursor()
-
-        if '%' in location:
-            cursor.execute("UPDATE archipelago.game_locations SET is_checkable = %s where game = %s and location like %s", (is_checkable, game, location))
-            count = cursor.rowcount
-            logger.info(f"Classified {str(count)} locations(s) matching '{location}' in {game} to {'not ' if is_checkable is False else ''}checkable")
-            return await interaction.response.send_message(f"Classification for {game}'s {str(count)} locations matching '{location}' was successful.",ephemeral=True)
-        else:
-            try:
-                cursor.execute("UPDATE archipelago.game_locations SET is_checkable = %s where game = %s and location = %s", (is_checkable, game, location))
-                logger.info(f"Classified '{location}' in {game} to {'not ' if is_checkable is False else ''}checkable")
-                return await interaction.response.send_message(f"Classification for {game}'s '{location}' was successful.",ephemeral=True)
-            finally:
-                pass
 
     # Uncomment this command when the itemlog is running off Pepper too
     # So we can crossreference the itemlog message with the mentioned items/etc
