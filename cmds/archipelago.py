@@ -716,12 +716,16 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
         app_commands.Choice(name="Useful", value="useful"),
         app_commands.Choice(name="Progression", value="progression")
     ])
-    async def received_items(self, interaction: discord.Interaction, minimum_importance: str = "useful"):
+    @app_commands.describe(minimum_importance="Minimum importance of items to show",
+                           include_unclassified="Include unclassified items")
+    async def received_items(self, interaction: discord.Interaction, minimum_importance: str = "useful", include_unclassified: bool = True):
         """Get a list of items you received since last played."""
 
         show_classifications = ["useful", "progression"]
         if minimum_importance == "progression":
             show_classifications = ["progression"]
+        if include_unclassified:
+            show_classifications.append(None)
 
         deferpost = await interaction.response.defer(ephemeral=True, thinking=True,)
         newpost = await interaction.original_response()
