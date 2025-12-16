@@ -543,9 +543,9 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
 
             match Item.classification:
                 case "progression":
-                    icon = ":progression:"
+                    icon = "<:progression:1424290927735869461>"
                 case None:
-                    icon = ":unclassified:"
+                    icon = "<:unclassified:1450498207032283357>"
                 case _:
                     pass
 
