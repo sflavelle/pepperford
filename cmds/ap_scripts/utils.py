@@ -339,7 +339,7 @@ class Game(dict):
 
     def pushdb(self, cursor, database: str, column: str, payload):
         """Push a value to the database for this game."""
-        logger.info(f"Pushing to database {database}, column {column}, payload {payload}")
+        logger.debug(f"Pushing to database {database}, column {column}, payload {payload}")
         try:
             cursor.execute(f"UPDATE {database} set {column} = %s WHERE room_id = %s", (payload, self.room_id))
         except Exception as e:
@@ -1647,6 +1647,18 @@ def handle_state_tracking(player: Player, game: Game):
                     case "Employee":
                         goal_str = "Become Employee of the Month"
                         coins_required = 76
+                    case "Garden":
+                        goal_str = "Restore Gary's Garden"
+                    case "Friend":
+                        goal_str = "~~True Pacifist~~ Become friends with everybody"
+                    case "Custom":
+                        # custom coin goal
+                        # in player settings it's controlled by
+                        # 'min_custom_goal_cost' and 'max_custom_goal_cost'
+                        # Will need to find where it gets set in the generated seed
+                        # for now:
+                        coins_required = settings['Max Custom Goal Cost']
+                        goal_str = f"Collect up to {coins_required} Coins"
                     case _:
                         goal_str = goal
 
@@ -1664,6 +1676,27 @@ def handle_state_tracking(player: Player, game: Game):
                 player.stats.set_stat("coins", coins)
                 player.stats.set_stat("coins_required", coins_required)
                 player.stats.set_stat("movement_abilities", [ability.name for ability in player.get_collected_items(movement_abilities)])
+
+            case "Hollow Knight":
+                goal = settings['Goal']
+
+                match goal:
+                    # Some of these I'll have to ask for clarification on, but for now:
+                    case "Hollowknight":
+                        goal_str = "Defeat the Hollow Knight"
+                    case "Siblings":
+                        pass # Needs clarification
+                    case "Radiance":
+                        goal_str = "Defeat the Radiance"
+                    case "Godhome":
+                        goal_str = "Complete Godhome"
+                    case "Godhome Flower":
+                        pass # Needs clarification
+                    case "Grub Hunt":
+                        required = settings['GrubHuntGoal']
+                        goal_str = f"Rescue {required} Grubs"
+                    case _:
+                        goal_str = goal
 
             case "Kingdom Hearts 2":
                 match settings['Goal']:
@@ -1713,12 +1746,12 @@ def handle_state_tracking(player: Player, game: Game):
                 player.stats.set_stat("current_hearts", current_hearts)
 
                 match settings['Triforce Hunt']:
-                    case "Yes":
+                    case True:
                         goal_pieces = settings['Required Triforce Pieces']
                         goal_str = f"Collect {goal_pieces} Triforce Pieces from around Hyrule"
 
                         triforce_pieces = player.get_item_count("Triforce Piece")
-                    case "No":
+                    case False:
                         goal_str = "Defeat Ganon and Save Hyrule"
 
                 # TODO Get main inventory
@@ -1775,6 +1808,9 @@ def handle_state_tracking(player: Player, game: Game):
                         goal_str = f"Solve {ph_required} randomly selected panels to access a Secret"
                     case _:
                         goal_str = settings["Victory Condition"]
+
+            case "Timespinner":
+                goal_str = "End the Nightmare" # Goal is static
 
             case "Trackmania":
                 medals = ["Bronze Medal", "Silver Medal", "Gold Medal", "Author Medal"]
