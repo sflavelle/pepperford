@@ -84,6 +84,32 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
     async def cog_command_error(self, ctx: Context[BotT], error: Exception) -> None:
         await ctx.reply(f"Command error: {error}",ephemeral=True)
 
+    async def archivist_log(self, interaction: discord.Interaction, type: str, message: str):
+        """Log an action to the archivist log channel, if set."""
+        
+        if interaction.guild.id != 1424283904260706378:
+            return False
+        
+        channel_id = self.ctx.procs['archipelago'].get('channel_archivist')
+        if not channel_id:
+            return False
+
+        channel = interaction.guild.get_channel(channel_id)
+        if not channel:
+            return False
+        
+        match type:
+            case "classify":
+                type = "Item Classification"
+            case "describe":
+                type = "Item Description"
+            case _:
+                pass
+
+        embed = discord.Embed(title=f"Archival Log: {type.title()}", description=message, timestamp=datetime.now(datetime.timezone.utc))
+        embed.set_footer(text=f"Action by {interaction.user.display_name}", icon_url=interaction.user.display_avatar.url)
+        await channel.send(embed=embed)
+
     @app_commands.command()
     @app_commands.describe(room_url="Link to the Archipelago room",
                            comment="Additional comment to prefix the room details with",
@@ -230,6 +256,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
             try:
                 cursor.execute("UPDATE archipelago.item_classifications SET classification = %s where game = %s and item = %s", (classification.lower(), game, item))
                 logger.info(f"Classified '{item}' in {game} to {classification}")
+                self.archivist_log(interaction, "classify", f"Classified **{item}** in **{game}** to **{classification.title()}**.")
                 return await interaction.response.send_message(f"Classification for {game}'s '{item}' was successful.",ephemeral=True)
             finally:
                 pass
@@ -254,8 +281,10 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
 
         class DescriptionForm(discord.ui.Modal):
             """A Discord modal for setting an item's description."""
-            def __init__(self, game: str, item: str):
+            cogself = None
+            def __init__(self, cogself, game: str, item: str):
                 super().__init__(title=f"{item} ({game})"[:45])  # Title must be under 45 characters
+                self.cogself = cogself
                 self.game = game
                 self.item = item
 
@@ -270,10 +299,11 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                 cursor.execute("UPDATE archipelago.item_classifications SET description = %s WHERE game = %s AND item = %s",
                                (description, self.game, self.item))
                 await interaction.response.send_message(f"Description for {self.game}'s '{self.item}' has been set.", ephemeral=True)
+                cogself.archivist_log(interaction, "describe", f"Set description for **{self.item}** in **{self.game}**.")
                 logger.info(f"User {interaction.user.display_name} ({interaction.user.id}) set description for {game}'s {item}.")
 
         # Create the modal and send it to the user
-        await interaction.response.send_modal(DescriptionForm(game, item))
+        return await interaction.response.send_modal(DescriptionForm(self, game, item))
 
     # Uncomment this command when the itemlog is running off Pepper too
     # So we can crossreference the itemlog message with the mentioned items/etc
@@ -305,7 +335,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
     #     else:
     #         msg = f"No classification found for **{item_name}** in **{game}**."
 
-        return await interaction.response.send_message(msg, ephemeral=True)
+        # return await interaction.response.send_message(msg, ephemeral=True)
 
     @is_aphost()
     @app_commands.default_permissions(manage_messages=True)
@@ -1121,7 +1151,9 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
     @commands.Cog.listener()
     async def on_ready(self):
         if not self.ctx.procs.get('archipelago'):
-            self.ctx.procs['archipelago'] = {}
+            self.ctx.procs['archipelago'] = {
+                "channel_archivist": 1450616053204910191,
+            }
 
         if not self.ctx.extras.get('ap_rooms'):
             self.ctx.extras['ap_rooms'] = {}
