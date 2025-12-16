@@ -96,7 +96,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
             logger.info("No archivist channel set; skipping log.")
             return False
 
-        channel = interaction.guild.get_channel(channel_id)
+        channel = interaction.client.get_channel(channel_id)
         if not channel:
             logger.error("Archivist channel ID is invalid; cannot log.")
             return False
