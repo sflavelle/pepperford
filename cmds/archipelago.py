@@ -88,14 +88,17 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
         """Log an action to the archivist log channel, if set."""
         
         if interaction.guild.id != 1424283904260706378:
+            logger.error("Attempted to log to archivist channel outside of main server.")
             return False
         
         channel_id = self.ctx.procs['archipelago'].get('channel_archivist')
         if not channel_id:
+            logger.info("No archivist channel set; skipping log.")
             return False
 
         channel = interaction.guild.get_channel(channel_id)
         if not channel:
+            logger.error("Archivist channel ID is invalid; cannot log.")
             return False
         
         match type:
@@ -109,6 +112,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
         embed = discord.Embed(title=f"Archival Log: {type.title()}", description=message, timestamp=datetime.now(datetime.timezone.utc))
         embed.set_footer(text=f"Action by {interaction.user.display_name}", icon_url=interaction.user.display_avatar.url)
         await channel.send(embed=embed)
+        logger.info(f"Logged action to archivist channel: {type}")
 
     @app_commands.command()
     @app_commands.describe(room_url="Link to the Archipelago room",
