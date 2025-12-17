@@ -1102,7 +1102,7 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                         "Beast's Claw": "Beast's Castle",
                         "Battlefields of War": "Olympus",
                         "Disney Castle Key": "Disney Castle",
-                        "Skill & Crossbones": "Port Royal",
+                        "Skill and Crossbones": "Port Royal",
                         "Scimitar": "Agrabah",
                         "Bone Fist": "Halloween Town",
                         "Proud Fang": "Pride Lands",

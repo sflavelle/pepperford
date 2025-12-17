@@ -668,13 +668,25 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
             if Item.is_filler() or Item.is_currency(): continue
             # Balatro shop items are hinted as soon as they appear and are usually bought right away, so skip their hints
             if Item.game == "Balatro" and any([Item.location.name.startswith(shop) for shop in ['Shop Item', 'Consumable Item']]): continue
+
+            item_with_icon = lambda item, icon: f"{icon} {item}" if bool(icon) else item
+
+            match Item.classification:
+                case "progression":
+                    icon = "<:progression:1424290927735869461>"
+                case "trap":
+                    icon = "<:trapitem:1450667122891161702>"
+                case None:
+                    icon = "<:unclassified:1450498207032283357>"
+                case _:
+                    pass
             
             if game.players[receiver].game == "Hollow Knight":
                 item = item.replace("_", " ").replace("-"," - ")
             if game.players[sender].game == "Hollow Knight":
                 item_location = item_location.replace("_", " ").replace("-"," - ")
 
-            message = f"**[Hint]** **{receiver}'s {item}** is at {item_location} in {sender}'s World{f" (found at {entrance})" if bool(entrance) else ''}."
+            message = f"**[Hint]** **{receiver}'s {item_with_icon(item, icon)}** is at {item_location} in {sender}'s World{f" (found at {entrance})" if bool(entrance) else ''}."
 
             match hint_status:
                 case "avoid":
