@@ -545,7 +545,7 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
                 case "progression":
                     icon = "<:progression:1424290927735869461>"
                 case "trap":
-                    icon = "<:trapitem:1450667122891161702>"
+                    icon = "<:trapitem:1450760161286295734>"
                 case None:
                     icon = "<:unclassified:1450498207032283357>"
                 case _:
@@ -675,7 +675,7 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
                 case "progression":
                     icon = "<:progression:1424290927735869461>"
                 case "trap":
-                    icon = "<:trapitem:1450667122891161702>"
+                    icon = "<:trapitem:1450760161286295734>"
                 case None:
                     icon = "<:unclassified:1450498207032283357>"
                 case _:
