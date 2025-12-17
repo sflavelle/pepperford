@@ -544,6 +544,8 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
             match Item.classification:
                 case "progression":
                     icon = "<:progression:1424290927735869461>"
+                case "trap":
+                    icon = "<:trapitem:1450667122891161702>"
                 case None:
                     icon = "<:unclassified:1450498207032283357>"
                 case _:
@@ -846,7 +848,7 @@ def send_meta(sender,message):
     }
 
     try:
-        response = requests.post(meta_webhook, json=payload, timeout=5)
+        response = requests.post(meta_webhook[0], json=payload, timeout=5)
         response.raise_for_status()
         # log_to_file(message)  # Log the message to a file
     except requests.RequestException as e:
