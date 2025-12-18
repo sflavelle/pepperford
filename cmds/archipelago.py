@@ -260,10 +260,13 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
         cursor = sqlcon.cursor()
 
         if '%' in item or r'?' in item:
-            cursor.execute("UPDATE archipelago.item_classifications SET classification = %s where game = %s and item like %s", (classification.lower(), game, item))
+            cursor.execute("UPDATE archipelago.item_classifications SET classification = %s where game = %s and item like %s RETURNING item", (classification.lower(), game, item))
             sqlcon.commit()
             count = cursor.rowcount
+            matched_items = [r[0] for r in cursor.fetchall()]
             logger.info(f"Classified {str(count)} item(s) matching '{item}' in {game} to {classification}")
+
+            await self.archivist_log(interaction, "classify", f"Classified **{join_words(matched_items)}** in **{game}** to **{classification.title()}**.")
 
             # Send immediate acknowledgement so user knows we're working on notifying itemlogs
             ack_msg = await interaction.followup.send(
