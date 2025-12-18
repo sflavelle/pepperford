@@ -1393,6 +1393,13 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
 
                         # return f"{item} ({jewel_count}/{jewel_pieces}P|{jewels_complete}/{jewels_required}C)"
                         return f"{item} ({jewels_complete}/{jewels_required}C)"
+                    
+                # Manual Worlds
+                case "Manual_NewSuperMarioBrosDS_zuils":
+                    if item == "Star Coin":
+                        required = settings['Star Coins Required']
+                        return f"{item} (*{count}/{required}*)"
+
                 case _:
                     if game.startswith("GZDoom"):
                         item_regex = re.compile(r"^([a-zA-Z ]+?) \((\S+)\)$")
