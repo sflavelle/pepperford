@@ -354,14 +354,48 @@ class Game(dict):
             logger.error(f"Error pulling from database: {e}")
             return None
         
-    def refresh_classifications(self):
-        """Refresh the item classifications for all items in the game.
-        Useful if classifications have been changed during runtime and need to be applied."""
+    def refresh_classifications(self, game: str | None = None, item_name: str | None = None) -> tuple[int, int]:
+        """Refresh item classifications.
+
+        If `game` is provided, only items for that game will be considered.
+        If `item_name` is provided in addition to `game`, only instances matching
+        that exact item name will be updated.
+
+        Returns a tuple `(processed, updated)` where `processed` is the number of
+        item instances examined and `updated` is the number whose classification
+        actually changed.
+        """
 
         logger.info("Refreshing item classifications.")
+
+        processed = 0
+        updated = 0
+
         for item in self.item_instance_cache.values():
-            item.set_item_classification()
-        logger.info("Item classifications refreshed.")
+            # Filter by game if requested
+            if game is not None and item.game != game:
+                continue
+
+            # Filter by item name if requested (requires game to be meaningful)
+            if item_name is not None and item.name != item_name:
+                continue
+
+            processed += 1
+
+            try:
+                old_class = item.classification
+                # set_item_classification returns the (possibly new) classification
+                new_class = item.set_item_classification(item.receiver)
+                # update the instance's stored classification
+                item.classification = new_class
+
+                if old_class != new_class:
+                    updated += 1
+            except Exception as e:
+                logger.exception(f"Error refreshing classification for {item.game}: {item.name}: {e}")
+
+        logger.info(f"Item classifications refreshed. Processed={processed}, Updated={updated}")
+        return (processed, updated)
         
 
 def handle_hint_update(self):

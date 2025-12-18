@@ -255,19 +255,96 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
     @app_commands.autocomplete(game=db_game_complete,item=db_item_complete,classification=db_classification_complete)
     async def db_update_item_classification(self, interaction: discord.Interaction, game: str, item: str, classification: str):
         """Update the classification of an item."""
+        # Defer the response because contacting itemlogs may take time
+        await interaction.response.defer(ephemeral=True, thinking=True)
         cursor = sqlcon.cursor()
 
-        if '%' in item or '?' in item:
+        if '%' in item or r'?' in item:
             cursor.execute("UPDATE archipelago.item_classifications SET classification = %s where game = %s and item like %s", (classification.lower(), game, item))
+            sqlcon.commit()
             count = cursor.rowcount
             logger.info(f"Classified {str(count)} item(s) matching '{item}' in {game} to {classification}")
-            return await interaction.response.send_message(f"Classification for {game}'s {str(count)} items matching '{item}' was successful.",ephemeral=True)
+
+            # Send immediate acknowledgement so user knows we're working on notifying itemlogs
+            ack_msg = await interaction.followup.send(
+                f"Classification updated for {game} (matched {count} items). Contacting running itemlogs to refresh classifications...",
+                ephemeral=True,
+            )
+
+            # Notify running itemlogs to refresh this game's classifications (wildcard -> refresh whole game)
+            refreshed = 0
+            attempted = 0
+            try:
+                cursor.execute("SELECT flask_port FROM pepper.ap_all_rooms WHERE active = 'true' AND flask_port IS NOT NULL;")
+                ports = [r[0] for r in cursor.fetchall()]
+            except Exception:
+                ports = []
+
+            for port in ports:
+                attempted += 1
+                try:
+                    resp = requests.get(f"http://localhost:{port}/refreshclassifications", params={'game': game}, timeout=3)
+                    if resp.status_code == 200:
+                        refreshed += 1
+                except requests.RequestException:
+                    logger.warning(f"Failed to contact itemlog at port {port} to refresh classifications for game {game}.")
+
+            final_reply = f"Classification for {game}'s {str(count)} items matching '{item}' was successful."
+            if attempted > 0:
+                final_reply += f" Notified {refreshed}/{attempted} running itemlog(s) to refresh classifications for the game '{game}'."
+            else:
+                final_reply += " No running itemlogs were found to notify."
+
+            try:
+                await ack_msg.edit(content=final_reply)
+            except Exception:
+                # If editing fails, send a followup instead
+                await interaction.followup.send(final_reply, ephemeral=True)
+            return
         else:
             try:
                 cursor.execute("UPDATE archipelago.item_classifications SET classification = %s where game = %s and item = %s", (classification.lower(), game, item))
+                sqlcon.commit()
                 logger.info(f"Classified '{item}' in {game} to {classification}")
+
+                # Send immediate acknowledgement so user knows we're working on notifying itemlogs
+                ack_msg = await interaction.followup.send(
+                    f"Classification updated for {game}: '{item}'. Contacting running itemlogs to refresh classifications...",
+                    ephemeral=True,
+                )
+
+                # Notify running itemlog instances to refresh their in-memory classifications for this specific item
+                refreshed = 0
+                attempted = 0
+                try:
+                    cursor.execute("SELECT flask_port FROM pepper.ap_all_rooms WHERE active = 'true' AND flask_port IS NOT NULL;")
+                    ports = [r[0] for r in cursor.fetchall()]
+                except Exception:
+                    ports = []
+
+                for port in ports:
+                    attempted += 1
+                    try:
+                        resp = requests.get(f"http://localhost:{port}/refreshclassifications", params={'game': game, 'item': item}, timeout=3)
+                        if resp.status_code == 200:
+                            refreshed += 1
+                    except requests.RequestException:
+                        logger.warning(f"Failed to contact itemlog at port {port} to refresh classifications for {game}:{item}.")
+
                 await self.archivist_log(interaction, "classify", f"Classified **{item}** in **{game}** to **{classification.title()}**.")
-                return await interaction.response.send_message(f"Classification for {game}'s '{item}' was successful.",ephemeral=True)
+
+                # Inform the user of success and how many itemlogs were notified
+                final_reply = f"Classification for {game}'s '{item}' was successful."
+                if attempted > 0:
+                    final_reply += f" Notified {refreshed}/{attempted} running itemlog(s) to refresh classifications for '{game}:{item}'."
+                else:
+                    final_reply += " No running itemlogs were found to notify."
+
+                try:
+                    await ack_msg.edit(content=final_reply)
+                except Exception:
+                    await interaction.followup.send(final_reply, ephemeral=True)
+                return
             finally:
                 pass
 

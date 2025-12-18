@@ -18,7 +18,7 @@ import yaml
 from cmds.ap_scripts.utils import Game, Location, Item, Player, PlayerSettings, handle_item_tracking, handle_location_tracking, handle_location_hinting
 from cmds.ap_scripts.emitter import event_emitter
 from word2number import w2n
-from flask import Flask, jsonify, Response
+from flask import Flask, jsonify, Response, request
 import psycopg2 as psql
 
 DEBUG = os.getenv('DEBUG_MODE','').lower() if os.getenv('DEBUG_MODE','') != '' else False
@@ -1149,8 +1149,20 @@ def get_game():
 @webview.route('/refreshclassifications', methods=['GET'])
 def refresh_classifications():
     global game
-    game.refresh_classifications()
-    return "Refreshed game classifications."
+
+    # Optional query parameters to narrow the refresh scope
+    game_name = request.args.get('game')
+    item_name = request.args.get('item')
+
+    try:
+        processed, updated = game.refresh_classifications(game=game_name, item_name=item_name)
+        msg = f"Refreshed classifications. Processed={processed}, Updated={updated}."
+        if game_name:
+            msg = f"Refreshed classifications for game='{game_name}'{f", item='{item_name}'" if item_name else ''}. Processed={processed}, Updated={updated}."
+        return msg, 200
+    except Exception as e:
+        logger.exception(f"Failed to refresh classifications: {e}")
+        return f"Error refreshing classifications: {e}", 500
 
 @webview.route('/locations/checkable/', methods=['GET'], defaults={'found': False})
 @webview.route('/locations/checkable/found', methods=['GET'], defaults={'found': True})
