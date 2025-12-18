@@ -15,7 +15,7 @@ handler = logging.StreamHandler()
 handler.setFormatter(logging.Formatter('[%(name)s][%(levelname)s] %(message)s'))
 logger.setLevel(logging.INFO)
 logger.addHandler(handler)
-logger.getLogger('discord.gateway').setLevel(logging.WARNING)
+logging.getLogger('discord.gateway').setLevel(logging.WARNING)
 
 # init vars?
 cfg = None
