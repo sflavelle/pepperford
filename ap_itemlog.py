@@ -475,11 +475,21 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
                 if item.name == "Snail Money" and (setting["Enable Achievements"] == "all_achievements" or setting['Snail Shop'] is True):
                     response = "progression"
                 else: response = "filler"
-            if item.game == "Ocarina of Time":
+            if item.game == "Ocarina of Time" or item.game == "Ship of Harkinian":
                 if item.name == "Gold Skulltula Token":
-                    if item.count > 50: # No more checks after 50
+                    if item.count > 50 and setting['Shuffle 100 GS Reward'] is False: # No more checks after 50
                         response = "filler"
                     else: response = "progression"
+                if item.name.startswith("Bottle") or item.name == "Empty Bottle":
+                    # Bottles that aren't the one with Ruto's Letter can be progression in certain situations:
+                    # 1. Overworld Skulltulas are shuffled (some hide in dirt patches where bottles with bugs are needed)
+                    # 2. The Big Poe sidequest is enabled
+                    # 3. Zora's Fountain is open from start as Child (need a bottle to get a fish for Jabu Jabu)
+                    if setting["Shuffle Tokens"] in ["Overworld", "All"] or \
+                    setting['Big Poe Target Count'] > 0 or \
+                    setting["Zora's Domain"] == "Open": # misnamed in settings
+                        response = "progression"
+                    else: response = "useful"
             if item.game == "Trackmania":
                 medals = ["Bronze Medal", "Silver Medal", "Gold Medal", "Author Medal"]
                 # From TMAP docs: 
