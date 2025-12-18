@@ -20,7 +20,7 @@ from tabulate import tabulate
 from pyyoutube import Api
 import discord
 from discord import app_commands
-from discord.ext import commands
+from discord.ext import commands, tasks
 from discord.ext.commands import Context
 from discord.ext.commands._types import BotT
 
@@ -394,165 +394,127 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
 
         await interaction.response.defer(thinking=True,ephemeral=True)
 
-        api_key = cfg['bot']['raocow']['yt_api_key']
-        channel_ids = [
-            "UCjM-Wd2651MWgo0s5yNQRJA" # raocow's channel ID    
-        ]
+        # Delegate to synchronous helper functions executed in the threadpool
+        if bool(playlist_search):
+            try:
+                loop = asyncio.get_event_loop()
+                await loop.run_in_executor(executor, self._process_single_playlist_sync, playlist_search, calculate_duration)
+                await interaction.followup.send(f"Updated playlist `{playlist_search}` in the database.", ephemeral=True)
+            except Exception as e:
+                logger.error(f"Error fetching playlist: {e}",e,exc_info=True)
+                await interaction.followup.send(f"An error occurred: {e}",ephemeral=True)
+        else:
+            try:
+                loop = asyncio.get_event_loop()
+                await loop.run_in_executor(executor, self._process_channels_sync, playlist_count, include_fanchannels, calculate_duration, skip_duration_calculated, skip_existing)
+                await interaction.followup.send("Playlists fetched and stored successfully.",ephemeral=True)
+            except Exception as e:
+                logger.error(f"Error fetching playlists: {e}",e,exc_info=True)
+                await interaction.followup.send(f"An error occurred: {e}",ephemeral=True)
 
+    def _process_single_playlist_sync(self, playlist_id, calculate_duration=False):
+        api_key = cfg['bot']['raocow']['yt_api_key']
+        ytc = Api(api_key=api_key)
+        channel_ids = ["UCjM-Wd2651MWgo0s5yNQRJA"]
+
+        try:
+            # Fetch playlist metadata
+            query = ytc.get_playlist_by_id(playlist_id=playlist_id, return_json=True)
+            item = query['items'][0] if 'items' in query and len(query['items']) > 0 else None
+
+            pl_videos = ytc.get_playlist_items(playlist_id=playlist_id, count=None, return_json=True)
+            first_title = pl_videos['items'][0]['snippet']['title'] if pl_videos and pl_videos.get('items') else 'unknown'
+            logger.info(f"Playlist {playlist_id} first video: {first_title}")
+
+            with sqlcon.cursor() as cursor:
+                # Use the playlist item to determine channel and other metadata when possible
+                channel_id = item['snippet'].get('channelId') if item and 'snippet' in item else None
+
+                # Determine playlist-level fields
+                date = pl_videos['items'][0]['contentDetails']['videoPublishedAt'] if pl_videos else None
+                latest_date = None
+                playlist_length = item['contentDetails']['itemCount'] if item and 'contentDetails' in item else None
+                thumbnail = item['snippet']['thumbnails']['high']['url'] if item and 'snippet' in item and 'thumbnails' in item['snippet'] else None
+
+                for v in pl_videos['items']:
+                    if v['status']['privacyStatus'] in ['private', 'unlisted']:
+                        continue
+                    vdate = v['contentDetails'].get('videoPublishedAt') if 'contentDetails' in v else v['snippet'].get('publishedAt')
+                    vid = v['snippet']['resourceId']['videoId']
+                    pid = playlist_id
+                    vtitle = v['snippet']['title']
+
+                    cursor.execute('INSERT INTO pepper.raocow_videos (video_id, playlist_id, title, datestamp, channel_id) VALUES (%s, %s, %s, %s, %s) '
+                                   'ON CONFLICT (video_id) DO UPDATE SET datestamp = COALESCE(EXCLUDED.datestamp, pepper.raocow_videos.datestamp)', (vid, pid, vtitle, vdate, channel_id))
+
+                # Find latest date
+                if 'videoPublishedAt' in pl_videos['items'][-1].get('contentDetails', {}):
+                    latest_date = pl_videos['items'][-1]['contentDetails']['videoPublishedAt']
+                else:
+                    for item in sorted(pl_videos['items'], key=lambda x: x['snippet']['position'], reverse=True):
+                        if item['status']['privacyStatus'] in ['private', 'unlisted']:
+                            continue
+                        if item['contentDetails'].get('videoPublishedAt'):
+                            latest_date = item['contentDetails']['videoPublishedAt']
+                            break
+
+                # Calculate durations if requested
+                if calculate_duration:
+                    for video in pl_videos['items']:
+                        video_id = video['snippet']['resourceId']['videoId']
+                        video_details = ytc.get_video_by_id(video_id=video_id, return_json=True)
+                        if 'items' in video_details and len(video_details['items']) > 0:
+                            dur = isodate.parse_duration(video_details['items'][0]['contentDetails']['duration'])
+                            duration_sec = dur.total_seconds() if dur is not None else None
+                            if duration_sec is not None:
+                                cursor.execute('UPDATE pepper.raocow_videos SET duration = %s WHERE video_id = %s', (duration_sec, video_id))
+
+                # Upsert playlist
+                cursor.execute('''
+                                INSERT INTO pepper.raocow_playlists (playlist_id, title, datestamp, length, thumbnail, latest_video, channel_id) VALUES (%s, %s, %s, %s, %s, %s, %s) 
+                                ON CONFLICT (playlist_id) DO UPDATE
+                                SET datestamp = EXCLUDED.datestamp, length = EXCLUDED.length,
+                                visible = COALESCE(pepper.raocow_playlists.visible, EXCLUDED.visible),
+                                thumbnail = EXCLUDED.thumbnail, latest_video = EXCLUDED.latest_video, channel_id = EXCLUDED.channel_id''',
+                                (playlist_id, item['snippet'].get('title') if item else None, date, playlist_length, thumbnail, latest_date, channel_id)
+                                )
+
+                # Update playlist duration using aggregated video durations
+                cursor.execute('''
+                                UPDATE pepper.raocow_playlists
+                                SET duration = sub.duration
+                                FROM (
+                                    SELECT playlist_id, SUM(duration) AS duration
+                                    FROM pepper.raocow_videos
+                                    WHERE playlist_id = %s
+                                    GROUP BY playlist_id
+                                ) AS sub
+                                WHERE pepper.raocow_playlists.playlist_id = sub.playlist_id
+                                ''', (playlist_id,))
+                sqlcon.commit()
+                logger.info(f"Inserted/updated playlist {playlist_id} into database.")
+
+        except Exception as e:
+            logger.error(f"Error processing playlist {playlist_id}: {e}", exc_info=True)
+
+    def _process_channels_sync(self, playlist_count=None, include_fanchannels: bool = False, calculate_duration: bool = False, skip_duration_calculated: bool = False, skip_existing: bool = False):
+        api_key = cfg['bot']['raocow']['yt_api_key']
+        channel_ids = ["UCjM-Wd2651MWgo0s5yNQRJA"]
         if include_fanchannels:
-            channel_ids = channel_ids + [
-                "UCKnEkwBqrai2GB6Rxl1OqCA" # raolists (fan channel with playlists)
-                # "UC5DLg0WeN4kLbJ8vmJDVAkg" # RaocowGV (Google Video archive)
-                # "UCeYAO0Cw3RRwicMZQ2tGD9A" # raoclassic (fan channel with pre-YouTube content)
-            ]
+            channel_ids = channel_ids + ["UCKnEkwBqrai2GB6Rxl1OqCA"]
 
         ytc = Api(api_key=api_key)
 
-        def process_single_playlist(playlist_id):
-            pl_id = None
-            title = None
-            datestamp = None
-            length = None
-            duration = None
-            visibility = None
-            thumbnail = None
-            game_link = None
-            latest_video = None
-            alias = None
-            series = None
-            channel_id = None
-
-            # Fetch playlist from database
-            with sqlcon.cursor() as cursor:
-                cursor.execute("SELECT * FROM pepper.raocow_playlists WHERE playlist_id = %s", (playlist_id,))
-                result = cursor.fetchone()
-                pl_id, title, datestamp, length, duration, visibility, thumbnail, game_link, latest_video, alias, series, channel_id = result
-
-                query = ytc.get_playlist_by_id(playlist_id=playlist_id, return_json=True)
-                item = query['items'][0] if 'items' in query and len(query['items']) > 0 else None
-
-                try:
-                    if channel_id == "UCKnEkwBqrai2GB6Rxl1OqCA":
-                        # Raolists prefixes every playlist with a number
-                        # Remove the number prefix from the title
-                        title = title.split('.', 1)[-1].lstrip() if '. ' in title else title
-
-                    # Get the date of the first video in the playlist
-                    # And use as the playlist date
-                    pl_videos = ytc.get_playlist_items(playlist_id=playlist_id, count=None, return_json=True)
-                    logger.info(f"Playlist {playlist_id} first video: {pl_videos['items'][0]['snippet']['title']}")
-                    first_id = pl_videos['items'][0]['snippet']['resourceId']['videoId']
-
-                    # For fan-channels:
-                    # Make sure this playlist is not already uploaded by raocow himself
-                    if channel_id in channel_ids[1:]:
-                        cursor.execute('SELECT video_id, playlist_id, channel_id from pepper.raocow_videos where playlist_id = %s and video_id = %s', (channel_ids[0], first_id))
-                        query_exists = cursor.fetchall()
-                        if bool(query_exists):
-                            logger.warning(f"Playlist uploaded already by official channel, skipping.")
-                            raise ValueError("Playlist already uploaded by official channel, skipping.")
-
-
-                    date = pl_videos['items'][0]['contentDetails']['videoPublishedAt'] if pl_videos else None
-                    latest_date = None
-                    playlist_length = item['contentDetails']['itemCount']
-                    thumbnail = item['snippet']['thumbnails']['high']['url'] if 'thumbnails' in item['snippet'] else None
-                    duration = None
-
-                    for v in pl_videos['items']:
-                        if v['status']['privacyStatus'] in ['private', 'unlisted']:
-                                continue
-                        vdate = v['contentDetails']['videoPublishedAt'] if 'videoPublishedAt' in v['contentDetails'] else v['snippet']['publishedAt']
-                        vid = v['snippet']['resourceId']['videoId']
-                        pid = item['id']
-                        vtitle = v['snippet']['title']
-
-                        if channel_id == "UCKnEkwBqrai2GB6Rxl1OqCA" and v['snippet']['channelId'] != channel_ids[0]:
-                            # 'Originally Uploaded - 6/9/07'
-                            # Match a date string in the description
-                            logger.info(f"Fan channel: searching for date in description of video {vid}")
-                            if 'description' in v['snippet'] and v['snippet']['description']:
-                                if match := re.search(r'((\d{1,2})[./-](\d{1,2})[./-](\d{2,4}))', v['snippet']['description']):
-                                    try:
-                                        # Extract month, day, year
-                                        month = int(match.group(2))
-                                        day = int(match.group(3))
-                                        year = int(match.group(4))
-                                        # Handle 2-digit years
-                                        if year < 100:
-                                            year += 2000 if year < 50 else 1900
-                                        vdate = datetime.date(year, month, day)
-                                        logger.info(f"Found date {vdate} in video {vid}")
-                                    except ValueError:
-                                        logger.error(f"Invalid date format in video {vid}: {vdate}")
-                                        vdate = None
-
-                        logger.debug(f"Inserting video {vid} into playlist {pid} with date {vdate}")
-                        cursor.execute('INSERT INTO pepper.raocow_videos (video_id, playlist_id, title, datestamp, channel_id) VALUES (%s, %s, %s, %s, %s)'
-                                'ON CONFLICT (video_id) DO UPDATE SET datestamp = pepper.raocow_videos.datestamp', (vid, pid, vtitle, vdate, channel_id))
-
-                    if 'videoPublishedAt' in pl_videos['items'][-1]['contentDetails']:
-                        latest_date = pl_videos['items'][-1]['contentDetails']['videoPublishedAt']
-                    else:
-                        for item in sorted(pl_videos['items'], key=lambda x: x['snippet']['position'], reverse=True):
-                            if item['status']['privacyStatus'] in ['private', 'unlisted']:
-                                continue
-
-                            if item['contentDetails']['videoPublishedAt']:
-                                latest_date = item['contentDetails']['videoPublishedAt']
-                                break
-
-                    if calculate_duration:
-                        # Calculate the total duration of the playlist
-                        for video in pl_videos['items']:
-                            video_id = video['snippet']['resourceId']['videoId']
-                            video_details = ytc.get_video_by_id(video_id=video_id, return_json=True)
-                            if 'items' in video_details and len(video_details['items']) > 0:
-                                duration = isodate.parse_duration(video_details['items'][0]['contentDetails']['duration']) # example output: 'PT3M50S'
-                                # Convert to seconds
-                                duration_sec = duration.total_seconds()
-                                if duration_sec is not None:
-                                    cursor.execute('UPDATE pepper.raocow_videos SET duration = %s WHERE video_id = %s', (duration_sec, video_id))
-
-                    # Reset some vars
-                    duration = None
-
-                    # Main insert
-                    cursor.execute('''
-                                    INSERT INTO pepper.raocow_playlists (playlist_id, title, datestamp, length, thumbnail, latest_video, channel_id) VALUES (%s, %s, %s, %s, %s, %s, %s) 
-                                    ON CONFLICT (playlist_id) DO UPDATE
-                                    SET datestamp = EXCLUDED.datestamp, length = EXCLUDED.length,
-                                    visible = COALESCE(pepper.raocow_playlists.visible, EXCLUDED.visible),
-                                    thumbnail = EXCLUDED.thumbnail, latest_video = EXCLUDED.latest_video, channel_id = EXCLUDED.channel_id''',
-                                    (playlist_id, title, date, playlist_length, thumbnail, latest_date, channel_id)
-                                    )
-                    # Update playlist duration with the sum from video table
-                    cursor.execute('''
-                                    UPDATE pepper.raocow_playlists
-                                    SET duration = sub.duration
-                                    FROM (
-                                        SELECT playlist_id, SUM(duration) AS duration
-                                        FROM pepper.raocow_videos
-                                        WHERE playlist_id = %s
-                                        GROUP BY playlist_id
-                                    ) AS sub
-                                    WHERE pepper.raocow_playlists.playlist_id = sub.playlist_id
-                                    ''', (playlist_id,))
-                    sqlcon.commit()
-                    logger.info(f"Inserted playlist {playlist_id} into database.")
-                except Exception as e:
-                    logger.error(f"Error processing playlist {playlist_id}: {e}", e, exc_info=True)
-
-
-
-        def process_channels():
-            # Fetch the playlists from raocow's channel (and endorsed fan channels)
-            for channel_id in channel_ids:
+        for channel_id in channel_ids:
+            try:
                 playlists = ytc.get_playlists(channel_id=channel_id, count=playlist_count, return_json=True)
+            except Exception as e:
+                logger.error(f"Error fetching playlists for channel {channel_id}: {e}", exc_info=True)
+                continue
 
-                # Store the playlists in the database
-                with sqlcon.cursor() as cursor:
-                    for item in playlists['items']:
+            with sqlcon.cursor() as cursor:
+                for item in playlists.get('items', []):
+                    try:
                         # Skip existing playlists
                         if skip_existing:
                             cursor.execute("SELECT * FROM pepper.raocow_playlists WHERE playlist_id = %s", (item['id'],))
@@ -568,146 +530,177 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
                                 logger.info(f"Skipping playlist {item['id']} (duration already calculated)")
                                 continue
                         # Skip Favorites playlist
-                        if item['id'].startswith("FL"): continue
-                        logger.info(f"Fetching playlist {item['id']}")
-                        logger.debug(f"Playlist item: {item}")
+                        if item['id'].startswith("FL"):
+                            continue
+
                         playlist_id = item['id']
                         title = item['snippet']['title']
 
-                        try:
-                            if channel_id == "UCKnEkwBqrai2GB6Rxl1OqCA":
-                                # Raolists prefixes every playlist with a number
-                                # Remove the number prefix from the title
-                                title = title.split('.', 1)[-1].lstrip() if '. ' in title else title
+                        # Get videos for playlist
+                        pl_videos = ytc.get_playlist_items(playlist_id=playlist_id, count=None, return_json=True)
+                        logger.info(f"Playlist {playlist_id} first video: {pl_videos['items'][0]['snippet']['title']}")
+                        first_id = pl_videos['items'][0]['snippet']['resourceId']['videoId']
 
-                            # Get the date of the first video in the playlist
-                            # And use as the playlist date
-                            pl_videos = ytc.get_playlist_items(playlist_id=playlist_id, count=None, return_json=True)
-                            logger.info(f"Playlist {playlist_id} first video: {pl_videos['items'][0]['snippet']['title']}")
-                            first_id = pl_videos['items'][0]['snippet']['resourceId']['videoId']
+                        # For fan-channels: ensure this playlist isn't already uploaded by official channel
+                        if channel_id in channel_ids[1:]:
+                            cursor.execute('SELECT video_id, playlist_id, channel_id from pepper.raocow_videos where playlist_id = %s and video_id = %s', (channel_ids[0], first_id))
+                            query_exists = cursor.fetchall()
+                            if bool(query_exists):
+                                logger.warning(f"Playlist uploaded already by official channel, skipping.")
+                                continue
 
-                            # For fan-channels:
-                            # Make sure this playlist is not already uploaded by raocow himself
-                            if channel_id in channel_ids[1:]:
-                                cursor.execute('SELECT video_id, playlist_id, channel_id from pepper.raocow_videos where playlist_id = %s and video_id = %s', (channel_ids[0], first_id))
-                                query_exists = cursor.fetchall()
-                                if bool(query_exists):
-                                    logger.warning(f"Playlist uploaded already by official channel, skipping.")
+                        date = pl_videos['items'][0]['contentDetails'].get('videoPublishedAt') if pl_videos else None
+                        latest_date = None
+                        playlist_length = item['contentDetails']['itemCount'] if 'contentDetails' in item else None
+                        thumbnail = item['snippet']['thumbnails']['high']['url'] if 'thumbnails' in item['snippet'] else None
+
+                        for v in pl_videos['items']:
+                            if v['status']['privacyStatus'] in ['private', 'unlisted']:
+                                continue
+                            vdate = v['contentDetails'].get('videoPublishedAt') if 'contentDetails' in v else v['snippet'].get('publishedAt')
+                            vid = v['snippet']['resourceId']['videoId']
+                            pid = item['id']
+                            vtitle = v['snippet']['title']
+
+                            cursor.execute('INSERT INTO pepper.raocow_videos (video_id, playlist_id, title, datestamp, channel_id) VALUES (%s, %s, %s, %s, %s) '
+                                           'ON CONFLICT (video_id) DO UPDATE SET datestamp = COALESCE(EXCLUDED.datestamp, pepper.raocow_videos.datestamp)', (vid, pid, vtitle, vdate, channel_id))
+
+                        # Determine latest_date
+                        if 'videoPublishedAt' in pl_videos['items'][-1].get('contentDetails', {}):
+                            latest_date = pl_videos['items'][-1]['contentDetails']['videoPublishedAt']
+                        else:
+                            for it in sorted(pl_videos['items'], key=lambda x: x['snippet']['position'], reverse=True):
+                                if it['status']['privacyStatus'] in ['private', 'unlisted']:
                                     continue
+                                if it['contentDetails'].get('videoPublishedAt'):
+                                    latest_date = it['contentDetails']['videoPublishedAt']
+                                    break
 
+                        if calculate_duration:
+                            for video in pl_videos['items']:
+                                video_id = video['snippet']['resourceId']['videoId']
+                                video_details = ytc.get_video_by_id(video_id=video_id, return_json=True)
+                                if 'items' in video_details and len(video_details['items']) > 0:
+                                    dur = isodate.parse_duration(video_details['items'][0]['contentDetails']['duration'])
+                                    duration_sec = dur.total_seconds() if dur is not None else None
+                                    if duration_sec is not None:
+                                        cursor.execute('UPDATE pepper.raocow_videos SET duration = %s WHERE video_id = %s', (duration_sec, video_id))
 
-                            date = pl_videos['items'][0]['contentDetails']['videoPublishedAt'] if pl_videos else None
-                            latest_date = None
-                            playlist_length = item['contentDetails']['itemCount']
-                            thumbnail = item['snippet']['thumbnails']['high']['url'] if 'thumbnails' in item['snippet'] else None
-                            duration = None
+                        # Upsert playlist
+                        cursor.execute('''
+                                        INSERT INTO pepper.raocow_playlists (playlist_id, title, datestamp, length, thumbnail, latest_video, channel_id) VALUES (%s, %s, %s, %s, %s, %s, %s) 
+                                        ON CONFLICT (playlist_id) DO UPDATE
+                                        SET datestamp = EXCLUDED.datestamp, length = EXCLUDED.length,
+                                        visible = COALESCE(pepper.raocow_playlists.visible, EXCLUDED.visible),
+                                        thumbnail = EXCLUDED.thumbnail, latest_video = EXCLUDED.latest_video, channel_id = EXCLUDED.channel_id''',
+                                        (playlist_id, title, date, playlist_length, thumbnail, latest_date, channel_id)
+                                        )
+                        # Update playlist duration from videos
+                        cursor.execute('''
+                                       UPDATE pepper.raocow_playlists
+                                       SET duration = sub.duration
+                                       FROM (
+                                           SELECT playlist_id, SUM(duration) AS duration
+                                           FROM pepper.raocow_videos
+                                           WHERE playlist_id = %s
+                                           GROUP BY playlist_id
+                                       ) AS sub
+                                       WHERE pepper.raocow_playlists.playlist_id = sub.playlist_id
+                                       ''', (playlist_id,))
+                        sqlcon.commit()
+                        logger.info(f"Inserted playlist {playlist_id} into database.")
+                    except Exception as e:
+                        logger.error(f"Error processing playlist {item.get('id') if isinstance(item, dict) else item}: {e}", exc_info=True)
+                        continue
 
-                            for v in pl_videos['items']:
-                                if v['status']['privacyStatus'] in ['private', 'unlisted']:
-                                        continue
-                                vdate = v['contentDetails']['videoPublishedAt'] if 'videoPublishedAt' in v['contentDetails'] else v['snippet']['publishedAt']
-                                vid = v['snippet']['resourceId']['videoId']
-                                pid = item['id']
-                                vtitle = v['snippet']['title']
-
-                                if channel_id == "UCKnEkwBqrai2GB6Rxl1OqCA" and v['snippet']['channelId'] != channel_ids[0]:
-                                    # 'Originally Uploaded - 6/9/07'
-                                    # Match a date string in the description
-                                    logger.info(f"Fan channel: searching for date in description of video {vid}")
-                                    if 'description' in v['snippet'] and v['snippet']['description']:
-                                        if match := re.search(r'((\d{1,2})[./-](\d{1,2})[./-](\d{2,4}))', v['snippet']['description']):
-                                            try:
-                                                # Extract month, day, year
-                                                month = int(match.group(2))
-                                                day = int(match.group(3))
-                                                year = int(match.group(4))
-                                                # Handle 2-digit years
-                                                if year < 100:
-                                                    year += 2000 if year < 50 else 1900
-                                                vdate = datetime.date(year, month, day)
-                                                logger.info(f"Found date {vdate} in video {vid}")
-                                            except ValueError:
-                                                logger.error(f"Invalid date format in video {vid}: {vdate}")
-                                                vdate = None
-
-                                cursor.execute('INSERT INTO pepper.raocow_videos (video_id, playlist_id, title, datestamp, channel_id) VALUES (%s, %s, %s, %s, %s)'
-                                'ON CONFLICT (video_id) DO UPDATE SET datestamp = COALESCE(EXCLUDED.datestamp, pepper.raocow_videos.datestamp)', (vid, pid, vtitle, vdate, channel_id))
-
-                            if 'videoPublishedAt' in pl_videos['items'][-1]['contentDetails']:
-                                latest_date = pl_videos['items'][-1]['contentDetails']['videoPublishedAt']
-                            else:
-                                for item in sorted(pl_videos['items'], key=lambda x: x['snippet']['position'], reverse=True):
-                                    if item['status']['privacyStatus'] in ['private', 'unlisted']:
-                                        continue
-
-                                    if item['contentDetails']['videoPublishedAt']:
-                                        latest_date = item['contentDetails']['videoPublishedAt']
-                                        break
-
-                            if calculate_duration:
-                                # Calculate the total duration of the playlist
-                                for video in pl_videos['items']:
-                                    video_id = video['snippet']['resourceId']['videoId']
-                                    video_details = ytc.get_video_by_id(video_id=video_id, return_json=True)
-                                    if 'items' in video_details and len(video_details['items']) > 0:
-                                        duration = isodate.parse_duration(video_details['items'][0]['contentDetails']['duration']) # example output: 'PT3M50S'
-                                        # Convert to seconds
-                                        duration_sec = duration.total_seconds()
-                                        if duration_sec is not None:
-                                            cursor.execute('UPDATE pepper.raocow_videos SET duration = %s WHERE video_id = %s', (duration_sec, video_id))
-
-                            # Reset some vars
-                            duration = None
-
-                            # Main insert
-                            cursor.execute('''
-                                            INSERT INTO pepper.raocow_playlists (playlist_id, title, datestamp, length, thumbnail, latest_video, channel_id) VALUES (%s, %s, %s, %s, %s, %s, %s) 
-                                            ON CONFLICT (playlist_id) DO UPDATE
-                                            SET datestamp = EXCLUDED.datestamp, length = EXCLUDED.length,
-                                            visible = COALESCE(pepper.raocow_playlists.visible, EXCLUDED.visible),
-                                            thumbnail = EXCLUDED.thumbnail, latest_video = EXCLUDED.latest_video, channel_id = EXCLUDED.channel_id''',
-                                            (playlist_id, title, date, playlist_length, thumbnail, latest_date, channel_id)
-                                            )
-                            # Update playlist duration with the sum from video table
-                            cursor.execute('''
-                                           UPDATE pepper.raocow_playlists
-                                           SET duration = sub.duration
-                                           FROM (
-                                               SELECT playlist_id, SUM(duration) AS duration
-                                               FROM pepper.raocow_videos
-                                               WHERE playlist_id = %s
-                                               GROUP BY playlist_id
-                                           ) AS sub
-                                           WHERE pepper.raocow_playlists.playlist_id = sub.playlist_id
-                                           ''', (playlist_id,))
-                            sqlcon.commit()
-                            logger.info(f"Inserted playlist {playlist_id} into database.")
-                        except Exception as e:
-                            logger.error(f"Error processing playlist {playlist_id}: {e}", e, exc_info=True)
-                            continue
-
-        if bool(playlist_search):
-            try:
-                loop = asyncio.get_event_loop()
-                result = await loop.run_in_executor(executor, process_single_playlist, playlist_search)
-                await interaction.followup.send(f"Updated playlist `{playlist_search}` in the database.", ephemeral=True)
-            except Exception as e:
-                logger.error(f"Error fetching playlist: {e}",e,exc_info=True)
-                await interaction.followup.send(f"An error occurred: {e}",ephemeral=True)
+    @tasks.loop(hours=8)
+    async def scheduled_fetch_playlists(self):
+        # Use configured defaults tuned for periodic runs
+        # Support new schema under bot.raocow.auto_fetch, with backward compatibility
+        raocow_cfg = cfg.get('bot', {}).get('raocow', {})
+        if 'auto_fetch' in raocow_cfg:
+            af = raocow_cfg.get('auto_fetch', {})
+            enabled = af.get('enabled', True)
+            playlist_count = af.get('num_playlists', 3)
+            calculate_duration = af.get('calc_duration', True)
         else:
+            # Backwards compatibility to older keys
+            enabled = raocow_cfg.get('auto_fetch_playlists', True)
+            playlist_count = raocow_cfg.get('scheduled_playlist_count', 3)
+            calculate_duration = raocow_cfg.get('scheduled_calculate_duration', True)
 
-            try:
-                loop = asyncio.get_event_loop()
-                result = await loop.run_in_executor(executor, process_channels)
-                await interaction.followup.send("Playlists fetched and stored successfully.",ephemeral=True)
-            except Exception as e:
-                logger.error(f"Error fetching playlists: {e}",e,exc_info=True)
-                await interaction.followup.send(f"An error occurred: {e}",ephemeral=True)
+        if not enabled:
+            return
+        if not sqlcon:
+            logger.warning("Database not available, skipping scheduled playlist fetch.")
+            return
+        loop = asyncio.get_event_loop()
+        try:
+            await loop.run_in_executor(executor, self._process_channels_sync, playlist_count, True, calculate_duration, False, True)
+            logger.info("Scheduled playlist fetch completed.")
+        except Exception as e:
+            logger.error(f"Error in scheduled playlist fetch: {e}", exc_info=True)
 
 
     @commands.Cog.listener()
     async def on_ready(self):
-        pass
+        # Start scheduled task if enabled in config
+        try:
+            raocow_cfg = cfg.get('bot', {}).get('raocow', {})
+            if 'auto_fetch' in raocow_cfg:
+                enabled = raocow_cfg.get('auto_fetch', {}).get('enabled', True)
+            else:
+                enabled = raocow_cfg.get('auto_fetch_playlists', True)
+
+            if enabled and not self.scheduled_fetch_playlists.is_running():
+                self.scheduled_fetch_playlists.start()
+                logger.info("Started scheduled playlist fetch task.")
+        except Exception:
+            logger.exception("Failed to start scheduled playlist fetch task.")
+
+    @is_mod()
+    @app_commands.default_permissions(manage_messages=True)
+    @app_commands.command(name="auto_fetch")
+    @app_commands.describe(enabled="Enable or disable scheduled fetching",
+                           num_playlists="Number of playlists to fetch on scheduled runs",
+                           calc_duration="Whether scheduled runs should calculate video durations")
+    async def auto_fetch(self, interaction: discord.Interaction, enabled: typing.Optional[bool] = None, num_playlists: typing.Optional[int] = None, calc_duration: typing.Optional[bool] = None):
+        """Control the Raocow playlist auto-fetcher"""
+        await interaction.response.defer(thinking=True, ephemeral=True)
+
+        # Ensure config structure exists
+        bot_cfg = cfg.setdefault('bot', {})
+        raocow_cfg = bot_cfg.setdefault('raocow', {})
+        auto_cfg = raocow_cfg.setdefault('auto_fetch', {})
+
+        changed = []
+        if enabled is not None:
+            auto_cfg['enabled'] = bool(enabled)
+            changed.append(f"enabled={enabled}")
+        if num_playlists is not None:
+            auto_cfg['num_playlists'] = int(num_playlists)
+            changed.append(f"num_playlists={num_playlists}")
+        if calc_duration is not None:
+            auto_cfg['calc_duration'] = bool(calc_duration)
+            changed.append(f"calc_duration={calc_duration}")
+
+        # Persist to config.yaml
+        try:
+            with open('config.yaml', 'w', encoding='UTF-8') as fh:
+                yaml.safe_dump(cfg, fh, sort_keys=False)
+        except Exception as e:
+            logger.error(f"Failed to write config.yaml: {e}", exc_info=True)
+            await interaction.followup.send(f"Failed to update configuration: {e}", ephemeral=True)
+            return
+
+        # Start/stop scheduler based on enabled
+        if 'enabled' in auto_cfg:
+            if auto_cfg['enabled'] and not self.scheduled_fetch_playlists.is_running():
+                self.scheduled_fetch_playlists.start()
+            if not auto_cfg['enabled'] and self.scheduled_fetch_playlists.is_running():
+                self.scheduled_fetch_playlists.cancel()
+
+        await interaction.followup.send(f"Updated auto fetch settings: {', '.join(changed) if changed else 'no changes provided' }", ephemeral=True)
 
 async def setup(bot):
     logger.info("Loading Raocow cog extension.")
