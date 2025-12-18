@@ -636,7 +636,7 @@ class Raocmds(commands.GroupCog, group_name="raocow"):
             return
         loop = asyncio.get_event_loop()
         try:
-            await loop.run_in_executor(executor, self._process_channels_sync, playlist_count, True, calculate_duration, False, True)
+            await loop.run_in_executor(executor, self._process_channels_sync, playlist_count, True, calculate_duration, False, False)
             logger.info("Scheduled playlist fetch completed.")
         except Exception as e:
             logger.error(f"Error in scheduled playlist fetch: {e}", exc_info=True)
