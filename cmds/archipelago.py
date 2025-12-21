@@ -431,7 +431,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
     @app_commands.default_permissions(manage_messages=True)
     @db.command()
     @app_commands.describe(url="URL to an Archipelago datapackage")
-    async def import_datapackage(self, interaction: discord.Interaction, url: str = "https://archipelago.gg/datapackage"):
+    async def import_datapackage(self, interaction: discord.Interaction, url: str = "https://archipelago.gg/datapackage", export_json: discord.Attachment = None):
         """Import items and locations from an Archipelago datapackage into the database."""
 
         with sqlcon.cursor() as cursor:
@@ -439,8 +439,15 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
             deferpost = await interaction.response.defer(ephemeral=True, thinking=True,)
             newpost = await interaction.original_response()
 
-            data = requests.get(url, timeout=5)
-            datapackage = data.json()
+            if export_json:
+                try: # Make sure it's actually json
+                    data = export_json.read()
+                    datapackage = json.loads(data)
+                except Exception as e:
+                    return await newpost.edit(content="**Error**: the provided file is not valid JSON.",delete_after=15.0)
+            else:
+                data = requests.get(url, timeout=5)
+                datapackage = data.json()
 
             games = list(datapackage['games'].keys())
             if "Archipelago" in games:
