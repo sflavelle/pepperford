@@ -442,11 +442,12 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
             if export_json:
                 try: # Make sure it's actually json
                     if export_json.content_type != 'application/json':
+                        logger.error(f"Import datapackage: provided file has invalid content type {export_json.content_type}")
                         return await newpost.edit(content="**Error**: the provided file is not valid JSON.",delete_after=15.0)
                     data = await export_json.read()
                     datapackage = json.loads(data)
                 except Exception as e:
-                    return await newpost.edit(content="**Error**: the provided file is not valid JSON.",delete_after=15.0)
+                    return await newpost.edit(content=f"**Error**: {e}",delete_after=15.0)
             else:
                 data = requests.get(url, timeout=5)
                 datapackage = data.json()
