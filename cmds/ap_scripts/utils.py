@@ -180,19 +180,16 @@ class Game(dict):
                     player.settings.update({"datapackage_checksum": datapackage['checksum']})
 
         # Import datapackages for unique checksums
-        imported_games = set()
-        unique_checksums = set()
+        game_datapackage_checksums = []
         for player in self.players.values():
             checksum = player.settings.get('datapackage_checksum')
             if checksum:
-                unique_checksums.add(checksum)
-
-        for checksum in unique_checksums:
-            games = import_datapackage_from_checksum(self.hostname, checksum)
-            imported_games.update(games)
+                game_datapackage_checksums.append((player.game, checksum))
+        for game, checksum in game_datapackage_checksums:
+            import_datapackage_from_checksum(self.hostname, game, checksum)
 
         # Refresh classifications for imported games
-        for game in imported_games:
+        for game, checksum in game_datapackage_checksums:
             processed, updated = self.refresh_classifications(game=game)
             if processed > 0:
                 logger.info(f"Refreshed classifications for {game}: {processed} processed, {updated} updated")
@@ -2059,7 +2056,7 @@ def handle_state_tracking(player: Player, game: Game):
         logger.error(f"Couldn't update state for player {player.name}: {err}")
 
 
-def import_datapackage_from_checksum(hostname: str, checksum: str) -> list[str]:
+def import_datapackage_from_checksum(hostname: str, game: str, checksum: str) -> list[str]:
     """Import a datapackage from the given checksum if not already imported.
     Returns the list of games that were imported."""
     if not sqlcon:
@@ -2075,7 +2072,7 @@ def import_datapackage_from_checksum(hostname: str, checksum: str) -> list[str]:
         return []
 
     # Fetch the datapackage
-    datapackage_url = f"https://{hostname}/api/datapackage/{checksum}"
+    datapackage_url = f"http://{hostname}/api/datapackage/{checksum}"
     try:
         response = requests.get(datapackage_url, timeout=10)
         response.raise_for_status()
@@ -2084,27 +2081,19 @@ def import_datapackage_from_checksum(hostname: str, checksum: str) -> list[str]:
         logger.error(f"Failed to fetch datapackage from {datapackage_url}: {e}")
         return []
 
-    # Import the datapackage (similar to the command logic)
-    games = list(datapackage['games'].keys())
-    if "Archipelago" in games:
-        del datapackage['games']["Archipelago"]
-        games.remove("Archipelago")
 
-    imported_games = []
-    for game, data in datapackage['games'].items():
-        logger.info(f"Importing datapackage for {game} with checksum {checksum}")
-        imported_games.append(game)
+    logger.info(f"Importing datapackage for {game} with checksum {checksum}")
 
-        for item in data['item_name_groups']['Everything']:
-            cursor.execute(
-                "INSERT INTO archipelago.item_classifications (game, item, classification, datapackage_checksum) VALUES (%s, %s, %s, %s) ON CONFLICT (game, item) DO UPDATE SET classification = COALESCE(EXCLUDED.classification, archipelago.item_classifications.classification), datapackage_checksum = COALESCE(EXCLUDED.datapackage_checksum, archipelago.item_classifications.datapackage_checksum);",
-                (game, item, None, checksum))
+    for item in datapackage['item_name_groups']['Everything']:
+        cursor.execute(
+            "INSERT INTO archipelago.item_classifications (game, item, classification, datapackage_checksum) VALUES (%s, %s, %s, %s) ON CONFLICT (game, item) DO UPDATE SET classification = COALESCE(EXCLUDED.classification, archipelago.item_classifications.classification), datapackage_checksum = COALESCE(EXCLUDED.datapackage_checksum, archipelago.item_classifications.datapackage_checksum);",
+            (game, item, None, checksum))
 
-        for location in data['location_name_groups']['Everywhere']:
-            cursor.execute(
-                "INSERT INTO archipelago.game_locations (game, location, is_checkable) VALUES (%s, %s, %s) ON CONFLICT (game, location) DO UPDATE SET is_checkable = EXCLUDED.is_checkable;",
-                (game, location, True))
+    for location in datapackage['location_name_groups']['Everywhere']:
+        cursor.execute(
+            "INSERT INTO archipelago.game_locations (game, location, is_checkable) VALUES (%s, %s, %s) ON CONFLICT (game, location) DO UPDATE SET is_checkable = EXCLUDED.is_checkable;",
+            (game, location, True))
 
     sqlcon.commit()
-    logger.info(f"Successfully imported datapackage with checksum {checksum} for games: {imported_games}")
-    return imported_games
+    logger.info(f"Successfully imported datapackage with checksum {checksum} for game: {game}")
+    return [game]
