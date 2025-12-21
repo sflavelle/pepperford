@@ -189,10 +189,10 @@ class Game(dict):
             import_datapackage_from_checksum(self.hostname, game, checksum)
 
         # Refresh classifications for imported games
-        for game, checksum in game_datapackage_checksums:
-            processed, updated = self.refresh_classifications(game=game)
-            if processed > 0:
-                logger.info(f"Refreshed classifications for {game}: {processed} processed, {updated} updated")
+        # for game, checksum in game_datapackage_checksums:
+        #     processed, updated = self.refresh_classifications(game=game)
+        #     if processed > 0:
+        #         logger.info(f"Refreshed classifications for {game}: {processed} processed, {updated} updated")
 
         game_total_locations = 0
         for p in tracker_json['player_locations_total']:
@@ -850,7 +850,7 @@ class Item(dict):
                     checksum_result = cursor.fetchone()
                     if checksum_result and checksum_result[0]:
                         logger.info(f"itemsdb: adding {self.game}: {self.name} to the db")
-                        cursor.execute("INSERT INTO archipelago.item_classifications VALUES (%s, %s, %s, %s)", (self.game, self.name, None, None))
+                        cursor.execute("INSERT INTO archipelago.item_classifications VALUES (%s, %s, %s, %s) ON CONFLICT (game, item) DO UPDATE SET classification = COALESCE(EXCLUDED.classification, archipelago.item_classifications.classification), datapackage_checksum = COALESCE(EXCLUDED.datapackage_checksum, archipelago.item_classifications.datapackage_checksum);", (self.game, self.name, None, None))
                     else:
                         logger.debug(f"itemsdb: skipping {self.game}: {self.name} as it has no datapackage_checksum")
                     sqlcon.commit()
