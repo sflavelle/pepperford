@@ -468,14 +468,15 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                 # Retrieve community progression data if it exists
                 comm_classification_table = {}
                 classification = None
+                checksum = data.get('checksum', None)
 
 
                 if game == "Archipelago": continue
                 for item in data['item_name_groups']['Everything']:
                     logger.info(f"Importing {game}: {item} to item_classification")
                     cursor.execute(
-                        "INSERT INTO archipelago.item_classifications (game, item, classification) VALUES (%s, %s, %s) ON CONFLICT (game, item) DO UPDATE SET classification = COALESCE(EXCLUDED.classification, archipelago.item_classifications.classification);",
-                        (game, item, classification))
+                        "INSERT INTO archipelago.item_classifications (game, item, classification, datapackage_checksum) VALUES (%s, %s, %s, %s) ON CONFLICT (game, item) DO UPDATE SET classification = COALESCE(EXCLUDED.classification, archipelago.item_classifications.classification), datapackage_checksum = COALESCE(EXCLUDED.datapackage_checksum, archipelago.item_classifications.datapackage_checksum);",
+                        (game, item, classification, checksum))
                 for location in data['location_name_groups']['Everywhere']:
                     logger.info(f"Importing {game}: {location} to game_locations")
                     # Any location that shows up in the datapackage appears to be checkable
@@ -490,6 +491,25 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                     pass
 
         return await newpost.edit(content="Import *should* be complete!")
+    
+    @is_aphost()
+    @db.command()
+    @app_commands.default_permissions(manage_messages=True)
+    async def cleanup_fake_items(self, interaction: discord.Interaction):
+        """Remove items from the database that don't have a datapackage checksum (likely fake/event items from spoiler logs)."""
+        with sqlcon.cursor() as cursor:
+            deferpost = await interaction.response.defer(ephemeral=True, thinking=True,)
+            newpost = await interaction.original_response()
+
+            # First ensure the column exists
+            cursor.execute("ALTER TABLE IF EXISTS archipelago.item_classifications ADD COLUMN IF NOT EXISTS datapackage_checksum varchar(64)")
+
+            # Delete items without checksum
+            cursor.execute("DELETE FROM archipelago.item_classifications WHERE datapackage_checksum IS NULL OR datapackage_checksum = ''")
+            deleted_count = cursor.rowcount
+            sqlcon.commit()
+
+            await newpost.edit(content=f"Cleaned up {deleted_count} fake items from the database.")
     
     @is_aphost()
     @db.command()

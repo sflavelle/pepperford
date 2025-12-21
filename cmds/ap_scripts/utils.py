@@ -179,6 +179,24 @@ class Game(dict):
                 if player.game == game:
                     player.settings.update({"datapackage_checksum": datapackage['checksum']})
 
+        # Import datapackages for unique checksums
+        imported_games = set()
+        unique_checksums = set()
+        for player in self.players.values():
+            checksum = player.settings.get('datapackage_checksum')
+            if checksum:
+                unique_checksums.add(checksum)
+
+        for checksum in unique_checksums:
+            games = import_datapackage_from_checksum(self.hostname, checksum)
+            imported_games.update(games)
+
+        # Refresh classifications for imported games
+        for game in imported_games:
+            processed, updated = self.refresh_classifications(game=game)
+            if processed > 0:
+                logger.info(f"Refreshed classifications for {game}: {processed} processed, {updated} updated")
+
         game_total_locations = 0
         for p in tracker_json['player_locations_total']:
             player = self.get_player(p['player'])
@@ -810,17 +828,34 @@ class Item(dict):
             case _:
                 cursor = sqlcon.cursor()
 
-                cursor.execute("CREATE TABLE IF NOT EXISTS archipelago.item_classifications (game bpchar, item bpchar, classification varchar(32))")
+                cursor.execute("CREATE TABLE IF NOT EXISTS archipelago.item_classifications (game bpchar, item bpchar, classification varchar(32), datapackage_checksum varchar(64))")
+                # Add column if it doesn't exist
+                try:
+                    cursor.execute("ALTER TABLE archipelago.item_classifications ADD COLUMN IF NOT EXISTS datapackage_checksum varchar(64)")
+                except psql.Error:
+                    pass  # Column might already exist
 
                 try:
-                    cursor.execute("SELECT classification FROM archipelago.item_classifications WHERE game = %s AND item = %s;", (self.game, self.name))
-                    response = cursor.fetchone()[0]
+                    cursor.execute("SELECT classification, datapackage_checksum FROM archipelago.item_classifications WHERE game = %s AND item = %s;", (self.game, self.name))
+                    result = cursor.fetchone()
+                    if result and result[1]:  # Only use if datapackage_checksum exists
+                        response = result[0]
+                    else:
+                        response = None
                 except TypeError:
-                    logger.debug("Nothing found for this item, likely")
-                    logger.info(f"itemsdb: adding {self.game}: {self.name} to the db")
-                    cursor.execute("INSERT INTO archipelago.item_classifications VALUES (%s, %s, %s)", (self.game, self.name, None))
-                finally:
-                    sqlcon.commit()
+                    response = None
+                if response is None:
+                    logger.debug("Nothing found for this item, or no datapackage_checksum")
+                    # Only add to db if we have a datapackage_checksum for this game/item
+                    cursor.execute("SELECT datapackage_checksum FROM archipelago.item_classifications WHERE game = %s AND item = %s;", (self.game, self.name))
+                    checksum_result = cursor.fetchone()
+                    if checksum_result and checksum_result[0]:
+                        logger.info(f"itemsdb: adding {self.game}: {self.name} to the db")
+                        cursor.execute("INSERT INTO archipelago.item_classifications VALUES (%s, %s, %s, %s)", (self.game, self.name, None, None))
+                    else:
+                        logger.debug(f"itemsdb: skipping {self.game}: {self.name} as it has no datapackage_checksum")
+
+                sqlcon.commit()
         logger.debug(f"itemsdb: classified {self.game}: {self.name} as {response}")
         if self.game not in classification_cache:
             classification_cache[self.game] = {}
@@ -848,7 +883,19 @@ class Item(dict):
         logger.info(f"Request to update classification for {self.game}: {self.name} (to: {classification})")
         cursor = sqlcon.cursor()
 
-        cursor.execute("CREATE TABLE IF NOT EXISTS archipelago.item_classifications (game bpchar, item bpchar, classification varchar(32))")
+        cursor.execute("CREATE TABLE IF NOT EXISTS archipelago.item_classifications (game bpchar, item bpchar, classification varchar(32), datapackage_checksum varchar(64))")
+        # Add column if it doesn't exist
+        try:
+            cursor.execute("ALTER TABLE archipelago.item_classifications ADD COLUMN IF NOT EXISTS datapackage_checksum varchar(64)")
+        except psql.Error:
+            pass  # Column might already exist
+
+        # Check if item has datapackage_checksum before allowing update
+        cursor.execute("SELECT datapackage_checksum FROM archipelago.item_classifications WHERE game = %s AND item = %s;", (self.game, self.name))
+        checksum_result = cursor.fetchone()
+        if not checksum_result or not checksum_result[0]:
+            logger.error(f"Cannot update classification for {self.game}: {self.name} - no datapackage_checksum")
+            return False
 
         try:
             cursor.execute("UPDATE archipelago.item_classifications set classification = %s where game = %s and item = %s;", (classification, self.game, self.name))
@@ -2010,3 +2057,54 @@ def handle_state_tracking(player: Player, game: Game):
         player.stats.goal_str = goal_str
     except KeyError as err:
         logger.error(f"Couldn't update state for player {player.name}: {err}")
+
+
+def import_datapackage_from_checksum(hostname: str, checksum: str) -> list[str]:
+    """Import a datapackage from the given checksum if not already imported.
+    Returns the list of games that were imported."""
+    if not sqlcon:
+        logger.error("No database connection available for datapackage import.")
+        return []
+
+    cursor = sqlcon.cursor()
+
+    # Check if this checksum is already imported
+    cursor.execute("SELECT COUNT(*) FROM archipelago.item_classifications WHERE datapackage_checksum = %s", (checksum,))
+    if cursor.fetchone()[0] > 0:
+        logger.info(f"Datapackage with checksum {checksum} already imported.")
+        return []
+
+    # Fetch the datapackage
+    datapackage_url = f"https://{hostname}/api/datapackage/{checksum}"
+    try:
+        response = requests.get(datapackage_url, timeout=10)
+        response.raise_for_status()
+        datapackage = response.json()
+    except requests.RequestException as e:
+        logger.error(f"Failed to fetch datapackage from {datapackage_url}: {e}")
+        return []
+
+    # Import the datapackage (similar to the command logic)
+    games = list(datapackage['games'].keys())
+    if "Archipelago" in games:
+        del datapackage['games']["Archipelago"]
+        games.remove("Archipelago")
+
+    imported_games = []
+    for game, data in datapackage['games'].items():
+        logger.info(f"Importing datapackage for {game} with checksum {checksum}")
+        imported_games.append(game)
+
+        for item in data['item_name_groups']['Everything']:
+            cursor.execute(
+                "INSERT INTO archipelago.item_classifications (game, item, classification, datapackage_checksum) VALUES (%s, %s, %s, %s) ON CONFLICT (game, item) DO UPDATE SET classification = COALESCE(EXCLUDED.classification, archipelago.item_classifications.classification), datapackage_checksum = COALESCE(EXCLUDED.datapackage_checksum, archipelago.item_classifications.datapackage_checksum);",
+                (game, item, None, checksum))
+
+        for location in data['location_name_groups']['Everywhere']:
+            cursor.execute(
+                "INSERT INTO archipelago.game_locations (game, location, is_checkable) VALUES (%s, %s, %s) ON CONFLICT (game, location) DO UPDATE SET is_checkable = EXCLUDED.is_checkable;",
+                (game, location, True))
+
+    sqlcon.commit()
+    logger.info(f"Successfully imported datapackage with checksum {checksum} for games: {imported_games}")
+    return imported_games
