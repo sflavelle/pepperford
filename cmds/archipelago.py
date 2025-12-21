@@ -441,7 +441,9 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
 
             if export_json:
                 try: # Make sure it's actually json
-                    data = export_json.read()
+                    if export_json.content_type != 'application/json':
+                        return await newpost.edit(content="**Error**: the provided file is not valid JSON.",delete_after=15.0)
+                    data = await export_json.read()
                     datapackage = json.loads(data)
                 except Exception as e:
                     return await newpost.edit(content="**Error**: the provided file is not valid JSON.",delete_after=15.0)
