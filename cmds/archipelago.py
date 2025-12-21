@@ -475,6 +475,17 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
 
 
                 if game == "Archipelago": continue
+
+                # Check if this checksum already exists in the database
+                cursor.execute("SELECT 1 FROM archipelago.item_classifications WHERE game = %s AND datapackage_checksum = %s LIMIT 1;", (game, checksum))
+                if cursor.fetchone():
+                    logger.info(f"Datapackage for {game} with checksum {checksum} is already imported; skipping.")
+                    if next_game:
+                        await newpost.edit(content=f"Skipped {game} (already imported), working on {next_game}...")
+                    else:
+                        pass
+                    continue
+
                 for item in data['item_name_groups']['Everything']:
                     logger.info(f"Importing {game}: {item} to item_classification")
                     cursor.execute(
