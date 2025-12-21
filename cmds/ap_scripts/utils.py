@@ -1690,6 +1690,80 @@ def handle_state_tracking(player: Player, game: Game):
                     case "Farewell Golden":
                         goal_str = goal_with_strawbs("Conquer Farewell's Hardest Challenge")
 
+            case "Donkey Kong 64":
+                goal = settings['Goal']
+
+                match goal:
+                    case "Beat K Rool":
+                        keys_required = settings['Keys Required to Beat Krool']
+                        goal_str = (f"Collect {keys_required} Keys, then " if keys_required > 0 else "") + "Defeat King K. Rool"
+                    case "Acquire Key 8":
+                        if settings['Lock Helm Key'] is True:
+                            goal_str = "Break into Hideout Helm and obtain Key 8"
+                        else:
+                            goal_str = "Obtain Key 8 for K. Lumsy's Cage"
+                    case "Kremling Kapture":
+                        goal_str = "Take a photo of every single enemy in the game"
+                    case "DK Rap":
+                        # Every item mentioned in the DK Rap
+                        # That is:
+                        # DK: Coconut Gun, Strong Kong
+                        # Diddy: Rocketbarrel Boost, Peanut Popguns, Guitar Gazump
+                        # Lanky: Orangstand, Baboon Balloon, Trombone Tremor
+                        # Tiny: Mini Monkey, Ponytail Twirl, Climbing
+                        # Chunky: Barrel Throwing
+                        # 'Fridge': Cranky, Peanut Popguns, Pineapple Launcher, Grape Shooter, 
+                        # Orange Throwing, Coconut Gun
+                        goal_str = "Collect every item mentioned in the DK Rap"
+                    case "Golden Bananas":
+                        required = settings['Goal Quantity']['Golden Bananas']
+                        goal_str = f"Collect {required} Golden Bananas"
+                    case "Blueprints":
+                        required = settings['Goal Quantity']['Blueprints']
+                        goal_str = f"Collect {required} Blueprints"
+                    case "Company Coins":
+                        required = settings['Goal Quantity']['Company Coins']
+                        if required == 1:
+                            goal_str = "Find either the Nintendo or Rareware Company Coin"
+                        elif required == 2:
+                            goal_str = "Find both the Nintendo and Rareware Company Coins"
+                        else:
+                            goal_str = f"Collect {required} Company Coins"
+                    case "Keys":
+                        required = settings['Goal Quantity']['Keys']
+                        goal_str = f"Collect {required} Keys"
+                    case "Medals":
+                        required = settings['Goal Quantity']['Medals']
+                        goal_str = f"Collect {required} Banana Medals"
+                    case "Crowns":
+                        required = settings['Goal Quantity']['Crowns']
+                        goal_str = f"Collect {required} Battle Crowns"
+                    case "Fairies":
+                        required = settings['Goal Quantity']['Fairies']
+                        goal_str = f"Rescue {required} Fairies"
+                    case "Rainbow Coins":
+                        required = settings['Goal Quantity']['Rainbow Coins']
+                        goal_str = f"Collect {required} Rainbow Coins"
+                    case "Bean":
+                        goal_str = "Find The Bean"
+                    case "Pearls":
+                        required = settings['Goal Quantity']['Pearls']
+                        goal_str = f"Collect {required} Pearls for the Mermaid in Galleon"
+                    case "Bosses":
+                        required = settings['Goal Quantity']['Bosses']
+                        goal_str = f"Defeat {required} Bosses"
+                    case "Bonuses":
+                        required = settings['Goal Quantity']['Bonuses']
+                        goal_str = f"Complete {required} Bonus Barrels"
+                    case "Treasure Hurry":
+                        goal_str = "Run down the clock by collecting treasure"
+                    case "Krools Challenge":
+                        goal_str = "Defeat King K. Rool - but only after collecting all keys and blueprints, " \
+                                    "defeating every other boss, and completing all bonus barrels"
+                    case "Kill The Rabbit":
+                        goal_str = "Find your way to Chunky's Igloo in Crystal Caves, then watch the rabbit get " \
+                                    "blown up (you monster)"
+
             case "Here Comes Niko!":
                 coins = player.get_item_count("Coin")
                 coins_required: int
