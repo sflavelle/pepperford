@@ -831,6 +831,8 @@ class Item(dict):
                     cursor.execute("ALTER TABLE archipelago.item_classifications ADD COLUMN IF NOT EXISTS datapackage_checksum varchar(64)")
                 except psql.Error:
                     pass  # Column might already exist
+                finally:
+                    sqlcon.commit()
 
                 try:
                     cursor.execute("SELECT classification, datapackage_checksum FROM archipelago.item_classifications WHERE game = %s AND item = %s;", (self.game, self.name))
@@ -851,8 +853,8 @@ class Item(dict):
                         cursor.execute("INSERT INTO archipelago.item_classifications VALUES (%s, %s, %s, %s)", (self.game, self.name, None, None))
                     else:
                         logger.debug(f"itemsdb: skipping {self.game}: {self.name} as it has no datapackage_checksum")
+                    sqlcon.commit()
 
-                sqlcon.commit()
         logger.debug(f"itemsdb: classified {self.game}: {self.name} as {response}")
         if self.game not in classification_cache:
             classification_cache[self.game] = {}
