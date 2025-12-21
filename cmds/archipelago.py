@@ -515,9 +515,6 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
             deferpost = await interaction.response.defer(ephemeral=True, thinking=True,)
             newpost = await interaction.original_response()
 
-            # First ensure the column exists
-            cursor.execute("ALTER TABLE IF EXISTS archipelago.item_classifications ADD COLUMN IF NOT EXISTS datapackage_checksum varchar(64)")
-
             # Delete items without checksum
             cursor.execute("DELETE FROM archipelago.item_classifications WHERE datapackage_checksum IS NULL OR datapackage_checksum = ''")
             deleted_count = cursor.rowcount
