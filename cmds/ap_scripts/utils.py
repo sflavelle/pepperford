@@ -1694,9 +1694,11 @@ def handle_state_tracking(player: Player, game: Game):
                 goal = settings['Goal']
 
                 match goal:
-                    case "Beat K Rool":
+                    case "Beat K Rool"|"Krool":
                         keys_required = settings['Keys Required to Beat Krool']
                         goal_str = (f"Collect {keys_required} Keys, then " if keys_required > 0 else "") + "Defeat King K. Rool"
+                    case "All Keys":
+                        goal_str = "Collect all 8 Keys to K. Lumsy's Cage"
                     case "Acquire Key 8":
                         if settings['Lock Helm Key'] is True:
                             goal_str = "Break into Hideout Helm and obtain Key 8"
