@@ -1108,20 +1108,6 @@ def watch_log(url, interval):
             logger.info("Sleeping forever now. (Keeping the API open) Goodnight!")
             while True:
                 time.sleep(600)
-
-        if len(previous_lines) < 8: # If the seed has just started, post some info
-            message = f'''
-            **So begins another Archipelago...**
-            **Seed ID:** `{game.seed}`
-            **Seed Address:** `{seed_address}`
-            **Archipelago Version:** `{game.version_generator}`
-            **Players:** `{game.world_settings["Players"]}`
-            **Total Checks:** `{game.total_locations}*`'''
-
-            message_buffer.append(message)
-            logger.info("New room: Queuing initial message to Discord.")
-            del message
-
         logger.debug(f"Message buffer has {len(message_buffer)} messages queued.")
         tracker_sleep_count += 1
 
