@@ -1045,9 +1045,9 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                         return f"{item} ({collected_string})"
                     if item in kongs:
                         collected_string = ""
-                        collected_kongs = player.get_collected_items(kongs)
+                        # collected_kongs = player.get_collected_items(kongs) # this is busted for whatever reason
                         for kong in kongs:
-                            if kong in collected_kongs: collected_string += kong[0:1]
+                            if player.has_item(kong): collected_string += kong[0:1]
                             else: collected_string += "__"
                         return f"{item} Kong ({collected_string})"
                     if item in moves.keys():
