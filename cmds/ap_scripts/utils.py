@@ -1149,6 +1149,9 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                     if item == "Coin":
                         required = 76 if settings['Completion Goal'] == "Employee" else settings['Elevator Cost']
                         return f"{item} (*{count}/{required}*)"
+                    if item in ["Hairball City Bone", "Turbine Town Bone", "Salmon Creek Forest Bone", "Public Pool Bone", "Bathhouse Bone", "Tadpole HQ Bone"] and settings['Bonesanity'] == "Insanity":
+                        required = 5
+                        return f"{item} ({count}/{required})"
                     if item in ["Hairball City Fish", "Turbine Town Fish", "Salmon Creek Forest Fish", "Public Pool Fish", "Bathhouse Fish", "Tadpole HQ Fish"] and settings['Fishsanity'] == "Insanity":
                         required = 5
                         return f"{item} ({count}/{required})"
