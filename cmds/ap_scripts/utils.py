@@ -1814,7 +1814,7 @@ def handle_state_tracking(player: Player, game: Game):
 
             case "Here Comes Niko!":
                 coins = player.get_item_count("Coin")
-                coins_required: int
+                coins_required: int = None
 
                 goal = settings['Completion Goal']
                 match goal:
