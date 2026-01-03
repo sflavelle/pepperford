@@ -1851,7 +1851,7 @@ def handle_state_tracking(player: Player, game: Game):
                 ]
 
                 player.stats.set_stat("coins", coins)
-                player.stats.set_stat("coins_required", coins_required)
+                if bool(coins_required): player.stats.set_stat("coins_required", coins_required)
                 player.stats.set_stat("movement_abilities", [ability.name for ability in player.get_collected_items(movement_abilities)])
 
             case "Hollow Knight":
