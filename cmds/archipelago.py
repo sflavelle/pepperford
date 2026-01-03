@@ -771,13 +771,17 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                 return await newpost.edit(content="No Archipelago room is currently set for this server.")
 
         room = self.ctx.extras['ap_rooms'].get(interaction.guild_id)
-        api_port = room['flask_port']
         if not room:
             return await newpost.edit(content="No Archipelago room is currently set for this server.")
+        api_port = room['flask_port']
+        if not api_port:
+            self.fetch_guild_room(interaction.guild_id)
+            api_port = room['flask_port']
+            if not api_port: return await newpost.edit(content="Something is wrong, and the API port found for this room is invalid. Contact Splatsune.")
 
         try:
             game_table = requests.get(f"http://localhost:{api_port}/inspectgame", timeout=10).json()
-        except ConnectionError|urllib3.exceptions.MaxRetryError|requests.exceptions.ConnectionError:
+        except ConnectionError:
             return await newpost.edit(
                 content="Couldn't connect to the running Archipelago game. It might be restarting.\nTry again in a minute or two.")
         
