@@ -1026,9 +1026,12 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                         "Vines": "Vine Swinging",
                     }
                     if item == "Banana Fairy":
-                        required = settings['Rareware GB Requirement']
+                        required = settings['Rareware GB Requirment'] # sic
                         total = 20
                         return f"{item} (*{count}/{required}*/{total})"
+                    if item == "Banana Medal":
+                        required = settings['Jetpac Requirement']
+                        return f"{item} (*{count}/{required}*)"
                     if item == "Golden Banana":
                         max_gbs = max([settings[f"Level {num} B. Locker"] for num in range(1,9)])
                         total = 201
@@ -1036,9 +1039,8 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                     if item.startswith("Key "):
                         keys = 8
                         collected_string = ""
-                        collected_keys = player.get_collected_items([f"Key {k+1}" for k in range(keys)])
                         for k in range(keys):
-                                if f"Key {k+1}" in collected_keys: collected_string += str(k+1)
+                                if player.has_item(f"Key {k+1}"): collected_string += str(k+1)
                                 else: collected_string += "_"
                         return f"{item} ({collected_string})"
                     if item in kongs:
