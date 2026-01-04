@@ -825,6 +825,8 @@ class Item(dict):
             case _:
                 cursor = sqlcon.cursor()
 
+                response = None
+
                 cursor.execute("CREATE TABLE IF NOT EXISTS archipelago.item_classifications (game bpchar, item bpchar, classification varchar(32), datapackage_checksum varchar(64))")
                 # Add column if it doesn't exist
                 try:
@@ -848,7 +850,7 @@ class Item(dict):
                     # Only add to db if we have a datapackage_checksum for this game/item
                     cursor.execute("SELECT datapackage_checksum FROM archipelago.item_classifications WHERE game = %s AND item = %s;", (self.game, self.name))
                     checksum_result = cursor.fetchone()
-                    if checksum_result and checksum_result[0]:
+                    if checksum_result and checksum_result[0] and (bool(response) and response != checksum_result[0]):
                         logger.info(f"itemsdb: adding {self.game}: {self.name} to the db")
                         cursor.execute("INSERT INTO archipelago.item_classifications VALUES (%s, %s, %s, %s) ON CONFLICT (game, item) DO UPDATE SET classification = COALESCE(EXCLUDED.classification, archipelago.item_classifications.classification), datapackage_checksum = COALESCE(EXCLUDED.datapackage_checksum, archipelago.item_classifications.datapackage_checksum);", (self.game, self.name, None, None))
                     else:
