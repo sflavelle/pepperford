@@ -1966,6 +1966,13 @@ def handle_state_tracking(player: Player, game: Game):
                 count = player.collected_locations
                 goal_str = f"Solve {required} puzzles"
 
+            case "Spyro 3":
+                match settings['Completion Goal']:
+                    case "All Skillpoints":
+                        goal_str = "Collect all 20 Skill Points across the Forgotten Worlds"
+                    case _:
+                        goal_str = settings['Completion Goal']
+
             case "Super Cat Planet":
                 match settings['Goal Ending']:
                     case "Crows":
