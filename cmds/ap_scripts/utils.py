@@ -1301,6 +1301,12 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                     if item == "Emblem":
                         required = round(settings['Max Emblem Cap'] * (settings["Emblem Percentage for Cannon's Core"] / 100))
                         return f"{item} ({count}/{required})"
+                case "Spyro 3":
+                    if item == "Egg":
+                        total = 150
+                        return f"{item} ({count}/{total})"
+                    if item == "Progressive Sparx Health Upgrade":
+                        return f"{item} ({count})"
                 case "Super Cat Planet":
                     if item == "Cat":
                         total = 169
@@ -1550,6 +1556,11 @@ def handle_location_tracking(game: Game, player: Player, item: Item):
                                  * (settings['Target Completion Percentage'] / 100))
                 count = player.collected_locations
                 return f"{location} ({count}/{required})"
+            case "Spyro 3":
+                if "Skill Point" in location and settings['Completion Goal'] == "All Skillpoints":
+                    total = 20
+                    count = len([l for l in player.spoilers['locations'].values() if "Skill Point" in l.location and l.found is True])
+                    return f"{location} (*{count}/{total}*)"
             # case "Trackmania":
             #     if location.endswith("Target Time"):
             #         total = len([l for l in player.spoilers['locations'].values() if l.location.endswith("Target Time")])
