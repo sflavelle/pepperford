@@ -1005,10 +1005,10 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
             logger.info(f"Built received list of {sum(len(lines) for lines in item_lines.values())} lines for {len(linked_slots)} slots.")
             if player_table[slot]['online'] is True:
                 msg_lines.append(f"\n### {slot} (You're online right now!)")
-            elif player_table[slot]['online'] == 0:
+            elif player_table[slot]['last_online'] == 0:
                 msg_lines.append(f"\n### {slot} (Never logged in)")
             else:
-                msg_lines.append(f"\n### {slot} (Last online <t:{int(player_table[slot]['online'])}:R>)")
+                msg_lines.append(f"\n### {slot} (Last online <t:{int(player_table[slot]['last_online'])}:R>)")
 
             if player_table[slot]['goaled'] or player_table[slot]['released']:
                 msg_lines.append("-# Finished playing (goaled or released).")
