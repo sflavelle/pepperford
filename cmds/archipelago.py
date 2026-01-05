@@ -1002,21 +1002,21 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                         line = f"- **{item_name} (x{len(items)})** from {sender_str}"
                         item_lines[slot].append(line)
 
-            logger.info(f"Built received list of {sum(len(lines) for lines in item_lines.values())} lines for {len(linked_slots)} slots.")
-            if player_table[slot]['online'] is True:
-                msg_lines.append(f"\n### {slot} (You're online right now!)")
-            elif player_table[slot]['last_online'] == 0:
-                msg_lines.append(f"\n### {slot} (Never logged in)")
-            else:
-                msg_lines.append(f"\n### {slot} (Last online <t:{int(player_table[slot]['last_online'])}:R>)")
+                logger.info(f"Built received list of {sum(len(lines) for lines in item_lines.values())} lines for {len(linked_slots)} slots.")
+                if player_table[slot]['online'] is True:
+                    msg_lines.append(f"\n### {slot} (You're online right now!)")
+                elif player_table[slot]['last_online'] == 0:
+                    msg_lines.append(f"\n### {slot} (Never logged in)")
+                else:
+                    msg_lines.append(f"\n### {slot} (Last online <t:{int(player_table[slot]['online'])}:R>)")
 
-            if player_table[slot]['goaled'] or player_table[slot]['released']:
-                msg_lines.append("-# Finished playing (goaled or released).")
-            elif len(item_lines[slot]) == 0:
-                msg_lines.append("No new items received since last played.")
-            else:
-                # add the lists
-                msg_lines += item_lines[slot]
+                if player_table[slot]['goaled'] or player_table[slot]['released']:
+                    msg_lines.append("-# Finished playing (goaled or released).")
+                elif len(item_lines[slot]) == 0:
+                    msg_lines.append("No new items received since last played.")
+                else:
+                    # add the lists
+                    msg_lines += item_lines[slot]
 
             await newpost.edit(content="\n".join(msg_lines))
         except discord.errors.HTTPException as e:
