@@ -11,7 +11,6 @@ import urllib3.exceptions
 import yaml
 import traceback
 import typing
-from collections import defaultdict
 from io import BytesIO
 import psycopg2 as psql
 from psycopg2.extras import Json as psql_json
@@ -972,43 +971,77 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
         if all(len(player_table[slot]['offline_items']) == 0 for slot in linked_slots):
             return await newpost.edit(content="You have not received any items since you last played.")
 
-        msg_lines = ["## Received Items"]
+        rcv_lines = ["## Received Items"]
         # Group items by slot and sort by timestamp
         try:
             # reverse sort each list (newest items first)
             for slot in linked_slots:
                 raw_list = player_table[slot]['offline_items']
-                player_table[slot]['offline_items'] = sorted(raw_list, key=lambda i: i['Timestamp'], reverse=True)
+                player_table[slot]['offline_items'] = iter(sorted(raw_list, key=lambda i: i['Timestamp'], reverse=True))
 
+            iteration = 0
             item_lines = {}
+            exhausted = {}
+            msglen = 0
             for slot in linked_slots:
                 item_lines[slot] = []
-                grouped = defaultdict(list)
-                for item in player_table[slot]['offline_items']:
-                    grouped[item['Item']].append(item)
-                for item_name, items in grouped.items():
-                    if len(items) <= 3:
-                        for item in items:
-                            line = f"- <t:{int(item['Timestamp'])}:R>: **{item['Item']}** from {item['Sender']}"
-                            item_lines[slot].append(line)
-                    else:
-                        senders = sorted(set(item['Sender'] for item in items))
-                        if len(senders) == 1:
-                            sender_str = senders[0]
-                        elif len(senders) == 2:
-                            sender_str = f"{senders[0]} and {senders[1]}"
+                exhausted[slot] = False
+            while (len("\n".join(rcv_lines)) + msglen < 1800) and not all(zzz for zzz in exhausted.values()):
+                # message length is a little under the 2000 max to allow a buffer
+                if iteration == 0:
+                    for slot in linked_slots:
+                        last_online = player_table[slot]['last_online']
+                        if player_table[slot]['online'] is True:
+                            rcv_lines.append(f"\n### {slot} (You're online right now!)")
+                        elif last_online == 0:
+                            rcv_lines.append(f"\n### {slot} (Never logged in)")
                         else:
-                            sender_str = ', '.join(senders[:-1]) + f", and {senders[-1]}"
-                        line = f"- **{item_name} (x{len(items)})** from {sender_str}"
-                        item_lines[slot].append(line)
+                            rcv_lines.append(f"\n### {slot} (Last online <t:{int(last_online)}:R>)")
 
-                logger.info(f"Built received list of {sum(len(lines) for lines in item_lines.values())} lines for {len(linked_slots)} slots.")
+                        if player_table[slot]['goaled'] or player_table[slot]['released']:
+                            rcv_lines.append("-# Finished playing (goaled or released).")
+                            exhausted[slot] = True
+                        if not player_table[slot]['offline_items']:
+                            rcv_lines.append("No new items received since last played.")
+                            exhausted[slot] = True
+                else:
+                    for slot in linked_slots:
+                        if exhausted[slot]: continue
+                        try:
+                            item = next(player_table[slot]['offline_items'])
+                            line = f"- <t:{int(item['Timestamp'])}:R>: **{item['Item']}** from {item['Sender']}"
+                            if msglen + len(line) > 1800: break
+                            else:
+                                item_lines[slot].append(line)
+                        except StopIteration:
+                            exhausted[slot] = True
+                            continue
+
+                linelen = 0
+                for lines in item_lines.values():
+                    linelen += len("\n".join(lines))
+                msglen = len(rcv_lines) + linelen
+                if msglen >= 1800: break
+                iteration += 1
+
+            # Mark slot feeds that didn't exhaust (got truncated due to msg length)
+            for slot in linked_slots:
+                if not exhausted[slot]:
+                    item_lines[slot].append("- *Ran out of room...*")
+
+            logger.info(f"Built received list of {sum(len(lines) for lines in item_lines.values())} items for {len(linked_slots)} slots in {iteration} iterations. Length: {msglen} chars.")
+
+            # Now join the lists together
+            msg_lines = []
+            # I'm going to rebuild the first iteration list so that I can add the other lists at the correct place
+            for slot in linked_slots:
+                last_online = player_table[slot]['last_online']
                 if player_table[slot]['online'] is True:
                     msg_lines.append(f"\n### {slot} (You're online right now!)")
-                elif player_table[slot]['last_online'] == 0:
+                elif last_online == 0:
                     msg_lines.append(f"\n### {slot} (Never logged in)")
                 else:
-                    msg_lines.append(f"\n### {slot} (Last online <t:{int(player_table[slot]['online'])}:R>)")
+                    msg_lines.append(f"\n### {slot} (Last online <t:{int(last_online)}:R>)")
 
                 if player_table[slot]['goaled'] or player_table[slot]['released']:
                     msg_lines.append("-# Finished playing (goaled or released).")
