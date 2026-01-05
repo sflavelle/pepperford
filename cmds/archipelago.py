@@ -972,7 +972,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
         if all(len(player_table[slot]['offline_items']) == 0 for slot in linked_slots):
             return await newpost.edit(content="You have not received any items since you last played.")
 
-        rcv_lines = ["## Received Items"]
+        msg_lines = ["## Received Items"]
         # Group items by slot and sort by timestamp
         try:
             # reverse sort each list (newest items first)
