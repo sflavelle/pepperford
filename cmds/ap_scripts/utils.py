@@ -890,6 +890,8 @@ class Item(dict):
             cursor.execute("ALTER TABLE archipelago.item_classifications ADD COLUMN IF NOT EXISTS datapackage_checksum varchar(64)")
         except psql.Error:
             pass  # Column might already exist
+        finally:
+            sqlcon.commit()
 
         # Check if item has datapackage_checksum before allowing update
         try:
@@ -900,6 +902,8 @@ class Item(dict):
                 return False
 
             cursor.execute("UPDATE archipelago.item_classifications set classification = %s where game = %s and item = %s;", (classification, self.game, self.name))
+        except psql.errors.InFailedSqlTransaction as sqlerr:
+            logger.error(f"Couldn't update {classification}, SQL transaction failed along the way")
         finally:
             sqlcon.commit()
             self.set_item_classification(self.receiver)
