@@ -892,13 +892,13 @@ class Item(dict):
             pass  # Column might already exist
 
         # Check if item has datapackage_checksum before allowing update
-        cursor.execute("SELECT datapackage_checksum FROM archipelago.item_classifications WHERE game = %s AND item = %s;", (self.game, self.name))
-        checksum_result = cursor.fetchone()
-        if not checksum_result or not checksum_result[0]:
-            logger.error(f"Cannot update classification for {self.game}: {self.name} - no datapackage_checksum")
-            return False
-
         try:
+            cursor.execute("SELECT datapackage_checksum FROM archipelago.item_classifications WHERE game = %s AND item = %s;", (self.game, self.name))
+            checksum_result = cursor.fetchone()
+            if not checksum_result or not checksum_result[0]:
+                logger.error(f"Cannot update classification for {self.game}: {self.name} - no datapackage_checksum")
+                return False
+
             cursor.execute("UPDATE archipelago.item_classifications set classification = %s where game = %s and item = %s;", (classification, self.game, self.name))
         finally:
             sqlcon.commit()
