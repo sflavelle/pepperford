@@ -679,7 +679,7 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
             # Balatro shop items are hinted as soon as they appear and are usually bought right away, so skip their hints
             if Item.game == "Balatro" and any([Item.location.name.startswith(shop) for shop in ['Shop Item', 'Consumable Item']]): continue
 
-            item: str = None
+            icon: str = None
             item_with_icon = lambda item, icon: f"{icon} {item}" if bool(icon) else item
 
             match Item.classification:
