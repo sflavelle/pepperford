@@ -987,7 +987,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
             lines = []
             for item_name, details in sorted_groups:
                 timestamps_senders = sorted(details, key=lambda x: x[0], reverse=True)  # Sort within group by timestamp
-                if len(timestamps_senders) <= 3:
+                if len(timestamps_senders) < 3:
                     # List individually
                     for ts, sender in timestamps_senders:
                         lines.append(f"- <t:{int(ts)}:R>: **{item_name}** from {sender}")
@@ -1047,6 +1047,9 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
 
         # Mark slot feeds that didn't exhaust (got truncated due to msg length)
         for slot in linked_slots:
+            # Re-sort lines first (fix individual grouped items)
+            item_lines[slot] = sorted(item_lines[slot].copy(), key = lambda ts: ts.split(" ")[0], reverse=True)
+
             if not exhausted[slot]:
                 item_lines[slot].append("- *Ran out of room...*")
 
