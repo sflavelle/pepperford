@@ -995,7 +995,10 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                     # Group: collect unique senders, sort alphabetically
                     unique_senders = sorted(set(sender for _, sender in timestamps_senders))
                     ts_recent, _ = timestamps_senders[0] # Most recent timestamp
-                    sender_str = join_words(unique_senders)  # Uses existing join_words function
+                    if len(unique_senders) <= 5:
+                        sender_str = join_words(unique_senders)  # Uses existing join_words function
+                    else:
+                        sender_str = f"{len(unique_senders)} players"
                     count = len(timestamps_senders)
                     lines.append(f"- <t:{int(ts_recent)}:R> (most recent):** {item_name} (x{count})** from {sender_str}")
             
@@ -1048,7 +1051,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
         # Mark slot feeds that didn't exhaust (got truncated due to msg length)
         for slot in linked_slots:
             # Re-sort lines first (fix individual grouped items)
-            item_lines[slot] = sorted(item_lines[slot].copy(), key = lambda ts: ts.split(" ")[0], reverse=True)
+            item_lines[slot] = sorted(item_lines[slot].copy(), key = lambda ts: ts.split(" ")[1], reverse=True)
 
             if not exhausted[slot]:
                 item_lines[slot].append("- *Ran out of room...*")
