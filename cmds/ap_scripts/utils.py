@@ -1537,7 +1537,7 @@ def handle_location_tracking(game: Game, player: Player, item: Item):
         return location
     if bool(player.settings):
         settings = player.settings
-        spoiler = game.spoiler_log[player]
+        spoiler = game.spoiler_log[str(player)]
         game = player.game
 
         match game:
