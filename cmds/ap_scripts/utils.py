@@ -1529,6 +1529,7 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
 def handle_location_tracking(game: Game, player: Player, item: Item):
     """If checking a location is an indicator of progress, we should track that in the location name."""
 
+
     ItemObject = item
     location = item.location.name
 
@@ -1536,6 +1537,7 @@ def handle_location_tracking(game: Game, player: Player, item: Item):
         return location
     if bool(player.settings):
         settings = player.settings
+        spoiler = game.spoiler_log[player]
         game = player.game
 
         match game:
@@ -1554,7 +1556,7 @@ def handle_location_tracking(game: Game, player: Player, item: Item):
                     return f"{location} (of {required})"
             case "Mega Man 2":
                 if location.endswith(" - Defeated"):
-                    count = len([l for l in game.spoiler_log[player].values() if l.location.name.endswith(" - Defeated") and l.found is True])
+                    count = len([l for l in spoiler.values() if l.location.name.endswith(" - Defeated") and l.found is True])
                     required = 8
                     return f"{location} ({count}/{required})"
             case "Simon Tatham's Portable Puzzle Collection":
@@ -1565,13 +1567,13 @@ def handle_location_tracking(game: Game, player: Player, item: Item):
             case "Spyro 3":
                 if "Skill Point" in location and settings['Completion Goal'] == "All Skillpoints":
                     total = 20
-                    count = len([l for l in game.spoiler_log[player].values() if "Skill Point" in l.location.name and l.found is True])
+                    count = len([l for l in spoiler.values() if "Skill Point" in l.location.name and l.found is True])
                     return f"{location} (*{count}/{total}*)"
             # case "Trackmania":
             #     if location.endswith("Target Time"):
-            #         total = len([l for l in game.spoiler_log[player].values() if l.location.endswith("Target Time")])
+            #         total = len([l for l in spoiler.values() if l.location.endswith("Target Time")])
             #         required = round(total * (settings['Series Medal Percentage'] / 100))
-            #         count = len([l for l in game.spoiler_log[player].values() if l.location.endswith("Target Time") and l.found is True])
+            #         count = len([l for l in spoiler.values() if l.location.endswith("Target Time") and l.found is True])
             #         return f"{location} ({count}/{required})"
             case _:
                 return location
