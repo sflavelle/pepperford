@@ -105,6 +105,8 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
         match type:
             case "classify":
                 type = "Item Classification"
+            case "classify_import":
+                type = "Item Classification Import"
             case "describe":
                 type = "Item Description"
             case _:
@@ -563,6 +565,12 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
         skipped = 0
         processed = 0
 
+        # specifics for archivist log
+        progression: int = 0
+        useful: int = 0
+        filler: int = 0
+        trap: int = 0
+
         with sqlcon.cursor() as cursor:
             for game, classifications in comm_classification_table.items():
                 for item, classification in classifications.items():
@@ -572,6 +580,13 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                         continue
                     if classification == "mcguffin":
                         classification = "progression"
+                    # Update counts for archivist log
+                    match classification:
+                        case "progression": progression += 1
+                        case "useful": useful += 1
+                        case "filler": filler += 1
+                        case "trap": trap += 1
+                        case _: pass
                     if skip_classified:
                         cursor.execute(
                             "UPDATE archipelago.item_classifications SET classification = %s where game = %s and item = %s and classification is null;",
@@ -582,7 +597,9 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                             (classification, game, item))
                     processed += 1
                     logger.info(f"Updated {game}: {item} to {classification} in item_classifications table.")
-
+        await self.archivist_log(interaction, "classify_import",
+                                 f"Imported community classifications for **{processed}** items in {f"**{len(comm_classification_table)}** games" if len(comm_classification_table) > 1 else f"**{comm_classification_table.keys()[0]}**"}.\n\n"
+                                 f"Progression: {progression}, Useful: {useful}, Filler: {filler}, Trap: {trap}")
         return await newpost.edit(content=f"Import of community classifications complete! Processed {processed} items, skipped {skipped} items (bad classifications).")
     
     @is_aphost()
