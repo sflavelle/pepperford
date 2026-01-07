@@ -564,6 +564,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
         # Update the item_classifications table with the community classifications
         skipped = 0
         processed = 0
+        updated = 0
 
         # specifics for archivist log
         progression: int = 0
@@ -591,16 +592,21 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                         cursor.execute(
                             "UPDATE archipelago.item_classifications SET classification = %s where game = %s and item = %s and classification is null;",
                             (classification, game, item))
+                        if cursor.rowcount > 0:
+                            updated += 1
+
                     else:
                         cursor.execute(
                             "UPDATE archipelago.item_classifications SET classification = %s where game = %s and item = %s;",
                             (classification, game, item))
+                        if cursor.rowcount > 0:
+                            updated += 1
                     processed += 1
                     logger.info(f"Updated {game}: {item} to {classification} in item_classifications table.")
         await self.archivist_log(interaction, "classify_import",
-                                 f"Imported community classifications for **{processed}** items in {f"**{len(comm_classification_table)}** games" if len(comm_classification_table) > 1 else f"**{comm_classification_table.keys()[0]}**"}.\n\n"
+                                 f"Imported community classifications for **{updated}** items in {f"**{len(comm_classification_table)}** games" if len(comm_classification_table) > 1 else f"**{comm_classification_table.keys()[0]}**"}.\n\n"
                                  f"Progression: {progression}, Useful: {useful}, Filler: {filler}, Trap: {trap}")
-        return await newpost.edit(content=f"Import of community classifications complete! Processed {processed} items, skipped {skipped} items (bad classifications).")
+        return await newpost.edit(content=f"Import of community classifications complete! Processed {processed} items, updated {updated} items, skipped {skipped} items (bad classifications).")
     
     @is_aphost()
     @db.command()
