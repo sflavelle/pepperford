@@ -1226,7 +1226,6 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
         deferpost = await interaction.response.defer(ephemeral=True, thinking=True,)
         newpost = await interaction.original_response()
 
-        upload_data = slot_file.read()
 
         if not self.ctx.extras.get('ap_rooms'):
             self.ctx.extras['ap_rooms'] = {}
@@ -1265,6 +1264,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
 
                     return await newpost.edit(content=helpmsg)
         else:
+            upload_data = slot_file.read()
             match game_table['players'][slot]['game']:
                 case "Trackmania":
                     upload_json = json.loads(upload_data)
