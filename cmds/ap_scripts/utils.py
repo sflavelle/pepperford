@@ -1364,7 +1364,7 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                         required = math.ceil(total * (settings['Series Medal Percentage'] / 100))
 
                         next_requirement = 0
-                        for series in slot_data['SeriesData'].values():
+                        for series in slot_data['SeriesData']:
                             next_requirement += series['MedalTotal']
                             if next_requirement >= count:
                                 break
