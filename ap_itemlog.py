@@ -179,14 +179,14 @@ def process_spoiler_log(seed_url):
             return ast.literal_eval(s)
         except Exception:
             return s
-        
+
     def parse_line(line):
         current_key, value = line.strip().split(':', 1)
         value_str = value.lstrip()
         key = current_key.strip().replace("_", " ")
 
         return key, value_str
-    
+
     def smart_split(s):
         # Split on commas, ignoring those inside [], (), or {}
         parts = []
@@ -287,7 +287,7 @@ def process_spoiler_log(seed_url):
 
             case "Players":
                 try:
-                    
+
                     key, value_str = parse_line(line)
                     if key.startswith("Player "):
                         # Extract the player ID from Player header
@@ -333,7 +333,7 @@ def process_spoiler_log(seed_url):
                             game.players[receiver].add_spoiler(ItemObject)
 
                     ItemObject.location.db_add_location()
-                    
+
                     if sender not in game.spoiler_log: game.spoiler_log.update({sender: {}})
                     game.spoiler_log[sender].update({item_location: ItemObject})
             case "Starting Items":
@@ -492,7 +492,7 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
                     else: response = "useful"
             if item.game == "Trackmania":
                 medals = ["Bronze Medal", "Silver Medal", "Gold Medal", "Author Medal"]
-                # From TMAP docs: 
+                # From TMAP docs:
                 # "The quickest medal equal to or below target difficulty is made the progression medal."
                 if game.has_spoiler:
                     target_difficulty = setting['Target Time Difficulty']
@@ -601,14 +601,14 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
                         # Full trap name
                         string = string.replace("$t", trap)
                         # Trap name without the 'Trap' suffix
-                        string = string.replace("$T", trap.replace(" Trap","")) 
+                        string = string.replace("$T", trap.replace(" Trap",""))
 
                         # Some random non-trap item from the receiver's spoiler log
                         # Jokes!
                         string = string.replace("$i", random_nontrap_item(game.players[receiver]))
 
                         return string
-                    
+
 
 
                     if sender == receiver:
@@ -690,7 +690,7 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
                 case None:
                     icon = "<:unclassified:1450498207032283357>"
                 case _:
-                    icon = None            
+                    icon = None
             if game.players[receiver].game == "Hollow Knight":
                 item = item.replace("_", " ").replace("-"," - ")
             if game.players[sender].game == "Hollow Knight":
@@ -728,7 +728,7 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
             message = f"**{sender} has finished!** That's {len([p for p in game.players.values() if p.is_goaled()])}/{len(game.players)} goaled! ({len([p for p in game.players.values() if p.is_finished()])}/{len(game.players)} including releases)"
             if game.players[sender].collected_locations == game.players[sender].total_locations:
                 message += f"\n**Wow!** {sender} 100%ed their game before finishing, too!"
-            if not skip_msg: 
+            if not skip_msg:
                 logger.info(f"{sender} has finished their game.")
                 message_buffer.append(message)
         elif match := regex_patterns['releases'].match(line):
@@ -786,7 +786,7 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
             timestamp, player, verb, playergame, client_version, tags = match.groups()
 
             timestamp = parse_to_datetime(timestamp)
-            
+
 
             try:
                 tags_str = tags
@@ -808,7 +808,7 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
             timestamp, player, version, tags = match.groups()
 
             timestamp = parse_to_datetime(timestamp)
-            
+
             if not skip_msg: logger.info(f"{player} is offline.")
             game.players[player].set_online(False, timestamp)
 
@@ -1005,7 +1005,7 @@ def watch_log(url, interval):
 
     if not DEBUG:
         with sqlcon.cursor() as cursor:
-            try: 
+            try:
                 game.pushdb(cursor, 'pepper.ap_all_rooms', 'port', seed_address.split(":")[1])
                 sqlcon.commit()
             except AttributeError:
@@ -1092,7 +1092,7 @@ def watch_log(url, interval):
         # Check if all players have finished
         if all(p.is_finished() for p in game.players.values()) and len(message_buffer) == 0 and len(release_buffer) == 0:
             logger.info("All players have finished and are offline, and there's no more messages in the buffers to process. We're done here.")
-            
+
             # Some maintenance items before we exit
             for p in game.players.values():
                 if p.released is True:
@@ -1103,7 +1103,7 @@ def watch_log(url, interval):
                         if location.found is False and location.is_checkable is None:
                             logger.info(f"Marking {p.game}: {location.name} as uncheckable.")
                             location.db_add_location(is_check=False)
-            
+
             # We're done
             logger.info("Sleeping forever now. (Keeping the API open) Goodnight!")
             while True:
@@ -1185,7 +1185,7 @@ def upload_data(slotname: str):
         if not isinstance(data, dict):
             return jsonify({"error": "Invalid JSON format, expected a dictionary"}), 400
 
-        player.upload_data = data
+        player.upload_data = data.json
         return jsonify({"message": f"Data uploaded successfully for player {slotname}"}), 200
     except Exception as e:
         logger.error(f"Error uploading data for player {slotname}: {e}")
