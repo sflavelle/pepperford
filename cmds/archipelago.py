@@ -1268,7 +1268,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
             match game_table['players'][slot]['game']:
                 case "Trackmania":
                     upload_json = json.loads(upload_data)
-                    up_request = requests.post(f"http://localhost:{api_port}/upload_data/{slot}", files=upload_json, headers={"Content-Type": "application/json"})
+                    up_request = requests.post(f"http://localhost:{api_port}/upload_data/{slot}", json=upload_json, headers={"Content-Type": "application/json"})
                     if up_request.status_code == 200:
                         return await newpost.edit(content=f"✓ {up_request.text}")
                     else: return await newpost.edit(content=f"✗ {up_request.status_code}: {up_request.text}")
