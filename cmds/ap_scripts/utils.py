@@ -2061,7 +2061,7 @@ def handle_state_tracking(player: Player, game: Game):
                 progression_medal = medals[progression_medal_lookup]
                 player.stats.set_stat("progression_medal", progression_medal)
 
-                medal_total = len([l for l in player.spoilers['locations'].values() if l.location.name.endswith("Target Time")])
+                medal_total = len([l for l in game.spoiler_log[str(player)].values() if l.location.name.endswith("Target Time")])
                 medal_required = math.ceil(medal_total * (settings['Series Medal Percentage'] / 100))
                 goal_str = f"Race community maps to unlock items. Collect {medal_required} {progression_medal}s to win"
 
