@@ -1366,7 +1366,7 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
 
                     if item == progression_medal:
                         total = len([l for l in itemlog.spoiler_log[str(player)].values() if l.location.name.endswith("Target Time")])
-                        required = math.ceil(total * (settings['Series Medal Percentage'] / 100))
+                        required = sum([t['MedalTotal'] for t in slot_data['SeriesData']])
 
                         next_requirement: int = 0
                         for series in slot_data['SeriesData']:
@@ -2062,7 +2062,7 @@ def handle_state_tracking(player: Player, game: Game):
                 player.stats.set_stat("progression_medal", progression_medal)
 
                 medal_total = len([l for l in game.spoiler_log[str(player)].values() if l.location.name.endswith("Target Time")])
-                medal_required = math.ceil(medal_total * (settings['Series Medal Percentage'] / 100))
+                medal_required = sum([t['MedalTotal'] for t in slot_data['SeriesData']])
                 goal_str = f"Race community maps to unlock items. Collect {medal_required} {progression_medal}s to win"
 
             case "TUNIC":
