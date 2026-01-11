@@ -1549,6 +1549,8 @@ def handle_location_tracking(game: Game, player: Player, item: Item):
         settings = player.settings
         spoiler = game.spoiler_log[str(player)]
         game = player.game
+        itemlog = game
+        slot_data = player.slot_data
 
         match game:
             case "A Hat in Time":
@@ -1688,6 +1690,8 @@ def handle_state_tracking(player: Player, game: Game):
 
     player_game = player.game
     settings = player.settings
+    spoiler = game.spoiler_log[str(player)]
+    slot_data = player.slot_data
 
     goal: str = ""
     goal_str: str = ""
