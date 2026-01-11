@@ -133,7 +133,7 @@ class Game(dict):
 
     def get_player(self, player):
         """Get a Player object by name or ID."""
-        for k,v in self.players.keys():
+        for k,v in self.players.items():
             if isinstance(player, int) and v.id == player:
                 return p
             elif isinstance(player, str) and k == player:
