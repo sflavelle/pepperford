@@ -1264,7 +1264,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
 
                     return await newpost.edit(content=helpmsg)
         else:
-            upload_data = slot_file.read()
+            upload_data = await slot_file.read()
             match game_table['players'][slot]['game']:
                 case "Trackmania":
                     upload_json = json.loads(upload_data)
