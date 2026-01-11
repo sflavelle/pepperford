@@ -1365,7 +1365,7 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                     progression_medal = medals[progression_medal_lookup]
 
                     if item == progression_medal:
-                        total = len([l for l in itemlog.spoiler_log[player].values() if l.location.name.endswith("Target Time")])
+                        total = len([l for l in itemlog.spoiler_log[str(player)].values() if l.location.name.endswith("Target Time")])
                         required = math.ceil(total * (settings['Series Medal Percentage'] / 100))
 
                         next_requirement: int = 0
