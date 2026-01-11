@@ -1268,13 +1268,13 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
             match game_table['players'][slot]['game']:
                 case "Trackmania":
                     upload_json = json.loads(upload_data)
-                    up_request = requests.post(f"http://localhost:{api_port}/upload_data/{slot}", files=upload_json)
+                    up_request = requests.post(f"http://localhost:{api_port}/upload_data/{slot}", files=upload_json, headers={"Content-Type": "application/json"})
                     if up_request.status_code == 200:
                         return await newpost.edit(content=f"✓ {up_request.text}")
                     else: return await newpost.edit(content=f"✗ {up_request.status_code}: {up_request.text}")
                 case _:
                     # Not supported
-                    return await newpost.edit(content="Sorry, I can't use that file - your game doesn't support this.")
+                    return await newpost.edit(content="Sorry, I can't use that file - your game doesn't support/need this.")
 
     # itemlogging = app_commands.Group(name="itemlog",description="Manage an item logging webhook")
 
