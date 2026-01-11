@@ -1299,8 +1299,8 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                         return f"{item} ({count}/{required})"
                 case "Refunct":
                     if item == "Grass":
-                        total = slot_data['amount_grass']
-                        required = total * (int(slot_data['required_grass']) / 100)
+                        total = int(slot_data['amount_grass'])
+                        required = int(total * (int(slot_data['required_grass']) / 100))
                         return f"{item} ({count}/{required})"
                 case "Simon Tatham's Portable Puzzle Collection":
                     # Tracking total access to puzzles instead of completion percentage
