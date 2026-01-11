@@ -57,7 +57,7 @@ def join_words(words):
         return ' and '.join(words)
     else:
         return words[0]
-    
+
 def is_aphost():
     async def predicate(ctx):
         return ctx.user.get_role(1234064646491602944) is not None
@@ -75,7 +75,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
         self.ctx = bot
 
     messages = {
-        "no_slots_linked": 
+        "no_slots_linked":
             """None of your linked Archipelago slots are linked to this game.
             **Maybe you haven't linked a slot to your Discord account yet?**
             Use `/archipelago room link_slot` to link any of your slots in this game,
@@ -87,11 +87,11 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
 
     async def archivist_log(self, interaction: discord.Interaction, type: str, message: str):
         """Log an action to the archivist log channel, if set."""
-        
+
         if interaction.guild.id != 1424283904260706378:
             logger.error("Attempted to log to archivist channel outside of main server.")
             return False
-        
+
         channel_id = self.ctx.procs['archipelago'].get('channel_archivist')
         if not channel_id:
             logger.info("No archivist channel set; skipping log.")
@@ -101,7 +101,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
         if not channel:
             logger.error("Archivist channel ID is invalid; cannot log.")
             return False
-        
+
         match type:
             case "classify":
                 type = "Item Classification"
@@ -111,11 +111,11 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                 type = "Item Description"
             case _:
                 pass
-        
+
         try:
             embed = discord.Embed(
-                title=f"Archival Log: {type.title()}", 
-                description=message, 
+                title=f"Archival Log: {type.title()}",
+                description=message,
                 timestamp=datetime.now(timezone.utc))
             embed.set_footer(text=f"Action by {interaction.user.display_name}", icon_url=interaction.user.display_avatar.url)
             await channel.send(embed=embed)
@@ -508,7 +508,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                     pass
 
         return await newpost.edit(content="Import *should* be complete!")
-    
+
     @is_aphost()
     @db.command()
     @app_commands.default_permissions(manage_messages=True)
@@ -524,7 +524,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
             sqlcon.commit()
 
             await newpost.edit(content=f"Cleaned up {deleted_count} fake items from the database.")
-    
+
     @is_aphost()
     @db.command()
     @app_commands.default_permissions(manage_messages=True)
@@ -560,7 +560,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
         else:
             fetch_classifications(game)
 
-        
+
         # Update the item_classifications table with the community classifications
         skipped = 0
         processed = 0
@@ -607,7 +607,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                                  f"Imported community classifications for **{updated}** items in {f"**{len(comm_classification_table)}** games" if len(comm_classification_table) > 1 else f"**{comm_classification_table.keys()[0]}**"}.\n\n"
                                  f"Progression: {progression}, Useful: {useful}, Filler: {filler}, Trap: {trap}")
         return await newpost.edit(content=f"Import of community classifications complete! Processed {processed} items, updated {updated} items, skipped {skipped} items (bad classifications).")
-    
+
     @is_aphost()
     @db.command()
     @app_commands.default_permissions(manage_messages=True)
@@ -645,9 +645,9 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
         players = []
         with sqlcon.cursor() as cursor:
             cursor.execute("""
-                SELECT player_name 
-                FROM pepper.ap_room_players 
-                WHERE guild = %s 
+                SELECT player_name
+                FROM pepper.ap_room_players
+                WHERE guild = %s
                 AND player_name IN (
                     SELECT player_name FROM pepper.ap_players WHERE discord_user IS NULL
                 )
@@ -675,9 +675,9 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
         players = []
         with sqlcon.cursor() as cursor:
             cursor.execute("""
-                SELECT player_name 
-                FROM pepper.ap_room_players 
-                WHERE guild = %s 
+                SELECT player_name
+                FROM pepper.ap_room_players
+                WHERE guild = %s
                 AND player_name IN (
                     SELECT player_name FROM pepper.ap_players WHERE discord_user = %s
                 )
@@ -808,7 +808,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
         except ConnectionError:
             return await newpost.edit(
                 content="Couldn't connect to the running Archipelago game. It might be restarting.\nTry again in a minute or two.")
-        
+
         def player_status(player: dict) -> list[str]:
             status_lines = []
             last_online = lambda player: "Online right now." if player['online'] is True else f"Last online <t:{int(player['last_online'])}:R>." if player['last_online'] is not None else "Never logged in."
@@ -822,7 +822,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
             if player['stats']['goal_str'] is not None and show_goals:
                 status_lines.append(f"  - Goal: {player['stats']['goal_str']}.")
             return status_lines
-        
+
         msg_lines = []
 
         msg_lines.append(f"## Archipelago Room Status")
@@ -871,8 +871,8 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                     try:
                         player = next(sorted_other_players_list)[1]
                         new_lines = player_status(player)
-                        
-                        if len("\n".join(msg_lines)) + len("\n".join(new_lines)) > 1800: 
+
+                        if len("\n".join(msg_lines)) + len("\n".join(new_lines)) > 1800:
                             msg_lines.append("- ...and more players not shown to avoid message length limits.")
                             break
                         else:
@@ -928,7 +928,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
             linked_slots = [row[0] for row in cursor.fetchall()]
         if len(linked_slots) == 0:
             return await newpost.edit(content=self.messages['no_slots_linked'])
-        
+
         player_table = {}
 
         for slot in linked_slots:
@@ -1003,10 +1003,10 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
             grouped = defaultdict(list)  # item name -> list of (timestamp, sender)
             for item in items:
                 grouped[item['Item']].append((item['Timestamp'], item['Sender']))
-            
+
             # Sort groups by the latest timestamp in each group (newest first)
             sorted_groups = sorted(grouped.items(), key=lambda g: max(ts for ts, _ in g[1]), reverse=True)
-            
+
             lines = []
             for item_name, details in sorted_groups:
                 timestamps_senders = sorted(details, key=lambda x: x[0], reverse=True)  # Sort within group by timestamp
@@ -1024,7 +1024,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                         sender_str = f"{len(unique_senders)} players"
                     count = len(timestamps_senders)
                     lines.append(f"- <t:{int(ts_recent)}:R> (most recent):** {item_name} (x{count})** from {sender_str}")
-            
+
             player_table[slot]['item_lines'] = lines
             player_table[slot]['item_iterator'] = iter(lines)
 
@@ -1226,6 +1226,8 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
         deferpost = await interaction.response.defer(ephemeral=True, thinking=True,)
         newpost = await interaction.original_response()
 
+        upload_data = slot_file.read()
+
         if not self.ctx.extras.get('ap_rooms'):
             self.ctx.extras['ap_rooms'] = {}
             self.fetch_guild_room(interaction.guild_id)
@@ -1247,12 +1249,12 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                 case "Trackmania":
                     helpmsg = """You can upload a file from Openplanet's PluginStorage to allow metadata such as
                     track names to appear in the item log alongside the relevant track checks.
-                    
+
                     For example, "Series 7 Map 3 - Target Time" could become "S7M3: [Manoa Rush](<https://trackmania.exchange/mapshow/34593>) - Target Time"
-                    
+
                     The file will be located in `C:\\Users\\<Your Windows Username>\\OpenplanetNext\\PluginStorage\\ArchipelagoPlugin\\saves`
                     and is named something like `93762637785644248741_0_9.json`.
-                    
+
                     Note that maps are rolled one series at a time, and not before you've unlocked them - you may have to upload this file
                     multiple times for full tracking, if this matters to you."""
                     return await newpost.edit(content=helpmsg)
@@ -1265,7 +1267,8 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
         else:
             match game_table['players'][slot]['game']:
                 case "Trackmania":
-                    up_request = requests.post(f"http://localhost:{api_port}/upload_data/{slot}", files=slot_file.fp)
+                    upload_json = json.loads(upload_data)
+                    up_request = requests.post(f"http://localhost:{api_port}/upload_data/{slot}", files=upload_json)
                     if up_request.status_code == 200:
                         return await newpost.edit(content=f"✓ {up_request.text}")
                     else: return await newpost.edit(content=f"✗ {up_request.status_code}: {up_request.text}")
