@@ -135,7 +135,7 @@ class Game(dict):
         """Get a Player object by name or ID."""
         for k,v in self.players.items():
             if isinstance(player, int) and v.id == player:
-                return p
+                return v
             elif isinstance(player, str) and k == player:
                 return v
         return None
