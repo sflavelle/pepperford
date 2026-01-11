@@ -133,11 +133,11 @@ class Game(dict):
 
     def get_player(self, player):
         """Get a Player object by name or ID."""
-        for p in self.players.values():
-            if isinstance(player, int) and p.id == player:
+        for k,v in self.players.keys():
+            if isinstance(player, int) and v.id == player:
                 return p
-            elif isinstance(player, str) and p.name == player:
-                return p
+            elif isinstance(player, str) and k == player:
+                return v
         return None
 
     def fetch_room_api(self):
