@@ -1176,7 +1176,7 @@ def get_checkable_locations(found: bool = False):
 
 @webview.route('/upload_data/<slotname>', methods=['POST'])
 def upload_data(slotname: str):
-    player = game.players[slotname] or None
+    player = game.get_player(slotname)
     if not player:
         logger.error(f"Couldn't find player {slotname} to upload data to")
         return jsonify({"error": f"Player {slotname} not found"}), 404

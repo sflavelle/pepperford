@@ -133,10 +133,10 @@ class Game(dict):
 
     def get_player(self, player):
         """Get a Player object by name or ID."""
-        for k,v in self.players.items():
+        for v in self.players.values():
             if isinstance(player, int) and v.id == player:
                 return v
-            elif isinstance(player, str) and k == player:
+            elif isinstance(player, str) and v.name == player:
                 return v
         return None
 
@@ -499,6 +499,7 @@ class Player(dict):
         return {
             "name": self.name,
             "game": self.game,
+            "id": self.id,
             "inventory": [i.to_dict() for i in self.inventory],
             "hints": {k: [i.to_dict() for i in v] for k, v in self.hints.items()},
             "spoilers": {
@@ -1299,7 +1300,7 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                         return f"{item} ({count}/{required})"
                 case "Refunct":
                     if item == "Grass":
-                        total = int(slot_data['amount_grass'])
+                        total = 31
                         required = int(total * (int(slot_data['required_grass']) / 100))
                         return f"{item} ({count}/{required})"
                     if item.startswith("Trigger Cluster"):
