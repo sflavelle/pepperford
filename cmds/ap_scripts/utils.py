@@ -1,35 +1,35 @@
 import datetime
-import time
-import re
 import fnmatch
-import math
-import requests
-import psycopg2 as psql
 import logging
-import yaml
-import discord
+import math
+import re
+import time
+from typing import Any, Iterable
+from zoneinfo import ZoneInfo
 
-from typing import Iterable, Any
+import discord
+import psycopg2 as psql
+import requests
+import yaml
 
 from cmds.ap_scripts.emitter import event_emitter
 from cmds.ap_scripts.name_translations import gzDoomMapNames
-from zoneinfo import ZoneInfo
 
 # setup logging
-logger = logging.getLogger('ap_itemlog')
+logger = logging.getLogger("ap_itemlog")
 
-with open('config.yaml', 'r', encoding='UTF-8') as file:
+with open("config.yaml", "r", encoding="UTF-8") as file:
     cfg = yaml.safe_load(file)
 
 
-sqlcfg = cfg['bot']['psql']
+sqlcfg = cfg["bot"]["psql"]
 try:
     sqlcon = psql.connect(
-        dbname=sqlcfg['database'],
-        user=sqlcfg['user'],
-        password=sqlcfg['password'] if 'password' in sqlcfg else None,
-        host=sqlcfg['host'],
-        port=sqlcfg['port']
+        dbname=sqlcfg["database"],
+        user=sqlcfg["user"],
+        password=sqlcfg["password"] if "password" in sqlcfg else None,
+        host=sqlcfg["host"],
+        port=sqlcfg["port"],
     )
 except psql.OperationalError:
     # TODO Disable commands that need SQL connectivity
@@ -37,7 +37,7 @@ except psql.OperationalError:
 
 
 classification_cache = {}
-cache_timeout = 1*60*60 # 1 hour(s)
+cache_timeout = 1 * 60 * 60  # 1 hour(s)
 
 item_table = {}
 
@@ -52,6 +52,7 @@ gzd = gzDoomMapNames()
 
 class Game(dict):
     """An Archipelago multiworld game instance."""
+
     hostname: str = None
     seed = None
     room_id = None
@@ -86,19 +87,29 @@ class Game(dict):
         # {room_id}_p_{player}
 
         cursor.execute(
-            f"CREATE TABLE IF NOT EXISTS games.{self.room_id} (setting bpchar, value bpchar, classification varchar(32))")
+            f"CREATE TABLE IF NOT EXISTS games.{self.room_id} (setting bpchar, value bpchar, classification varchar(32))"
+        )
 
     def update_locations(self):
-        self.collected_locations = sum([p.collected_locations for p in self.players.values()])
+        self.collected_locations = sum(
+            [p.collected_locations for p in self.players.values()]
+        )
         self.total_locations = sum([p.total_locations for p in self.players.values()])
-        self.collection_percentage = (self.collected_locations / self.total_locations) * 100 if self.total_locations > 0 else 0.0
+        self.collection_percentage = (
+            (self.collected_locations / self.total_locations) * 100
+            if self.total_locations > 0
+            else 0.0
+        )
 
         self.check_milestones()
 
     def check_milestones(self):
         milestones = [25, 50, 75, 100]  # Define milestones
         for milestone in milestones:
-            if self.collection_percentage >= milestone and milestone not in self.milestones:
+            if (
+                self.collection_percentage >= milestone
+                and milestone not in self.milestones
+            ):
                 self.milestones.add(milestone)
                 logger.info(f"Game reached {milestone}% completion!")
                 message = f"**The game has reached {milestone}% completion!**"
@@ -113,14 +124,25 @@ class Game(dict):
             "world_settings": self.world_settings,
             "start_timestamp": self.start_timestamp,
             "running": self.running,
-            "spoiler_log": {k: {lk: lv.to_dict() for lk, lv in v.items()} for k, v in self.spoiler_log.items()},
+            "spoiler_log": {
+                k: {lk: lv.to_dict() for lk, lv in v.items()}
+                for k, v in self.spoiler_log.items()
+            },
             "players": {k: v.to_dict() for k, v in self.players.items()},
             "collected_locations": self.collected_locations,
             "total_locations": self.total_locations,
             "collection_percentage": self.collection_percentage,
         }
 
-    def get_or_create_item(self, sender, receiver, itemname, location, entrance=None, received_timestamp: float = None):
+    def get_or_create_item(
+        self,
+        sender,
+        receiver,
+        itemname,
+        location,
+        entrance=None,
+        received_timestamp: float = None,
+    ):
         key = (str(sender), location, itemname)
         if key in self.item_instance_cache:
             item = self.item_instance_cache[key]
@@ -145,15 +167,12 @@ class Game(dict):
         api_url = f"http://{self.hostname}/api/room_status/{self.room_id}"
         logger.info(f"Fetching room info from {api_url}.")
         room_api = requests.get(api_url).json()
-        self.tracker_id = room_api['tracker']
+        self.tracker_id = room_api["tracker"]
 
         player_id = 1
         for player in room_api["players"]:
             self.players[player[0]] = Player(
-                name=player[0],
-                game=player[1],
-                id=player_id,
-                game_instance=self
+                name=player[0], game=player[1], id=player_id, game_instance=self
             )
             self.spoiler_log[player[0]] = {}
             player_id += 1
@@ -169,20 +188,24 @@ class Game(dict):
         logger.info(f"Fetching static tracker data from {tracker_url}")
         tracker_data = requests.get(tracker_url)
         if tracker_data.status_code != 200:
-            logger.error(f"Failed to fetch static tracker data from {tracker_url}: HTTP {tracker_data.status_code}")
+            logger.error(
+                f"Failed to fetch static tracker data from {tracker_url}: HTTP {tracker_data.status_code}"
+            )
             return False
         tracker_json = tracker_data.json()
         logger.info("Static tracker fetched and parsed to json.")
 
-        for game, datapackage in tracker_json['datapackage'].items():
+        for game, datapackage in tracker_json["datapackage"].items():
             for player in self.players.values():
                 if player.game == game:
-                    player.settings.update({"datapackage_checksum": datapackage['checksum']})
+                    player.settings.update(
+                        {"datapackage_checksum": datapackage["checksum"]}
+                    )
 
         # Import datapackages for unique checksums
         game_datapackage_checksums = []
         for player in self.players.values():
-            checksum = player.settings.get('datapackage_checksum')
+            checksum = player.settings.get("datapackage_checksum")
             if checksum:
                 game_datapackage_checksums.append((player.game, checksum))
         for game, checksum in game_datapackage_checksums:
@@ -195,20 +218,19 @@ class Game(dict):
         #         logger.info(f"Refreshed classifications for {game}: {processed} processed, {updated} updated")
 
         game_total_locations = 0
-        for p in tracker_json['player_locations_total']:
-            player = self.get_player(p['player'])
+        for p in tracker_json["player_locations_total"]:
+            player = self.get_player(p["player"])
             logger.info(f"{player.name} has {p['total_locations']} total locations.")
-            player.total_locations = p['total_locations']
-            game_total_locations += p['total_locations']
+            player.total_locations = p["total_locations"]
+            game_total_locations += p["total_locations"]
 
-            player.team = p['team']
+            player.team = p["team"]
 
         logger.info(f"Game total locations calculated as {game_total_locations}.")
         self.total_locations = game_total_locations
 
         logger.info("Static tracker successfully processed.")
         return True
-
 
     def fetch_tracker(self) -> bool:
         """Grab dynamic tracker data from the Archipelago server for this room."""
@@ -217,7 +239,9 @@ class Game(dict):
         logger.info(f"Fetching dynamic tracker data from {tracker_url}")
         tracker_data = requests.get(tracker_url)
         if tracker_data.status_code != 200:
-            logger.error(f"Failed to fetch static tracker data from {tracker_url}: HTTP {tracker_data.status_code}")
+            logger.error(
+                f"Failed to fetch static tracker data from {tracker_url}: HTTP {tracker_data.status_code}"
+            )
             return False
         tracker_json = tracker_data.json()
         logger.info("Dynamic tracker fetched and parsed to json. Processing...")
@@ -241,23 +265,24 @@ class Game(dict):
         ### 2 (0b010): useful
         ### 4 (0b100): trap
 
-
         # going through these in order
-        for p in tracker_json['activity_timers']:
-            pass # for now, will probably implement this timer into the Player object though
+        for p in tracker_json["activity_timers"]:
+            pass  # for now, will probably implement this timer into the Player object though
 
-        for p in tracker_json['aliases']:
-            player = self.get_player(p['player'])
+        for p in tracker_json["aliases"]:
+            player = self.get_player(p["player"])
             if player:
-                if bool(p['alias']) and player.alias is None:
-                    logger.info(f"Setting alias for player {player.name} to {p['alias']}")
-                player.alias = p['alias']
+                if bool(p["alias"]) and player.alias is None:
+                    logger.info(
+                        f"Setting alias for player {player.name} to {p['alias']}"
+                    )
+                player.alias = p["alias"]
 
-        for p in tracker_json['connection_timers']:
-            pass # we already track this via the logs
+        for p in tracker_json["connection_timers"]:
+            pass  # we already track this via the logs
 
-        for p in tracker_json['hints']:
-            player = self.get_player(p['player'])
+        for p in tracker_json["hints"]:
+            player = self.get_player(p["player"])
 
             # Can't do anything with this yet, but here's the structure:
             ### receiving_player: int # player ID
@@ -287,11 +312,11 @@ class Game(dict):
 
             pass
 
-        for p in tracker_json['player_checks_done']:
-            pass # I need to somehow figure out location IDs mapping to location names
+        for p in tracker_json["player_checks_done"]:
+            pass  # I need to somehow figure out location IDs mapping to location names
 
-        for p in tracker_json['player_items_received']:
-            player = self.get_player(p['player'])
+        for p in tracker_json["player_items_received"]:
+            player = self.get_player(p["player"])
 
             ### Can't do anything about this either, but the structure is more simple:
             ### item: int # item ID
@@ -305,8 +330,8 @@ class Game(dict):
 
             pass
 
-        for p in tracker_json['player_status']:
-            player = self.get_player(p['player'])
+        for p in tracker_json["player_status"]:
+            player = self.get_player(p["player"])
             if player:
                 ### Status values:
                 ### 0 : Unknown
@@ -314,13 +339,13 @@ class Game(dict):
                 ### 10 : Ready (if they use the /ready command)
                 ### 20 : Playing
                 ### 30 : Goal
-                match p['status']:
+                match p["status"]:
                     case 30:
                         player.goaled = True
                     case _:
-                        pass # other statuses might be implemented later on
+                        pass  # other statuses might be implemented later on
 
-        for t in tracker_json['total_checks_done']:
+        for t in tracker_json["total_checks_done"]:
             ### There's no teams in AP, so there's always just one entry with team 0
             ### checks_done: int # total checks done by the team
             ### We could probably match this against our own calculations later on for verification
@@ -336,16 +361,18 @@ class Game(dict):
         logger.info(f"Fetching slot data from {slot_url}")
         slot_data = requests.get(slot_url)
         if slot_data.status_code != 200:
-            logger.error(f"Failed to fetch slot data from {slot_url}: HTTP {slot_data.status_code}")
+            logger.error(
+                f"Failed to fetch slot data from {slot_url}: HTTP {slot_data.status_code}"
+            )
             return False
         slot_json = slot_data.json()
         logger.info("Slot data fetched and parsed to json. Processing...")
 
         for p in slot_json:
-            id = int(p['player'])
+            id = int(p["player"])
             player = self.get_player(id)
             if isinstance(player, Player):
-                player.slot_data = p['slot_data']
+                player.slot_data = p["slot_data"]
 
         logger.info("Slot data successfully processed.")
         return True
@@ -354,22 +381,31 @@ class Game(dict):
 
     def pushdb(self, cursor, database: str, column: str, payload):
         """Push a value to the database for this game."""
-        logger.debug(f"Pushing to database {database}, column {column}, payload {payload}")
+        logger.debug(
+            f"Pushing to database {database}, column {column}, payload {payload}"
+        )
         try:
-            cursor.execute(f"UPDATE {database} set {column} = %s WHERE room_id = %s", (payload, self.room_id))
+            cursor.execute(
+                f"UPDATE {database} set {column} = %s WHERE room_id = %s",
+                (payload, self.room_id),
+            )
         except Exception as e:
             logger.error(f"Error pushing to database: {e}")
 
     def pulldb(self, cursor, database: str, column: str):
         """Pull a value from the database for this game."""
         try:
-            cursor.execute(f"SELECT {column} FROM {database} WHERE room_id = %s", (self.room_id,))
+            cursor.execute(
+                f"SELECT {column} FROM {database} WHERE room_id = %s", (self.room_id,)
+            )
             return cursor.fetchone()[0]
         except Exception as e:
             logger.error(f"Error pulling from database: {e}")
             return None
 
-    def refresh_classifications(self, game: str | None = None, item_name: str | None = None) -> tuple[int, int]:
+    def refresh_classifications(
+        self, game: str | None = None, item_name: str | None = None
+    ) -> tuple[int, int]:
         """Refresh item classifications.
 
         If `game` is provided, only items for that game will be considered.
@@ -407,9 +443,13 @@ class Game(dict):
                 if old_class != new_class:
                     updated += 1
             except Exception as e:
-                logger.exception(f"Error refreshing classification for {item.game}: {item.name}: {e}")
+                logger.exception(
+                    f"Error refreshing classification for {item.game}: {item.name}: {e}"
+                )
 
-        logger.info(f"Item classifications refreshed. Processed={processed}, Updated={updated}")
+        logger.info(
+            f"Item classifications refreshed. Processed={processed}, Updated={updated}"
+        )
         return (processed, updated)
 
 
@@ -425,20 +465,20 @@ class Player(dict):
     alias: str = None
     team: int = 0
 
-    inventory: list = [] # What items the player has collected
+    inventory: list = []  # What items the player has collected
 
     hints: dict = {}
     spoilers: dict = {
-        "items": [], # Items associated with this player
-        "locations": {} # Locations associated with this player
-        }
+        "items": [],  # Items associated with this player
+        "locations": {},  # Locations associated with this player
+    }
     online: bool = False
     last_online: datetime.datetime = None
     tags = []
     settings: dict = {}
     slot_data: dict = {}
     upload_data: dict = {}
-    stats: 'PlayerState' # Game-specific stats
+    stats: "PlayerState"  # Game-specific stats
     goaled: bool = False
     released: bool = False
     collected_locations: int = 0
@@ -458,9 +498,8 @@ class Player(dict):
             self.stats = {}
 
         def to_dict(self):
-
             dict_stats = self.stats.copy()
-            dict_stats['goal_str'] = self.goal_str if self.goal_str else None
+            dict_stats["goal_str"] = self.goal_str if self.goal_str else None
 
             return dict_stats
 
@@ -468,11 +507,12 @@ class Player(dict):
             """Update a game-specific stat for the player."""
             if stat_name not in self.stats:
                 self.stats[stat_name] = value
-            elif isinstance(self.stats[stat_name], (int, float)) and isinstance(value, (int, float)):
+            elif isinstance(self.stats[stat_name], (int, float)) and isinstance(
+                value, (int, float)
+            ):
                 self.stats[stat_name] += value
             else:
                 self.stats[stat_name] = value
-
 
     def __init__(self, name: str, game: str, id: int, game_instance: Game):
         super().__init__()
@@ -482,10 +522,7 @@ class Player(dict):
         self.game = game
         self.id = id
         self.inventory = []
-        self.hints = {
-            "sending": [],
-            "receiving": []
-        }
+        self.hints = {"sending": [], "receiving": []}
         self.settings = PlayerSettings()
         self.goaled = False
         self.released = False
@@ -503,8 +540,10 @@ class Player(dict):
             "inventory": [i.to_dict() for i in self.inventory],
             "hints": {k: [i.to_dict() for i in v] for k, v in self.hints.items()},
             "spoilers": {
-                "items": [i.to_dict() for i in self.spoilers['items']],
-                "locations": {k: v.to_dict() for k, v in self.spoilers['locations'].items()},
+                "items": [i.to_dict() for i in self.spoilers["items"]],
+                "locations": {
+                    k: v.to_dict() for k, v in self.spoilers["locations"].items()
+                },
             },
             "online": self.online,
             "last_online": self.last_online.timestamp() if self.last_online else None,
@@ -540,11 +579,12 @@ class Player(dict):
             return self.last_online
 
     def update_locations(self, game: Game):
-
         locations = game.spoiler_log.get(self.name, {})
 
         location_count = self.total_locations
-        checkable_location_count = len([l for l in locations.values() if l.location.is_checkable is True])
+        checkable_location_count = len(
+            [l for l in locations.values() if l.location.is_checkable is True]
+        )
 
         # if all(c > 0 for c in [checkable_location_count, location_count]) and (checkable_location_count / location_count) < 0.95:
         #     # If the amount of checkable locations does not pass a certain threshold,
@@ -554,17 +594,26 @@ class Player(dict):
         # else:
         #     self.total_locations = checkable_location_count
 
-        self.collected_locations = len([l for l in locations.values() if l.location.is_checked is True])
-        self.collection_percentage = (self.collected_locations / self.total_locations) * 100 if self.total_locations > 0 else 0.0
+        self.collected_locations = len(
+            [l for l in locations.values() if l.location.is_checked is True]
+        )
+        self.collection_percentage = (
+            (self.collected_locations / self.total_locations) * 100
+            if self.total_locations > 0
+            else 0.0
+        )
 
         self.check_milestones()
 
     def check_milestones(self):
         milestones = [50, 75, 100]  # Define milestones
         if self.goaled or self.released:
-            return # Don't process milestones if the player is already finished
+            return  # Don't process milestones if the player is already finished
         for milestone in milestones:
-            if self.collection_percentage >= milestone and milestone not in self.milestones:
+            if (
+                self.collection_percentage >= milestone
+                and milestone not in self.milestones
+            ):
                 self.milestones.add(milestone)
                 message = f"**{self.name} has reached {milestone}% completion!**"
                 event_emitter.emit("milestone", message)  # Emit the milestone message
@@ -592,7 +641,7 @@ class Player(dict):
 
     def on_item_collected(self, item):
         if item is not None:
-            pass # TODO: Handle item collection logic here, e.g., updating stats, notifying other players, etc.
+            pass  # TODO: Handle item collection logic here, e.g., updating stats, notifying other players, etc.
         handle_state_tracking(self, self._super)
 
     def get_item_count(self, item_name: str) -> int:
@@ -613,7 +662,7 @@ class Player(dict):
 
         return collected_items
 
-    def add_spoiler(self, item: 'Item'):
+    def add_spoiler(self, item: "Item"):
         """Add an item to the player's spoiler data, organizing it by location and item lists.
         Only tracks items that are either:
         - Located in this player's world (in locations dict)
@@ -624,36 +673,46 @@ class Player(dict):
             self.spoilers["items"].append(item)
 
         # Track locations in this player's world and what items are in them
-        if item.location and isinstance(item.location, Location) and item.location.player == self:
+        if (
+            item.location
+            and isinstance(item.location, Location)
+            and item.location.player == self
+        ):
             location_name = str(item.location)
             if location_name not in self.spoilers["locations"]:
                 self.spoilers["locations"][location_name] = item
+
 
 class Location(dict):
     """A location in the multiworld.
     A Location is associated with a Player and can have an Item placed in it.
     The Location might also be associated with an Entrance (for entrance randomizers),
     or have certain requirements to access (currency or a specific item)."""
+
     name: str = None
     game: str = None
     player: Player = None
 
     entrance: str = None
-    item: 'Item' = None
+    item: "Item" = None
     requirements: list[str] = []
     description: str = None
 
     is_checkable: bool = None
     is_checked: bool = False
 
-    def __init__(self, item: 'Item', player: Player, name: str, game: str, entrance: str = None):
+    def __init__(
+        self, item: "Item", player: Player, name: str, game: str, entrance: str = None
+    ):
         super().__init__()
         self.player = player
         self.name = name
         self.game = game
         self.entrance = entrance
         self.item = item
-        self.requirements, self.description = handle_location_hinting(self.player, self.item)
+        self.requirements, self.description = handle_location_hinting(
+            self.player, self.item
+        )
         self.is_checkable = self.fetch_islocation_checkable()
         self.is_checked = False
 
@@ -664,30 +723,33 @@ class Location(dict):
         return {
             "name": self.name,
             "game": self.game,
-            "player": str(self.player) if hasattr(self.player, 'name') else self.player,
+            "player": str(self.player) if hasattr(self.player, "name") else self.player,
             "entrance": self.entrance,
-            "item": str(self.item), # Item is this location's parent, avoid recursion
+            "item": str(self.item),  # Item is this location's parent, avoid recursion
             "requirements": self.requirements,
             "description": self.description,
             "is_checkable": self.is_checkable,
-            "is_checked": self.is_checked
+            "is_checked": self.is_checked,
         }
 
     def fetch_islocation_checkable(self) -> bool:
         if not isinstance(self.player, Player):
-            return False # Archipelago starting items, etc
+            return False  # Archipelago starting items, etc
         match self.game:
-            case "SlotLock"|"APBingo":
-                return True # Metagames are always checkable
-            case "Jigsaw"|"Simon Tatham's Portable Puzzle Collection":
-                return True # AP-specific games are simple enough that all their locations are checkable
+            case "SlotLock" | "APBingo":
+                return True  # Metagames are always checkable
+            case "Jigsaw" | "Simon Tatham's Portable Puzzle Collection":
+                return True  # AP-specific games are simple enough that all their locations are checkable
             case "gzDoom":
                 # Locations are dynamically generated by the selected wad
                 # So let's assume they they are all checkable
                 return True
             case _:
                 with sqlcon.cursor() as cursor:
-                    cursor.execute("SELECT is_checkable FROM archipelago.game_locations WHERE game = %s AND location = %s;", (self.game, self.name))
+                    cursor.execute(
+                        "SELECT is_checkable FROM archipelago.game_locations WHERE game = %s AND location = %s;",
+                        (self.game, self.name),
+                    )
                     response = cursor.fetchone()
                     # logger.info(f"locationsdb: {self.sender.game}: {self.location} is checkable: {response[0]}") # debugging in info, yes i know
                     return response[0] if response else False
@@ -703,24 +765,41 @@ class Location(dict):
         This should help to establish accurate location counts when we start tracking those."""
         cursor = sqlcon.cursor()
 
-        cursor.execute("CREATE TABLE IF NOT EXISTS archipelago.game_locations (game bpchar, location bpchar, is_checkable boolean)")
+        cursor.execute(
+            "CREATE TABLE IF NOT EXISTS archipelago.game_locations (game bpchar, location bpchar, is_checkable boolean)"
+        )
 
         is_checkable: bool = None
 
         try:
-            cursor.execute("SELECT * FROM archipelago.game_locations WHERE game = %s AND location = %s;", (self.game, self.name))
+            cursor.execute(
+                "SELECT * FROM archipelago.game_locations WHERE game = %s AND location = %s;",
+                (self.game, self.name),
+            )
             game, location, is_checkable = cursor.fetchone()
             if is_checkable != is_check and is_check == True:
-                logger.debug(f"Request to update checkable status for {self.game}: {self.name} (to: {str(is_check)})")
-                cursor.execute("UPDATE archipelago.game_locations set is_checkable = %s WHERE game = %s AND location = %s;", (str(is_check), game, location))
+                logger.debug(
+                    f"Request to update checkable status for {self.game}: {self.name} (to: {str(is_check)})"
+                )
+                cursor.execute(
+                    "UPDATE archipelago.game_locations set is_checkable = %s WHERE game = %s AND location = %s;",
+                    (str(is_check), game, location),
+                )
         except TypeError:
             logger.debug("Nothing found for this location, likely")
             logger.info(f"locationsdb: adding {self.game}: {self.name} to the db")
-            cursor.execute("INSERT INTO archipelago.game_locations VALUES (%s, %s, %s)", (self.game, self.name, str(is_check)))
+            cursor.execute(
+                "INSERT INTO archipelago.game_locations VALUES (%s, %s, %s)",
+                (self.game, self.name, str(is_check)),
+            )
         finally:
             sqlcon.commit()
-        logger.debug(f"locationsdb: classified {self.game}: {self.name} as checkable: {is_checkable}")
+        logger.debug(
+            f"locationsdb: classified {self.game}: {self.name} as checkable: {is_checkable}"
+        )
         self.is_checkable = self.fetch_islocation_checkable()
+
+
 class Item(dict):
     """An Archipelago item in the multiworld"""
 
@@ -735,12 +814,26 @@ class Item(dict):
     spoiled = False
     received_timestamp: datetime.datetime = None
 
-    def __init__(self, sender: Player|str, receiver: Player, item: str, location: str, entrance: str = None, received_timestamp: float = None):
+    def __init__(
+        self,
+        sender: Player | str,
+        receiver: Player,
+        item: str,
+        location: str,
+        entrance: str = None,
+        received_timestamp: float = None,
+    ):
         super().__init__()
         self.receiver = receiver
         self.name = item
         self.game = receiver.game
-        self.location = Location(self, sender, location, sender.game if hasattr(sender, 'game') else None, entrance)
+        self.location = Location(
+            self,
+            sender,
+            location,
+            sender.game if hasattr(sender, "game") else None,
+            entrance,
+        )
         self.classification = self.set_item_classification(self)
         self.count: int = 1
         self.found = False
@@ -749,7 +842,9 @@ class Item(dict):
         self.received_timestamp = received_timestamp
 
         if self.game is None:
-            logger.warning(f"Item object for {self.name} has no game associated with it?")
+            logger.warning(
+                f"Item object for {self.name} has no game associated with it?"
+            )
 
         if self.game not in item_table:
             item_table[self.game] = {}
@@ -761,7 +856,9 @@ class Item(dict):
 
     def to_dict(self):
         return {
-            "receiver": str(self.receiver) if hasattr(self.receiver, 'name') else self.receiver,
+            "receiver": str(self.receiver)
+            if hasattr(self.receiver, "name")
+            else self.receiver,
             "name": self.name,
             "game": self.game,
             "location": self.location.to_dict(),
@@ -770,7 +867,9 @@ class Item(dict):
             "found": self.found,
             "hinted": self.hinted,
             "spoiled": self.spoiled,
-            "received_timestamp": self.received_timestamp.timestamp() if self.received_timestamp else None
+            "received_timestamp": self.received_timestamp.timestamp()
+            if self.received_timestamp
+            else None,
         }
 
     def collect(self):
@@ -794,51 +893,68 @@ class Item(dict):
         """
 
         permitted_values = [
-            "progression", # Unlocks new checks
-            "conditional progression", # Progression overall, but maybe only in certain settings or certain qualities
-            "useful", # Good to have but doesn't unlock anything new
-            "currency", # Filler, but specifically currency
-            "filler", # Filler - not really necessary
-            "trap" # Negative effect upon the player
-            ]
-        response = None # What we will ultimately return
+            "progression",  # Unlocks new checks
+            "conditional progression",  # Progression overall, but maybe only in certain settings or certain qualities
+            "useful",  # Good to have but doesn't unlock anything new
+            "currency",  # Filler, but specifically currency
+            "filler",  # Filler - not really necessary
+            "trap",  # Negative effect upon the player
+        ]
+        response = None  # What we will ultimately return
 
         player = self.receiver if player is None else player
 
         if self.game is None:
             return None
 
-        if self.game in classification_cache and self.name in classification_cache[self.game]:
-            if bool(classification_cache[self.game][self.name][1]) and (time.time() - classification_cache[self.game][self.name][1] > cache_timeout):
+        if (
+            self.game in classification_cache
+            and self.name in classification_cache[self.game]
+        ):
+            if bool(classification_cache[self.game][self.name][1]) and (
+                time.time() - classification_cache[self.game][self.name][1]
+                > cache_timeout
+            ):
                 if classification_cache[self.game][self.name][0] is None:
                     logger.warning(f"Invalidating cache for {self.game}: {self.name}")
                     del classification_cache[self.game][self.name]
             else:
                 classification = classification_cache[self.game][self.name][0]
-                if classification != "conditional progression": return classification
+                if classification != "conditional progression":
+                    return classification
 
         # Some games are 'simple' enough that everything (or near everything) is progression
         match self.game:
             case "Simon Tatham's Portable Puzzle Collection":
-                if self.name == "Filler": response = "filler"
-                else: response = "progression"
-            case "SlotLock"|"APBingo": response = "progression" # metagames are generally always progression
+                if self.name == "Filler":
+                    response = "filler"
+                else:
+                    response = "progression"
+            case "SlotLock" | "APBingo":
+                response = "progression"  # metagames are generally always progression
             case _:
                 cursor = sqlcon.cursor()
 
                 response = None
 
-                cursor.execute("CREATE TABLE IF NOT EXISTS archipelago.item_classifications (game bpchar, item bpchar, classification varchar(32), datapackage_checksum varchar(64))")
+                cursor.execute(
+                    "CREATE TABLE IF NOT EXISTS archipelago.item_classifications (game bpchar, item bpchar, classification varchar(32), datapackage_checksum varchar(64))"
+                )
                 # Add column if it doesn't exist
                 try:
-                    cursor.execute("ALTER TABLE archipelago.item_classifications ADD COLUMN IF NOT EXISTS datapackage_checksum varchar(64)")
+                    cursor.execute(
+                        "ALTER TABLE archipelago.item_classifications ADD COLUMN IF NOT EXISTS datapackage_checksum varchar(64)"
+                    )
                 except psql.Error:
                     pass  # Column might already exist
                 finally:
                     sqlcon.commit()
 
                 try:
-                    cursor.execute("SELECT classification, datapackage_checksum FROM archipelago.item_classifications WHERE game = %s AND item = %s;", (self.game, self.name))
+                    cursor.execute(
+                        "SELECT classification, datapackage_checksum FROM archipelago.item_classifications WHERE game = %s AND item = %s;",
+                        (self.game, self.name),
+                    )
                     result = cursor.fetchone()
                     if result and result[1]:  # Only use if datapackage_checksum exists
                         response = result[0]
@@ -847,48 +963,74 @@ class Item(dict):
                 except TypeError:
                     response = None
                 if response is None:
-                    logger.debug("Nothing found for this item, or no datapackage_checksum")
+                    logger.debug(
+                        "Nothing found for this item, or no datapackage_checksum"
+                    )
                     # Only add to db if we have a datapackage_checksum for this game/item
-                    cursor.execute("SELECT datapackage_checksum FROM archipelago.item_classifications WHERE game = %s AND item = %s;", (self.game, self.name))
+                    cursor.execute(
+                        "SELECT datapackage_checksum FROM archipelago.item_classifications WHERE game = %s AND item = %s;",
+                        (self.game, self.name),
+                    )
                     checksum_result = cursor.fetchone()
-                    if checksum_result and checksum_result[0] and (bool(response) and response != checksum_result[0]):
-                        logger.info(f"itemsdb: adding {self.game}: {self.name} to the db")
-                        cursor.execute("INSERT INTO archipelago.item_classifications VALUES (%s, %s, %s, %s) ON CONFLICT (game, item) DO UPDATE SET classification = COALESCE(EXCLUDED.classification, archipelago.item_classifications.classification), datapackage_checksum = COALESCE(EXCLUDED.datapackage_checksum, archipelago.item_classifications.datapackage_checksum);", (self.game, self.name, None, None))
+                    if (
+                        checksum_result
+                        and checksum_result[0]
+                        and (bool(response) and response != checksum_result[0])
+                    ):
+                        logger.info(
+                            f"itemsdb: adding {self.game}: {self.name} to the db"
+                        )
+                        cursor.execute(
+                            "INSERT INTO archipelago.item_classifications VALUES (%s, %s, %s, %s) ON CONFLICT (game, item) DO UPDATE SET classification = COALESCE(EXCLUDED.classification, archipelago.item_classifications.classification), datapackage_checksum = COALESCE(EXCLUDED.datapackage_checksum, archipelago.item_classifications.datapackage_checksum);",
+                            (self.game, self.name, None, None),
+                        )
                     else:
-                        logger.debug(f"itemsdb: skipping {self.game}: {self.name} as it has no datapackage_checksum")
+                        logger.debug(
+                            f"itemsdb: skipping {self.game}: {self.name} as it has no datapackage_checksum"
+                        )
                     sqlcon.commit()
 
         logger.debug(f"itemsdb: classified {self.game}: {self.name} as {response}")
         if self.game not in classification_cache:
             classification_cache[self.game] = {}
-        classification_cache[self.game][self.name] = (response.lower(), time.time()) if bool(response) else (None, time.time())
+        classification_cache[self.game][self.name] = (
+            (response.lower(), time.time()) if bool(response) else (None, time.time())
+        )
         return classification_cache[self.game][self.name][0]
         # return response
 
-
     def update_item_classification(self, classification: str) -> bool:
         # Abort if already set
-        if classification == self.classification: return True
+        if classification == self.classification:
+            return True
 
         permitted_values = [
-            "progression", # Unlocks new checks
-            "conditional progression", # Progression overall, but maybe only in certain settings or certain qualities
-            "useful", # Good to have but doesn't unlock anything new
-            "currency", # Filler, but specifically currency
-            "filler", # Filler - not really necessary
-            "trap" # Negative effect upon the player
-            ]
+            "progression",  # Unlocks new checks
+            "conditional progression",  # Progression overall, but maybe only in certain settings or certain qualities
+            "useful",  # Good to have but doesn't unlock anything new
+            "currency",  # Filler, but specifically currency
+            "filler",  # Filler - not really necessary
+            "trap",  # Negative effect upon the player
+        ]
         if classification not in permitted_values:
-            logger.error(f"Tried to update classification for {self.game}: {self.name} (value '{classification}' not permitted)")
+            logger.error(
+                f"Tried to update classification for {self.game}: {self.name} (value '{classification}' not permitted)"
+            )
             return False
 
-        logger.info(f"Request to update classification for {self.game}: {self.name} (to: {classification})")
+        logger.info(
+            f"Request to update classification for {self.game}: {self.name} (to: {classification})"
+        )
         cursor = sqlcon.cursor()
 
-        cursor.execute("CREATE TABLE IF NOT EXISTS archipelago.item_classifications (game bpchar, item bpchar, classification varchar(32), datapackage_checksum varchar(64))")
+        cursor.execute(
+            "CREATE TABLE IF NOT EXISTS archipelago.item_classifications (game bpchar, item bpchar, classification varchar(32), datapackage_checksum varchar(64))"
+        )
         # Add column if it doesn't exist
         try:
-            cursor.execute("ALTER TABLE archipelago.item_classifications ADD COLUMN IF NOT EXISTS datapackage_checksum varchar(64)")
+            cursor.execute(
+                "ALTER TABLE archipelago.item_classifications ADD COLUMN IF NOT EXISTS datapackage_checksum varchar(64)"
+            )
         except psql.Error:
             pass  # Column might already exist
         finally:
@@ -896,15 +1038,25 @@ class Item(dict):
 
         # Check if item has datapackage_checksum before allowing update
         try:
-            cursor.execute("SELECT datapackage_checksum FROM archipelago.item_classifications WHERE game = %s AND item = %s;", (self.game, self.name))
+            cursor.execute(
+                "SELECT datapackage_checksum FROM archipelago.item_classifications WHERE game = %s AND item = %s;",
+                (self.game, self.name),
+            )
             checksum_result = cursor.fetchone()
             if not checksum_result or not checksum_result[0]:
-                logger.error(f"Cannot update classification for {self.game}: {self.name} - no datapackage_checksum")
+                logger.error(
+                    f"Cannot update classification for {self.game}: {self.name} - no datapackage_checksum"
+                )
                 return False
 
-            cursor.execute("UPDATE archipelago.item_classifications set classification = %s where game = %s and item = %s;", (classification, self.game, self.name))
+            cursor.execute(
+                "UPDATE archipelago.item_classifications set classification = %s where game = %s and item = %s;",
+                (classification, self.game, self.name),
+            )
         except psql.errors.InFailedSqlTransaction as sqlerr:
-            logger.error(f"Couldn't update {classification}, SQL transaction failed along the way")
+            logger.error(
+                f"Couldn't update {classification}, SQL transaction failed along the way"
+            )
         finally:
             sqlcon.commit()
             self.set_item_classification(self.receiver)
@@ -913,16 +1065,18 @@ class Item(dict):
     def is_found(self):
         return self.found
 
-
     def is_filler(self):
         return self.classification == "filler"
+
     def is_currency(self):
         return self.classification == "currency"
+
 
 class PlayerSettings(dict):
     def __init__(self):
         super().__init__()
         pass
+
 
 def handle_item_tracking(game: Game, player: Player, item: Item):
     """If an item is an important collectable of some kind, we should put some extra info in the item name for the logs."""
@@ -944,13 +1098,13 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
         try:
             match game:
                 case "A Hat in Time":
-                    if item == "Time Piece" and not settings['Death Wish Only']:
+                    if item == "Time Piece" and not settings["Death Wish Only"]:
                         required = 0
-                        match settings['End Goal']:
-                            case 'Finale':
-                                required = settings['Chapter 5 Cost']
-                            case 'Rush Hour':
-                                required = settings['Chapter 7 Cost']
+                        match settings["End Goal"]:
+                            case "Finale":
+                                required = settings["Chapter 5 Cost"]
+                            case "Rush Hour":
+                                required = settings["Chapter 7 Cost"]
                         return f"{item} (*{count}/{required}*)"
                     if item == "Progressive Painting Unlock":
                         required = 3
@@ -958,41 +1112,39 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                     if item.startswith("Metro Ticket"):
                         required = 4
                         tickets = ["Yellow", "Green", "Blue", "Pink"]
-                        collected = [player.get_collected_items([f"Metro Ticket - {ticket}" for ticket in tickets])]
+                        collected = [
+                            player.get_collected_items(
+                                [f"Metro Ticket - {ticket}" for ticket in tickets]
+                            )
+                        ]
                         logger.debug(f"Collected tickets: {collected}")
                         return f"{item} ({len(collected)}/{required})"
                     if item.startswith("Relic"):
                         relics = {
                             "Burger": [
                                 "Relic (Burger Cushion)",
-                                "Relic (Burger Patty)"
+                                "Relic (Burger Patty)",
                             ],
                             "Cake": [
                                 "Relic (Cake Stand)",
                                 "Relic (Chocolate Cake Slice)",
                                 "Relic (Chocolate Cake)",
-                                "Relic (Shortcake)"
+                                "Relic (Shortcake)",
                             ],
                             "Crayon": [
                                 "Relic (Blue Crayon)",
                                 "Relic (Crayon Box)",
                                 "Relic (Green Crayon)",
-                                "Relic (Red Crayon)"
+                                "Relic (Red Crayon)",
                             ],
-                            "Necklace": [
-                                "Relic (Necklace Bust)",
-                                "Relic (Necklace)"
-                            ],
-                            "Train": [
-                                "Relic (Mountain Set)",
-                                "Relic (Train)"
-                            ],
+                            "Necklace": ["Relic (Necklace Bust)", "Relic (Necklace)"],
+                            "Train": ["Relic (Mountain Set)", "Relic (Train)"],
                             "UFO": [
                                 "Relic (Cool Cow)",
                                 "Relic (Cow)",
                                 "Relic (Tin-foil Hat Cow)",
-                                "Relic (UFO)"
-                            ]
+                                "Relic (UFO)",
+                            ],
                         }
                         for relic, parts in relics.items():
                             if any(part == item for part in parts):
@@ -1003,23 +1155,27 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                     if item == "Seashell":
                         return f"{item} ({count})"
                 case "Archipela-Go!":
-                    if settings['Goal'] == "Long Macguffin" and len(item) == 1:
+                    if settings["Goal"] == "Long Macguffin" and len(item) == 1:
                         items = list("Archipela-Go!")
                         collected = [player.get_collected_items(items)]
                         collected_string = ""
                         for i in items:
-                            if i in collected: collected_string += i
-                            else: collected_string += "_"
+                            if i in collected:
+                                collected_string += i
+                            else:
+                                collected_string += "_"
                         return f"{item} ({collected_string})"
                 case "Celeste (Open World)":
-                    if item == 'Strawberry':
-                        total = settings['Total Strawberries']
-                        required = round(total * (settings['Strawberries Required Percentage'] / 100))
+                    if item == "Strawberry":
+                        total = settings["Total Strawberries"]
+                        required = round(
+                            total * (settings["Strawberries Required Percentage"] / 100)
+                        )
                         return f"{item} *({count}/{required})*"
                 case "Donkey Kong 64":
                     kongs = ["Donkey", "Diddy", "Lanky", "Tiny", "Chunky"]
                     shopkeepers = ["Candy", "Cranky", "Funky", "Snide"]
-                    moves = { # Translate rando names to full names for convenience
+                    moves = {  # Translate rando names to full names for convenience
                         "Barrels": "Barrel Throwing",
                         "Bongos": "Bongo Blast",
                         "Coconut": "Coconut Shooter",
@@ -1033,29 +1189,35 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                         "Vines": "Vine Swinging",
                     }
                     if item == "Banana Fairy":
-                        required = settings['Rareware GB Requirment'] # sic
+                        required = settings["Rareware GB Requirment"]  # sic
                         total = 20
                         return f"{item} (*{count}/{required}*/{total})"
                     if item == "Banana Medal":
-                        required = settings['Jetpac Requirement']
+                        required = settings["Jetpac Requirement"]
                         return f"{item} (*{count}/{required}*)"
                     if item == "Golden Banana":
-                        max_gbs = max([settings[f"Level {num} B. Locker"] for num in range(1,9)])
+                        max_gbs = max(
+                            [settings[f"Level {num} B. Locker"] for num in range(1, 9)]
+                        )
                         total = 201
                         return f"{item} (*{count}/{max_gbs}*/{total})"
                     if item.startswith("Key "):
                         keys = 8
                         collected_string = ""
                         for k in range(keys):
-                                if player.has_item(f"Key {k+1}"): collected_string += str(k+1)
-                                else: collected_string += "_"
+                            if player.has_item(f"Key {k + 1}"):
+                                collected_string += str(k + 1)
+                            else:
+                                collected_string += "_"
                         return f"{item} ({collected_string})"
                     if item in kongs:
                         collected_string = ""
                         # collected_kongs = player.get_collected_items(kongs) # this is busted for whatever reason
                         for kong in kongs:
-                            if player.has_item(kong): collected_string += kong[0:1]
-                            else: collected_string += "__"
+                            if player.has_item(kong):
+                                collected_string += kong[0:1]
+                            else:
+                                collected_string += "__"
                         return f"{item} Kong ({collected_string})"
                     if item in moves.keys():
                         return moves[item]
@@ -1066,31 +1228,47 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                         return f"{item} ({count})"
                 case "Donkey Kong Country 3":
                     if item == "DK Coin":
-                        required = settings['Dk Coins For Gyrocopter']
+                        required = settings["Dk Coins For Gyrocopter"]
                         return f"{item} ({count}/{required})"
                 case "DOOM 1993":
                     if item.endswith(" - Complete"):
-                        count = len([i for i in player.inventory if str(i).endswith(" - Complete")])
+                        count = len(
+                            [
+                                i
+                                for i in player.inventory
+                                if str(i).endswith(" - Complete")
+                            ]
+                        )
                         required = 0
                         for episode in 1, 2, 3, 4:
                             if settings[f"Episode {episode}"] is True:
-                                required = required + (1 if settings['Goal'] == "Complete Boss Levels" else 9)
+                                required = required + (
+                                    1
+                                    if settings["Goal"] == "Complete Boss Levels"
+                                    else 9
+                                )
                         return f"{item} ({count}/{required})"
                 case "DOOM II":
                     if item.endswith(" - Complete"):
-                        count = len([i for i in player.inventory if str(i).endswith(" - Complete")])
+                        count = len(
+                            [
+                                i
+                                for i in player.inventory
+                                if str(i).endswith(" - Complete")
+                            ]
+                        )
                         required = 0
                         if settings["Episode 1"] is True:
-                            required = required + 11 # MAP01-MAP11
+                            required = required + 11  # MAP01-MAP11
                         if settings["Episode 2"] is True:
-                            required = required + 9 # MAP12-MAP20
+                            required = required + 9  # MAP12-MAP20
                         if settings["Episode 3"] is True:
-                            required = required + 10 #  MAP21-MAP30
+                            required = required + 10  #  MAP21-MAP30
                         if settings["Secret Levels"] is True:
-                            required = required + 2 # Wolfenstein/Grosse
+                            required = required + 2  # Wolfenstein/Grosse
                         return f"{item} ({count}/{required})"
                 case "Final Fantasy IV Free Enterprise":
-                    if item == "DkMatter" and settings['Find The Dark Matter'] is True:
+                    if item == "DkMatter" and settings["Find The Dark Matter"] is True:
                         required = 30
                         total = 45
                         return f"{item} (*{count}/{required}*)"
@@ -1102,29 +1280,55 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                     if item.startswith("Level Access"):
                         item_match = item_regex.match(item)
                         access, mapname = item_match.groups()
-                        friendly = gzd.lookupMap(wadname=settings['WAD to play'], mapname=mapname)
+                        friendly = gzd.lookupMap(
+                            wadname=settings["WAD to play"], mapname=mapname
+                        )
                         if friendly is not None:
                             logger.debug(f"Got friendly name for {mapname}: {friendly}")
                             item = item.replace(mapname, f"{mapname}: {friendly}")
                         else:
-                            logger.error(f"Couldn't lookup or find friendly name for {mapname}")
+                            logger.error(
+                                f"Couldn't lookup or find friendly name for {mapname}"
+                            )
 
-                        count = len([i for i in player.inventory if str(i).startswith("Level Access")])
+                        count = len(
+                            [
+                                i
+                                for i in player.inventory
+                                if str(i).startswith("Level Access")
+                            ]
+                        )
                         # total = len(settings['Included levels'])
-                        total = len([i for i in player.spoilers['items'] if str(i).startswith("Level Access")])
+                        total = len(
+                            [
+                                i
+                                for i in player.spoilers["items"]
+                                if str(i).startswith("Level Access")
+                            ]
+                        )
                         return f"{item} ({count}/{total})"
                     if item.startswith("Level Clear"):
-                        count = len([i for i in player.inventory if str(i).startswith("Level Clear")])
+                        count = len(
+                            [
+                                i
+                                for i in player.inventory
+                                if str(i).startswith("Level Clear")
+                            ]
+                        )
                         required_num = 0
                         required_maps = []
                         req_maps_formatted = []
-                        if settings['Win conditions']['nrof-maps'] == "all":
-                            required_num = len(settings['Included levels'])
+                        if settings["Win conditions"]["nrof-maps"] == "all":
+                            required_num = len(settings["Included levels"])
                         else:
-                            if settings['Win conditions']['nrof-maps']:
-                                required_num = int(settings['Win conditions']['nrof-maps'])
-                            if settings['Win conditions']['specific-maps']:
-                                required_maps = list(settings['Win conditions']['specific-maps'])
+                            if settings["Win conditions"]["nrof-maps"]:
+                                required_num = int(
+                                    settings["Win conditions"]["nrof-maps"]
+                                )
+                            if settings["Win conditions"]["specific-maps"]:
+                                required_maps = list(
+                                    settings["Win conditions"]["specific-maps"]
+                                )
 
                         if len(required_maps) > 0:
                             for map in required_maps:
@@ -1133,59 +1337,132 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                                 else:
                                     req_maps_formatted.append(map)
 
-                        return f"{item} ({count}/{required_num}{f"+{",".join(req_maps_formatted)}" if len(required_maps) > 0 else ""})"
-                    if any([str(item).startswith(color) for color in ["Blue","Yellow","Red"]]) and not str(item) == "BlueArmor":
+                        return f"{item} ({count}/{required_num}{f'+{",".join(req_maps_formatted)}' if len(required_maps) > 0 else ''})"
+                    if (
+                        any(
+                            [
+                                str(item).startswith(color)
+                                for color in ["Blue", "Yellow", "Red"]
+                            ]
+                        )
+                        and not str(item) == "BlueArmor"
+                    ):
                         item_match = item_regex.match(item)
-                        subitem,map = item_match.groups()
+                        subitem, map = item_match.groups()
                         collected_string = str()
-                        keys = [f"{color}{key}" for color in ["Blue","Yellow","Red"] for key in ["Skull", "Card"]]
-                        map_keys = sorted([i for i in item_table['gzDoom'].keys() if (i.endswith(f"({map})") and any([key in i for key in keys]))])
+                        keys = [
+                            f"{color}{key}"
+                            for color in ["Blue", "Yellow", "Red"]
+                            for key in ["Skull", "Card"]
+                        ]
+                        map_keys = sorted(
+                            [
+                                i
+                                for i in item_table["gzDoom"].keys()
+                                if (
+                                    i.endswith(f"({map})")
+                                    and any([key in i for key in keys])
+                                )
+                            ]
+                        )
                         for i in map_keys:
-                            if player.has_item(i): collected_string += i[0]
-                            else: collected_string += "_"
+                            if player.has_item(i):
+                                collected_string += i[0]
+                            else:
+                                collected_string += "_"
                         if not player.has_item(f"Level Access ({map})"):
-                            collected_string = f"~~{collected_string}~~" # Strikethrough keys if map not found
+                            collected_string = f"~~{collected_string}~~"  # Strikethrough keys if map not found
                         return f"{item} ({collected_string})"
                 case "Here Comes Niko!":
                     if item == "Cassette":
-                        required = max({k: v for k, v in settings.items() if "Cassette Cost" in k}.values())
+                        required = max(
+                            {
+                                k: v
+                                for k, v in settings.items()
+                                if "Cassette Cost" in k
+                            }.values()
+                        )
                         return f"{item} ({count}/{required})"
-                    if item.endswith("Cassette") and settings['Cassette Logic'] == "Level Based":
+                    if (
+                        item.endswith("Cassette")
+                        and settings["Cassette Logic"] == "Level Based"
+                    ):
                         total = 10
                         return f"{item} ({count}/{total})"
                     if item == "Coin":
-                        required = 76 if settings['Completion Goal'] == "Employee" else settings['Elevator Cost']
+                        required = (
+                            76
+                            if settings["Completion Goal"] == "Employee"
+                            else settings["Elevator Cost"]
+                        )
                         return f"{item} (*{count}/{required}*)"
-                    if item in ["Hairball City Bone", "Turbine Town Bone", "Salmon Creek Forest Bone", "Public Pool Bone", "Bathhouse Bone", "Tadpole HQ Bone"] and settings['Bonesanity'] == "Insanity":
+                    if (
+                        item
+                        in [
+                            "Hairball City Bone",
+                            "Turbine Town Bone",
+                            "Salmon Creek Forest Bone",
+                            "Public Pool Bone",
+                            "Bathhouse Bone",
+                            "Tadpole HQ Bone",
+                        ]
+                        and settings["Bonesanity"] == "Insanity"
+                    ):
                         required = 5
                         return f"{item} ({count}/{required})"
-                    if item in ["Hairball City Fish", "Turbine Town Fish", "Salmon Creek Forest Fish", "Public Pool Fish", "Bathhouse Fish", "Tadpole HQ Fish"] and settings['Fishsanity'] == "Insanity":
+                    if (
+                        item
+                        in [
+                            "Hairball City Fish",
+                            "Turbine Town Fish",
+                            "Salmon Creek Forest Fish",
+                            "Public Pool Fish",
+                            "Bathhouse Fish",
+                            "Tadpole HQ Fish",
+                        ]
+                        and settings["Fishsanity"] == "Insanity"
+                    ):
                         required = 5
                         return f"{item} ({count}/{required})"
-                case "HITMAN World of Assasination": # sic
+                case "HITMAN World of Assasination":  # sic
                     if item.startswith("Level - "):
-                        count = len([i for i in player.inventory if str(i).startswith("Level - ")])
-                        total = len([i for i in player.spoilers['items'] if str(i).startswith("Level - ")])
+                        count = len(
+                            [
+                                i
+                                for i in player.inventory
+                                if str(i).startswith("Level - ")
+                            ]
+                        )
+                        total = len(
+                            [
+                                i
+                                for i in player.spoilers["items"]
+                                if str(i).startswith("Level - ")
+                            ]
+                        )
                         return f"{item} ({count}/{total})"
                     if item == "Contract Piece":
-                        required = settings['Required Contract Pieces']
+                        required = settings["Required Contract Pieces"]
                         return f"{item} (*{count}/{required}*)"
                 case "Hollow Knight":
                     if item == "Grub":
                         total = 46
                         return f"{item} ({count}/{total})"
 
-                    return item.replace("_", " ").replace("-"," - ")
+                    return item.replace("_", " ").replace("-", " - ")
                 case "Jigsaw":
                     if item.endswith("Puzzle Pieces"):
-                        starting_pieces: int = int(settings['Precollected pieces']) if settings['Precollected pieces'] else 0
+                        starting_pieces: int = (
+                            int(settings["Precollected pieces"])
+                            if settings["Precollected pieces"]
+                            else 0
+                        )
                         pieces_per_item: int = int(item.split()[0])
                         item_count: int = player.get_item_count(item)
 
                         total_pieces = starting_pieces + (pieces_per_item * item_count)
                         return f"{item} ({total_pieces} Available)"
                 case "Kingdom Hearts 2":
-
                     world_unlocks = {
                         "Naminé's Sketches": "Simulated Twilight Town",
                         "Ice Cream": "Twilight Town",
@@ -1204,7 +1481,7 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                     }
 
                     if item == "Bounty" and settings["Goal"] == "Hitlist":
-                        required = settings['Bounties Required']
+                        required = settings["Bounties Required"]
                         return f"{item} (*{count}/{required}*)"
 
                     if item in world_unlocks.keys():
@@ -1216,48 +1493,77 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                         else:
                             return f"{item} ({level} {count} Unlocked!)"
                 case "A Link to the Past":
-                    if item == "Triforce Piece" and "Triforce Hunt" in settings['Goal']:
-                        required = settings['Triforce Pieces Required']
+                    if item == "Triforce Piece" and "Triforce Hunt" in settings["Goal"]:
+                        required = settings["Triforce Pieces Required"]
                         return f"{item} (*{count}/{required}*)"
                     if item == "Piece of Heart":
                         if count % 4 == 0:
                             return f"{item} (+1 Heart Container)"
-                        else: return f"{item} ({count % 4}/4)"
+                        else:
+                            return f"{item} ({count % 4}/4)"
                 case "Mega Man 2":
                     if item.endswith("Access Codes"):
                         total = 8
-                        count = len([i for i in player.inventory if str(i).endswith("Access Codes")])
+                        count = len(
+                            [
+                                i
+                                for i in player.inventory
+                                if str(i).endswith("Access Codes")
+                            ]
+                        )
                         return f"{item} ({count}/{total})"
                 case "Muse Dash":
                     if item == "Music Sheet":
-                        song_count = settings['Starting Song Count'] + settings['Additional Song Count']
-                        total = round(song_count * (settings['Music Sheet Percentage'] / 100))
-                        required = round(total / (settings['Music Sheets Needed to Win'] / 100))
+                        song_count = (
+                            settings["Starting Song Count"]
+                            + settings["Additional Song Count"]
+                        )
+                        total = round(
+                            song_count * (settings["Music Sheet Percentage"] / 100)
+                        )
+                        required = round(
+                            total / (settings["Music Sheets Needed to Win"] / 100)
+                        )
                         return f"{item} ({count}/{required})"
-                case "Ocarina of Time"|"Ship of Harkinian":
-                    if item == "Triforce Piece" and settings['Triforce Hunt'] is True:
-                        if game == "Ocarina of Time": required = settings['Required Triforce Pieces']
+                case "Ocarina of Time" | "Ship of Harkinian":
+                    if item == "Triforce Piece" and settings["Triforce Hunt"] is True:
+                        if game == "Ocarina of Time":
+                            required = settings["Required Triforce Pieces"]
                         elif game == "Ship of Harkinian":
-                            required = round(settings['Triforce Hunt Pieces Total'] * (settings['Triforce Hunt Pieces Required Percentage'] / 100))
-                        else: pass
+                            required = round(
+                                settings["Triforce Hunt Pieces Total"]
+                                * (
+                                    settings["Triforce Hunt Pieces Required Percentage"]
+                                    / 100
+                                )
+                            )
+                        else:
+                            pass
                         return f"{item} ({count}/{required})"
                     if item == "Gold Skulltula Token":
                         required = 50
                         return f"{item} ({count}/{required})"
                     if item == "Progressive Wallet":
                         capacities = ["200", "500", "999"]
-                        if game == "Ship of Harkinian" and settings["Shuffle Child's Wallet"] is True:
+                        if (
+                            game == "Ship of Harkinian"
+                            and settings["Shuffle Child's Wallet"] is True
+                        ):
                             capacities.insert(0, "99")
-                        return f"{item} ({capacities[player.get_item_count(item)-1]} Capacity)"
+                        return f"{item} ({capacities[player.get_item_count(item) - 1]} Capacity)"
                     if item == "Progressive Scale":
                         tiers = ["Silver Scale", "Gold Scale"]
-                        if game == "Ship of Harkinian" and settings["Shuffle Swim"] is True:
+                        if (
+                            game == "Ship of Harkinian"
+                            and settings["Shuffle Swim"] is True
+                        ):
                             tiers.insert(0, "Bronze Scale")
-                        return f"{item} ({tiers[player.get_item_count(item)-1]})"
+                        return f"{item} ({tiers[player.get_item_count(item) - 1]})"
                     if item == "Piece of Heart":
                         if count % 4 == 0:
                             return f"{item} (+1 Heart Container)"
-                        else: return f"{item} ({count % 4}/4)"
+                        else:
+                            return f"{item} ({count % 4}/4)"
                     if item.endswith(" Small Key"):
                         return f"{item} ({count})"
                     if item.startswith("Ocarina ") and item.endswith(" Button"):
@@ -1275,48 +1581,96 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                             collected_str += "🔼"
                         return f"{item} ({collected_str})"
 
-
                 case "Pokemon Mystery Dungeon Explorers of Sky":
-                    sky_peaks = [ "1st Station Pass", "2nd Station Pass", "3rd Station Pass", "4th Station Pass",
-                        "5th Station Pass", "6th Station Pass", "7th Station Pass", "8th Station Pass",
-                        "9th Station Pass", "Sky Peak Summit Pass" ]
-                    instruments = ["Icy Flute", "Fiery Drum", "Terra Cymbal", "Aqua-Monica", "Rock Horn", "Grass Corner",
-                                   "Sky Melodica", "Stellar Symphony", "Null Bagpipes", "Glimmer Harp", "Toxic Sax",
-                                   "Biting Bass", "Knockout Bell", "Spectral Chimes", "Liar's Lyre", "Charge Synth",
-                                   "Norma-ccordion", "Psychic Cello", "Dragu-teki", "Steel Guitar"]
-                    seal_unlocks = [ "Ice Aegis Cave", "Rock Aegis Cave", "Steel Aegis Cave", "Aegis Cave Pit" ]
+                    sky_peaks = [
+                        "1st Station Pass",
+                        "2nd Station Pass",
+                        "3rd Station Pass",
+                        "4th Station Pass",
+                        "5th Station Pass",
+                        "6th Station Pass",
+                        "7th Station Pass",
+                        "8th Station Pass",
+                        "9th Station Pass",
+                        "Sky Peak Summit Pass",
+                    ]
+                    instruments = [
+                        "Icy Flute",
+                        "Fiery Drum",
+                        "Terra Cymbal",
+                        "Aqua-Monica",
+                        "Rock Horn",
+                        "Grass Corner",
+                        "Sky Melodica",
+                        "Stellar Symphony",
+                        "Null Bagpipes",
+                        "Glimmer Harp",
+                        "Toxic Sax",
+                        "Biting Bass",
+                        "Knockout Bell",
+                        "Spectral Chimes",
+                        "Liar's Lyre",
+                        "Charge Synth",
+                        "Norma-ccordion",
+                        "Psychic Cello",
+                        "Dragu-teki",
+                        "Steel Guitar",
+                    ]
+                    seal_unlocks = [
+                        "Ice Aegis Cave",
+                        "Rock Aegis Cave",
+                        "Steel Aegis Cave",
+                        "Aegis Cave Pit",
+                    ]
 
                     if item == "Progressive Sky Peak":
-                        return f"{item} ({sky_peaks[count-1]})"
+                        return f"{item} ({sky_peaks[count - 1]})"
                 case "Powerwash Simulator":
-                    if item == "A Job Well Done" and settings['Goal Type'] == "Mcguffin":
+                    if (
+                        item == "A Job Well Done"
+                        and settings["Goal Type"] == "Mcguffin"
+                    ):
                         # I need to figure out how to calculate the amount required
                         # so for now
                         pass
                 case "Pizza Tower":
                     if item == "Toppin":
-                        total = settings['Toppin Count']
-                        required = max([settings[f'Floor {num} Boss Toppins'] for num in range(1, 6)])
+                        total = settings["Toppin Count"]
+                        required = max(
+                            [
+                                settings[f"Floor {num} Boss Toppins"]
+                                for num in range(1, 6)
+                            ]
+                        )
                         return f"{item} ({count}/{required})"
                 case "Refunct":
                     if item == "Grass":
-                        total = 31
-                        required = int(total * (int(slot_data['required_grass']) / 100))
+                        total = int(slot_data["amount_grass"])
+                        required = int(total * (int(slot_data["required_grass"]) / 100))
                         return f"{item} ({count}/{required})"
                     if item.startswith("Trigger Cluster"):
-                        count = len([i for i in player.inventory if str(i).startswith("Trigger Cluster ")])
-                        total = len([i for i in player.spoilers['items'] if str(i).startswith("Trigger Cluster ")])
+                        count = len(
+                            [
+                                i
+                                for i in player.inventory
+                                if str(i).startswith("Trigger Cluster ")
+                            ]
+                        )
+                        total = 31
                         return f"{item} ({count}/{total})"
 
                 case "Simon Tatham's Portable Puzzle Collection":
                     # Tracking total access to puzzles instead of completion percentage
                     # that's for the locations
-                    total = settings['puzzle count']
+                    total = settings["puzzle count"]
                     count = len(player.inventory)
                     return f"{item} ({count}/{total})"
                 case "Sonic Adventure 2 Battle":
                     if item == "Emblem":
-                        required = round(settings['Max Emblem Cap'] * (settings["Emblem Percentage for Cannon's Core"] / 100))
+                        required = round(
+                            settings["Max Emblem Cap"]
+                            * (settings["Emblem Percentage for Cannon's Core"] / 100)
+                        )
                         return f"{item} ({count}/{required})"
                 case "Spyro 3":
                     if item == "Egg":
@@ -1334,83 +1688,120 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                 case "Super Mario 64":
                     if item == "Power Star":
                         required = round(
-                            settings['Total Power Stars']
-                            * (settings['Endless Stairs Star %'] / 100)
+                            settings["Total Power Stars"]
+                            * (settings["Endless Stairs Star %"] / 100)
                         )
                         return f"{item} ({count}/{required})"
-                case "Super Mario World"|"SMW: Spicy Mycena Waffles":
+                case "Super Mario World" | "SMW: Spicy Mycena Waffles":
                     if item == "Progressive Powerup":
                         prog_powerup = ["Super Mushroom", "Fire Flower", "Cape Feather"]
-                        return f"{item} ({prog_powerup[count-1]})"
-                    if item == "Yoshi Egg" and settings['Goal'] == "Yoshi Egg Hunt":
+                        return f"{item} ({prog_powerup[count - 1]})"
+                    if item == "Yoshi Egg" and settings["Goal"] == "Yoshi Egg Hunt":
                         required = round(
-                            settings['Max Number of Yoshi Eggs']
-                            * (settings['Required Percentage of Yoshi Eggs'] / 100))
+                            settings["Max Number of Yoshi Eggs"]
+                            * (settings["Required Percentage of Yoshi Eggs"] / 100)
+                        )
                         return f"{item} ({count}/{required})"
-                    if item == "Boss Token" and settings['Goal'] == "Bowser":
-                        required = settings['Bosses Required']
+                    if item == "Boss Token" and settings["Goal"] == "Bowser":
+                        required = settings["Bosses Required"]
                         return f"{item} ({count}/{required})"
                     if item == "Golden Yoshi Egg":
-                        required = round(settings['Golden Yoshi Eggs in Pool'] * (settings['Required Percentage of Golden Yoshi Eggs'] / 100))
+                        required = round(
+                            settings["Golden Yoshi Eggs in Pool"]
+                            * (
+                                settings["Required Percentage of Golden Yoshi Eggs"]
+                                / 100
+                            )
+                        )
                         return f"{item} ({count}/{required})"
 
                 case "Trackmania":
-                    medals = ["Bronze Medal", "Silver Medal", "Gold Medal", "Author Medal"]
+                    medals = [
+                        "Bronze Medal",
+                        "Silver Medal",
+                        "Gold Medal",
+                        "Author Medal",
+                    ]
                     # From TMAP docs:
                     # "The quickest medal equal to or below target difficulty is made the progression medal."
                     if itemlog.has_spoiler:
-                        target_difficulty = settings['Target Time Difficulty']
+                        target_difficulty = settings["Target Time Difficulty"]
                     else:
-                        target_difficulty = slot_data['TargetTimeSetting'] * 100
+                        target_difficulty = slot_data["TargetTimeSetting"] * 100
                     progression_medal_lookup = target_difficulty // 100
                     progression_medal = medals[progression_medal_lookup]
 
                     if item == progression_medal:
-                        total = len([l for l in itemlog.spoiler_log[str(player)].values() if l.location.name.endswith("Target Time")])
-                        required = sum([t['MedalTotal'] for t in slot_data['SeriesData']])
+                        total = len(
+                            [
+                                l
+                                for l in itemlog.spoiler_log[str(player)].values()
+                                if l.location.name.endswith("Target Time")
+                            ]
+                        )
+                        required = sum(
+                            [t["MedalTotal"] for t in slot_data["SeriesData"]]
+                        )
 
                         next_requirement: int = 0
-                        for series in slot_data['SeriesData']:
-                            next_requirement += series['MedalTotal']
+                        for series in slot_data["SeriesData"]:
+                            next_requirement += series["MedalTotal"]
                             if next_requirement >= count:
                                 break
 
-                        return f"{item} ({count}{f"/{next_requirement}" if next_requirement < required else ""}/{required})"
+                        return f"{item} ({count}{f'/{next_requirement}' if next_requirement < required else ''}/{required})"
                 case "TUNIC":
                     treasures = {
                         "DEF": ["Secret Legend", "Phonomath"],
                         "POTION": ["Spring Falls", "Just Some Pals", "Back To Work"],
-                        "SP": ["Forever Friend", "Mr Mayor", "Power Up", "Regal Weasel"],
-                        "MP": ["Sacred Geometry", "Vintage", "Dusty"]
+                        "SP": [
+                            "Forever Friend",
+                            "Mr Mayor",
+                            "Power Up",
+                            "Regal Weasel",
+                        ],
+                        "MP": ["Sacred Geometry", "Vintage", "Dusty"],
                     }
                     if item == "Flask Shard":
                         flask_progress = player.get_item_count(item) % 3
-                        return f"{item} ({"Gained Flask!" if flask_progress == 0 else f"{flask_progress}/3"})"
+                        return f"{item} ({'Gained Flask!' if flask_progress == 0 else f'{flask_progress}/3'})"
                     if item == "Fairy":
                         required = 20
-                        if count < 10: required = 10
+                        if count < 10:
+                            required = 10
                         return f"{item} ({count}/{required})"
                     if item == "Gold Questagon":
-                        required = settings['Gold Hexagons Required']
+                        required = settings["Gold Hexagons Required"]
                         return f"{item} (*{count}/{required}*)"
                     if item == "Golden Coin":
-                        required = [3,6,10,15,20]
+                        required = [3, 6, 10, 15, 20]
                         next_req = 0
                         for check in required:
-                            if count >= check: continue
+                            if count >= check:
+                                continue
                             if count < check:
                                 next_req = check
                                 break
-                        if next_req == 0: next_req = 20
+                        if next_req == 0:
+                            next_req = 20
 
                         return f"{item} ({count}/{next_req})"
                     if item in ["Blue Questagon", "Red Questagon", "Green Questagon"]:
-                        count = len(player.get_collected_items(["Blue Questagon", "Red Questagon", "Green Questagon"]))
+                        count = len(
+                            player.get_collected_items(
+                                ["Blue Questagon", "Red Questagon", "Green Questagon"]
+                            )
+                        )
                         required = 3
                         return f"{item} (*{count}/{required}*)"
                     if item == "Sword Upgrade":
-                        upgrades = ["Stick", "Ruin Seeker's Sword", "Librarian's Sword", "Heir's Sword"]
-                        upgrade = upgrades[count-1]
+                        upgrades = [
+                            "Stick",
+                            "Ruin Seeker's Sword",
+                            "Librarian's Sword",
+                            "Heir's Sword",
+                        ]
+                        upgrade = upgrades[count - 1]
                         return f"{item} (LV{count}: {upgrade})"
                     # Treasures
                     for stat, stat_items in treasures.items():
@@ -1419,7 +1810,8 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                 case "Twilight Princess":
                     if item == "Poe Soul":
                         required = 60
-                        if count < 20: required = 20
+                        if count < 20:
+                            required = 20
                         return f"{item} ({count}/{required})"
                 case "Void Stranger":
                     if item == "Greed Coin":
@@ -1431,39 +1823,78 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                         count = OneCount + (ThreeCount * 3)
                         return f"{item} ({count})"
                 case "Wario Land 4":
-                    if (item.startswith("Golden") and not item.startswith("Golden Jewel")) and "Treasure Hunt" in settings['Goal']:
-                        count = len([i for i in player.inventory if (str(i).startswith("Golden") and not str(i).startswith("Golden Jewel"))])
+                    if (
+                        item.startswith("Golden")
+                        and not item.startswith("Golden Jewel")
+                    ) and "Treasure Hunt" in settings["Goal"]:
+                        count = len(
+                            [
+                                i
+                                for i in player.inventory
+                                if (
+                                    str(i).startswith("Golden")
+                                    and not str(i).startswith("Golden Jewel")
+                                )
+                            ]
+                        )
                         required = settings["Golden Treasure Count"]
                         return f"{item} ({count}/{required})"
                     if item.endswith("Piece"):
                         # Gather all the jewels
-                        jewels = ["Emerald", "Entry Jewel", "Golden Jewel", "Ruby", "Sapphire", "Topaz"]
+                        jewels = [
+                            "Emerald",
+                            "Entry Jewel",
+                            "Golden Jewel",
+                            "Ruby",
+                            "Sapphire",
+                            "Topaz",
+                        ]
                         parts = ["Bottom Left", "Bottom Right", "Top Left", "Top Right"]
-                        jewel = next(j for j in jewels if j in item) # Get jewel name matching the item
+                        jewel = next(
+                            j for j in jewels if j in item
+                        )  # Get jewel name matching the item
 
                         # Count how many pieces of this jewel we have
-                        jewel_count = len(player.get_collected_items([f"{part} {jewel} Piece" for part in parts]))
-                        jewel_pieces = 4 # This is static
+                        jewel_count = len(
+                            player.get_collected_items(
+                                [f"{part} {jewel} Piece" for part in parts]
+                            )
+                        )
+                        jewel_pieces = 4  # This is static
 
                         def determine_complete_jewels() -> int:
                             """Helper function for WL4 jewels. Returns how many jewels have all pieces collected."""
                             completed = 0
                             for j in jewels:
-                                bottom_left = player.get_item_count(f"Bottom Left {j} Piece")
-                                bottom_right = player.get_item_count(f"Bottom Right {j} Piece")
+                                bottom_left = player.get_item_count(
+                                    f"Bottom Left {j} Piece"
+                                )
+                                bottom_right = player.get_item_count(
+                                    f"Bottom Right {j} Piece"
+                                )
                                 top_left = player.get_item_count(f"Top Left {j} Piece")
-                                top_right = player.get_item_count(f"Top Right {j} Piece")
+                                top_right = player.get_item_count(
+                                    f"Top Right {j} Piece"
+                                )
 
                                 # If we have at least one of each piece, we have at least one completed jewel
                                 # Get the minimum of all counts to determine how many
-                                if all([bottom_left > 0, bottom_right > 0, top_left > 0, top_right > 0]):
-                                    completed += min([bottom_left, bottom_right, top_left, top_right])
+                                if all(
+                                    [
+                                        bottom_left > 0,
+                                        bottom_right > 0,
+                                        top_left > 0,
+                                        top_right > 0,
+                                    ]
+                                ):
+                                    completed += min(
+                                        [bottom_left, bottom_right, top_left, top_right]
+                                    )
 
                             return completed
 
-
                         jewels_complete = determine_complete_jewels()
-                        jewels_required = settings['Required Jewels']
+                        jewels_required = settings["Required Jewels"]
 
                         # return f"{item} ({jewel_count}/{jewel_pieces}P|{jewels_complete}/{jewels_required}C)"
                         return f"{item} ({jewels_complete}/{jewels_required}C)"
@@ -1471,7 +1902,7 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                 # Manual Worlds
                 case "Manual_NewSuperMarioBrosDS_zuils":
                     if item == "Star Coin":
-                        required = settings['Star Coins Required']
+                        required = settings["Star Coins Required"]
                         return f"{item} (*{count}/{required}*)"
 
                 case _:
@@ -1482,27 +1913,53 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                             access, mapname = item_match.groups()
                             friendly = gzd.lookupMap(game=game, mapname=mapname)
                             if friendly is not None:
-                                logger.debug(f"Got friendly name for {mapname}: {friendly}")
+                                logger.debug(
+                                    f"Got friendly name for {mapname}: {friendly}"
+                                )
                                 item = item.replace(mapname, f"{mapname}: {friendly}")
                             else:
-                                logger.error(f"Couldn't lookup or find friendly name for {mapname}")
+                                logger.error(
+                                    f"Couldn't lookup or find friendly name for {mapname}"
+                                )
 
-                            count = len([i for i in player.inventory if str(i).startswith("Level Access")])
+                            count = len(
+                                [
+                                    i
+                                    for i in player.inventory
+                                    if str(i).startswith("Level Access")
+                                ]
+                            )
                             # total = len(settings['Included levels'])
-                            total = len([i for i in player.spoilers['items'] if str(i).startswith("Level Access")])
+                            total = len(
+                                [
+                                    i
+                                    for i in player.spoilers["items"]
+                                    if str(i).startswith("Level Access")
+                                ]
+                            )
                             return f"{item} ({count}/{total})"
                         if item.startswith("Level Clear"):
-                            count = len([i for i in player.inventory if str(i).startswith("Level Clear")])
+                            count = len(
+                                [
+                                    i
+                                    for i in player.inventory
+                                    if str(i).startswith("Level Clear")
+                                ]
+                            )
                             required_num = 0
                             required_maps = []
                             req_maps_formatted = []
-                            if settings['Win conditions']['nrof-maps'] == "all":
-                                required_num = len(settings['Included levels'])
+                            if settings["Win conditions"]["nrof-maps"] == "all":
+                                required_num = len(settings["Included levels"])
                             else:
-                                if settings['Win conditions']['nrof-maps']:
-                                    required_num = int(settings['Win conditions']['nrof-maps'])
-                                if settings['Win conditions']['specific-maps']:
-                                    required_maps = list(settings['Win conditions']['specific-maps'])
+                                if settings["Win conditions"]["nrof-maps"]:
+                                    required_num = int(
+                                        settings["Win conditions"]["nrof-maps"]
+                                    )
+                                if settings["Win conditions"]["specific-maps"]:
+                                    required_maps = list(
+                                        settings["Win conditions"]["specific-maps"]
+                                    )
 
                             if len(required_maps) > 0:
                                 for map in required_maps:
@@ -1511,23 +1968,53 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                                     else:
                                         req_maps_formatted.append(map)
 
-                            return f"{item} ({count}/{required_num}{f"+{",".join(req_maps_formatted)}" if len(required_maps) > 0 else ""})"
-                        if any([str(item).startswith(color) for color in ["Blue","Yellow","Red"]]) and not str(item) == "BlueArmor":
+                            return f"{item} ({count}/{required_num}{f'+{",".join(req_maps_formatted)}' if len(required_maps) > 0 else ''})"
+                        if (
+                            any(
+                                [
+                                    str(item).startswith(color)
+                                    for color in ["Blue", "Yellow", "Red"]
+                                ]
+                            )
+                            and not str(item) == "BlueArmor"
+                        ):
                             item_match = item_regex.match(item)
-                            subitem,map = item_match.groups()
+                            subitem, map = item_match.groups()
                             collected_string = str()
-                            keys = [f"{color}{key}" for color in ["Blue","Yellow","Red"] for key in ["Skull", "Card", " Security Card", " Skull Key"]]
-                            map_keys = sorted([i for i in item_table[game].keys() if (i.endswith(f"({map})") and any([key in i for key in keys]))])
+                            keys = [
+                                f"{color}{key}"
+                                for color in ["Blue", "Yellow", "Red"]
+                                for key in [
+                                    "Skull",
+                                    "Card",
+                                    " Security Card",
+                                    " Skull Key",
+                                ]
+                            ]
+                            map_keys = sorted(
+                                [
+                                    i
+                                    for i in item_table[game].keys()
+                                    if (
+                                        i.endswith(f"({map})")
+                                        and any([key in i for key in keys])
+                                    )
+                                ]
+                            )
                             for i in map_keys:
-                                if player.has_item(i): collected_string += i[0]
-                                else: collected_string += "_"
+                                if player.has_item(i):
+                                    collected_string += i[0]
+                                else:
+                                    collected_string += "_"
                             if not player.has_item(f"Level Access ({map})"):
-                                collected_string = f"~~{collected_string}~~" # Strikethrough keys if map not found
+                                collected_string = f"~~{collected_string}~~"  # Strikethrough keys if map not found
                             return f"{item} ({collected_string})"
 
                     return item
         except Exception as e:
-            logger.error(f"Error while parsing tracking info for item {item} in game {game}:", e)
+            logger.error(
+                f"Error while parsing tracking info for item {item} in game {game}:", e
+            )
             # If we can't parse the item, just return the name
             # This is to prevent the bot from crashing if something goes wrong
             # with the settings or the item name.
@@ -1537,9 +2024,9 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
     # Return the same name if nothing matched (or no settings available)
     return item
 
+
 def handle_location_tracking(game: Game, player: Player, item: Item):
     """If checking a location is an indicator of progress, we should track that in the location name."""
-
 
     ItemObject = item
     location = item.location.name
@@ -1555,32 +2042,50 @@ def handle_location_tracking(game: Game, player: Player, item: Item):
 
         match game:
             case "A Hat in Time":
-                if location.startswith("Tasksanity") and settings['Tasksanity'] is True:
-                    total = settings['Tasksanity Check Count']
+                if location.startswith("Tasksanity") and settings["Tasksanity"] is True:
+                    total = settings["Tasksanity Check Count"]
                     return f"{location}/{total}"
             case "Hollow Knight":
                 # There'll probably be something here later
-                return location.replace("_", " ").replace("-"," - ")
+                return location.replace("_", " ").replace("-", " - ")
             case "Jigsaw":
                 if location.startswith("Merge"):
                     count = player.collected_locations
-                    dimensions = settings['Puzzle dimension'].split("×")
+                    dimensions = settings["Puzzle dimension"].split("×")
                     required = int(dimensions[0]) * int(dimensions[1])
                     return f"{location} (of {required})"
             case "Mega Man 2":
                 if location.endswith(" - Defeated"):
-                    count = len([l for l in spoiler.values() if l.location.name.endswith(" - Defeated") and l.found is True])
+                    count = len(
+                        [
+                            l
+                            for l in spoiler.values()
+                            if l.location.name.endswith(" - Defeated")
+                            and l.found is True
+                        ]
+                    )
                     required = 8
                     return f"{location} ({count}/{required})"
             case "Simon Tatham's Portable Puzzle Collection":
-                required = round(settings['puzzle count']
-                                 * (settings['Target Completion Percentage'] / 100))
+                required = round(
+                    settings["puzzle count"]
+                    * (settings["Target Completion Percentage"] / 100)
+                )
                 count = player.collected_locations
                 return f"{location} ({count}/{required})"
             case "Spyro 3":
-                if "Skill Point" in location and settings['Completion Goal'] == "All Skillpoints":
+                if (
+                    "Skill Point" in location
+                    and settings["Completion Goal"] == "All Skillpoints"
+                ):
                     total = 20
-                    count = len([l for l in spoiler.values() if "Skill Point" in l.location.name and l.found is True])
+                    count = len(
+                        [
+                            l
+                            for l in spoiler.values()
+                            if "Skill Point" in l.location.name and l.found is True
+                        ]
+                    )
                     return f"{location} (*{count}/{total}*)"
             # case "Trackmania":
             #     if location.endswith("Target Time"):
@@ -1592,7 +2097,10 @@ def handle_location_tracking(game: Game, player: Player, item: Item):
                 return location
     return location
 
-def handle_location_hinting(player: Player, location: Location) -> tuple[list[str], str]:
+
+def handle_location_hinting(
+    player: Player, location: Location
+) -> tuple[list[str], str]:
     """Some locations have a cost or extra info associated with it.
     If an item that's hinted is on this location, go through similar steps to
     the tracking functions to provide info on costs etc."""
@@ -1611,27 +2119,63 @@ def handle_location_hinting(player: Player, location: Location) -> tuple[list[st
             case "Here Comes Niko!":
                 contact_lists = {
                     "1": [
-                        f"Hairball City - {npc}" for npc in ["Mitch", "Mai", "Moomy", "Blippy Dog", "Nina"]
-                    ] + [
-                        f"Turbine Town - {npc}" for npc in ["Mitch", "Mai", "Blippy Dog"]
-                    ] + [
-                        f"Salmon Creek Forest - {npc}" for npc in (["SPORTVIVAL", "Mai"]
-                        + ["Fish with Fischer", "Bass", "Catfish", "Pike", "Salmon", "Trout"])
+                        f"Hairball City - {npc}"
+                        for npc in ["Mitch", "Mai", "Moomy", "Blippy Dog", "Nina"]
+                    ]
+                    + [
+                        f"Turbine Town - {npc}"
+                        for npc in ["Mitch", "Mai", "Blippy Dog"]
+                    ]
+                    + [
+                        f"Salmon Creek Forest - {npc}"
+                        for npc in (
+                            ["SPORTVIVAL", "Mai"]
+                            + [
+                                "Fish with Fischer",
+                                "Bass",
+                                "Catfish",
+                                "Pike",
+                                "Salmon",
+                                "Trout",
+                            ]
+                        )
                     ],
                     "2": [
-                        f"Hairball City - {npc}" for npc in ["Game Kid", "Blippy", "Serschel & Louist"]
-                    ] + [
-                        f"Turbine Town - {npc}" for npc in ["Blippy", "Serschel & Louist"]
-                    ] + [
-                        f"Salmon Creek Forest - {npc}" for npc in ["Game Kid", "Blippy", "Serschel & Louist"]
-                    ] + [
-                        f"Public Pool - {npc}" for npc in (["Mitch", "SPORTVIVAL VOLLEY", "Blessley"]
-                        + ["Little Gabi's Flowers"] + [f"Flowerbed {num+1}" for num in range(3)])
-                    ] + [
-                        f"Bathhouse - {npc}" for npc in (["Blessley", "Blippy", "Blippy Dog"]
-                        + ["Little Gabi's Flowers"] + [f"Flowerbed {num+1}" for num in range(3)]
-                        + ["Fish with Fischer", "Anglerfish", "Clione", "Jellyfish", "Little Wiggly Guy", "Pufferfish"])
+                        f"Hairball City - {npc}"
+                        for npc in ["Game Kid", "Blippy", "Serschel & Louist"]
                     ]
+                    + [
+                        f"Turbine Town - {npc}"
+                        for npc in ["Blippy", "Serschel & Louist"]
+                    ]
+                    + [
+                        f"Salmon Creek Forest - {npc}"
+                        for npc in ["Game Kid", "Blippy", "Serschel & Louist"]
+                    ]
+                    + [
+                        f"Public Pool - {npc}"
+                        for npc in (
+                            ["Mitch", "SPORTVIVAL VOLLEY", "Blessley"]
+                            + ["Little Gabi's Flowers"]
+                            + [f"Flowerbed {num + 1}" for num in range(3)]
+                        )
+                    ]
+                    + [
+                        f"Bathhouse - {npc}"
+                        for npc in (
+                            ["Blessley", "Blippy", "Blippy Dog"]
+                            + ["Little Gabi's Flowers"]
+                            + [f"Flowerbed {num + 1}" for num in range(3)]
+                            + [
+                                "Fish with Fischer",
+                                "Anglerfish",
+                                "Clione",
+                                "Jellyfish",
+                                "Little Wiggly Guy",
+                                "Pufferfish",
+                            ]
+                        )
+                    ],
                 }
 
                 level = None
@@ -1647,7 +2191,7 @@ def handle_location_hinting(player: Player, location: Location) -> tuple[list[st
                     cost = settings[f"{location} Cassette Cost"]
 
                     # Cassette Requirements
-                    if settings['Cassette Logic'] == "Level Based":
+                    if settings["Cassette Logic"] == "Level Based":
                         requirements.append(f"{cost} {level} Cassettes")
                     else:
                         requirements.append(f"{cost} Cassettes")
@@ -1664,27 +2208,33 @@ def handle_location_hinting(player: Player, location: Location) -> tuple[list[st
                 if location in contact_lists["2"]:
                     requirements.append("Contact List 2")
 
-                if "Chatsanity" in location and settings['Textbox'] is True:
+                if "Chatsanity" in location and settings["Textbox"] is True:
                     requirements.append("Textbox")
 
             case "Hollow Knight":
                 # Some items that are bought have costs in the slot data
-                if bool(player.slot_data) and bool(player.slot_data.get('location_costs')):
-                    loc_costs = player.slot_data['location_costs']
+                if bool(player.slot_data) and bool(
+                    player.slot_data.get("location_costs")
+                ):
+                    loc_costs = player.slot_data["location_costs"]
                     if location in loc_costs:
                         for k, v in loc_costs[location].items():
-                            requirements.append(f"{v} {k.replace('RANCIDEGGS', 'Rancid Eggs').title()}")
+                            requirements.append(
+                                f"{v} {k.replace('RANCIDEGGS', 'Rancid Eggs').title()}"
+                            )
 
             case "Ship of Harkinian":
-                if bool(player.slot_data) and bool(player.slot_data.get('shop_prices')):
-                    shop_prices = player.slot_data['shop_prices']
+                if bool(player.slot_data) and bool(player.slot_data.get("shop_prices")):
+                    shop_prices = player.slot_data["shop_prices"]
                     if location in shop_prices:
                         requirements.append(f"{shop_prices[location]} Rupees")
 
-
     if bool(requirements):
-        logger.info(f"Updating item's location {l.name} with requirements: {requirements}")
+        logger.info(
+            f"Updating item's location {l.name} with requirements: {requirements}"
+        )
     return (requirements, extra_info)
+
 
 def handle_state_tracking(player: Player, game: Game):
     """Use the tracked game state to build a summary of the player's progress."""
@@ -1703,19 +2253,25 @@ def handle_state_tracking(player: Player, game: Game):
     try:
         match player_game:
             case "A Hat in Time":
-                hats = ["Sprint Hat", "Brewing Hat", "Ice Hat", "Dweller Mask", "Time Stop Hat"]
+                hats = [
+                    "Sprint Hat",
+                    "Brewing Hat",
+                    "Ice Hat",
+                    "Dweller Mask",
+                    "Time Stop Hat",
+                ]
                 collected_hats = player.get_collected_items(hats)
                 time_pieces = player.get_item_count("Time Piece")
                 time_pieces_required: int
 
-                goal = settings['End Goal']
+                goal = settings["End Goal"]
                 match goal:
                     case "Finale":
                         goal_str = "Defeat Mustache Girl"
-                        time_pieces_required = settings['Chapter 5 Cost']
+                        time_pieces_required = settings["Chapter 5 Cost"]
                     case "Rush Hour":
                         goal_str = "Escape Nyakuza Metro's Rush Hour"
-                        time_pieces_required = settings['Chapter 7 Cost']
+                        time_pieces_required = settings["Chapter 7 Cost"]
                     case "Seal The Deal":
                         goal_str = "Seal the Deal with Snatcher"
                     case _:
@@ -1723,76 +2279,118 @@ def handle_state_tracking(player: Player, game: Game):
                 if goal == "Finale" or goal == "Rush Hour":
                     player.stats.set_stat("time_pieces", time_pieces)
                     player.stats.set_stat("time_pieces_required", time_pieces_required)
-                player.stats.set_stat("found_hats", [hat.name for hat in collected_hats])
+                player.stats.set_stat(
+                    "found_hats", [hat.name for hat in collected_hats]
+                )
 
                 if goal == "Rush Hour":
                     metro_tickets = ["Yellow", "Pink", "Green", "Blue"]
-                    player.stats.set_stat("collected_tickets", [item.name for item in player.get_collected_items([f"Metro Ticket - {color}" for color in metro_tickets]) ])
+                    player.stats.set_stat(
+                        "collected_tickets",
+                        [
+                            item.name
+                            for item in player.get_collected_items(
+                                [f"Metro Ticket - {color}" for color in metro_tickets]
+                            )
+                        ],
+                    )
 
                 world_costs = {
-                    "Kitchen": settings['Chapter 1 Cost'],
-                    "Machine Room": settings['Chapter 2 Cost'],
-                    "Bedroom": settings['Chapter 3 Cost'],
-                    "Boiler Room": settings['Chapter 4 Cost'],
-                    "Attic": settings['Chapter 5 Cost'],
-                    "Laundry": settings['Chapter 6 Cost'],
-                    "Lab": settings['Chapter 7 Cost'],
+                    "Kitchen": settings["Chapter 1 Cost"],
+                    "Machine Room": settings["Chapter 2 Cost"],
+                    "Bedroom": settings["Chapter 3 Cost"],
+                    "Boiler Room": settings["Chapter 4 Cost"],
+                    "Attic": settings["Chapter 5 Cost"],
+                    "Laundry": settings["Chapter 6 Cost"],
+                    "Lab": settings["Chapter 7 Cost"],
                 }
-                player.stats.set_stat("accessible_worlds",[k for k, v in world_costs.items() if time_pieces >= v])
+                player.stats.set_stat(
+                    "accessible_worlds",
+                    [k for k, v in world_costs.items() if time_pieces >= v],
+                )
 
             case "Blasphemous":
                 goal = settings["Ending"]
 
                 match goal:
-                    case "Any Ending"|"Ending A":
-                        goal_str = "Reach the Cradle of Affliction with all Thorn Upgrades"
+                    case "Any Ending" | "Ending A":
+                        goal_str = (
+                            "Reach the Cradle of Affliction with all Thorn Upgrades"
+                        )
                     case "Ending C":
                         goal_str = "Reach the Cradle of Affliction with all Thorn Upgrades, and the Holy Wound of Abnegation"
 
             case "Celeste (Open World)":
-                goal = settings['Goal Area']
+                goal = settings["Goal Area"]
 
-                required_strawberries = settings['Total Strawberries'] * (settings['Strawberries Required Percentage'] / 100)
-                goal_with_strawbs = lambda string: string + f" (with {int(required_strawberries)} Strawberries)"
+                required_strawberries = settings["Total Strawberries"] * (
+                    settings["Strawberries Required Percentage"] / 100
+                )
+                goal_with_strawbs = (
+                    lambda string: string
+                    + f" (with {int(required_strawberries)} Strawberries)"
+                )
 
                 match goal:
                     case "The Summit A":
-                        goal_str = goal_with_strawbs("Reach the Summit of Mount Celeste")
+                        goal_str = goal_with_strawbs(
+                            "Reach the Summit of Mount Celeste"
+                        )
                     case "The Summit B":
-                        goal_str = goal_with_strawbs("Take a Harder Path to Mount Celeste's Summit")
+                        goal_str = goal_with_strawbs(
+                            "Take a Harder Path to Mount Celeste's Summit"
+                        )
                     case "The Summit C":
                         goal_str = goal_with_strawbs("Reach Celeste's Hardest Peak")
                     case "Core A":
                         goal_str = goal_with_strawbs("Reach the Heart of the Mountain")
                     case "Core B":
-                        goal_str = goal_with_strawbs("Understand the Heart of the Mountain")
+                        goal_str = goal_with_strawbs(
+                            "Understand the Heart of the Mountain"
+                        )
                     case "Core C":
-                        goal_str = goal_with_strawbs("Conquer the Heart of the Mountain")
+                        goal_str = goal_with_strawbs(
+                            "Conquer the Heart of the Mountain"
+                        )
                     case "Empty Space":
                         goal_str = goal_with_strawbs("Reach Acceptance?")
                     case "Farewell":
                         goal_str = goal_with_strawbs("Bid Farewell")
                     case "Farewell Golden":
-                        goal_str = goal_with_strawbs("Conquer Farewell's Hardest Challenge")
+                        goal_str = goal_with_strawbs(
+                            "Conquer Farewell's Hardest Challenge"
+                        )
 
             case "Donkey Kong 64":
-                goal = settings['Goal']
+                goal = settings["Goal"]
 
-                dk64_goal = lambda string: string + (", then defeat King K. Rool" if settings['Require Beating K. Rool'] else "")
+                dk64_goal = lambda string: string + (
+                    ", then defeat King K. Rool"
+                    if settings["Require Beating K. Rool"]
+                    else ""
+                )
 
                 match goal:
-                    case "Beat K Rool"|"Krool":
-                        keys_required = settings['Keys Required to Beat Krool']
-                        goal_str = (f"Collect {keys_required} Keys, then " if keys_required > 0 else "") + "Defeat King K. Rool"
+                    case "Beat K Rool" | "Krool":
+                        keys_required = settings["Keys Required to Beat Krool"]
+                        goal_str = (
+                            f"Collect {keys_required} Keys, then "
+                            if keys_required > 0
+                            else ""
+                        ) + "Defeat King K. Rool"
                     case "All Keys":
                         goal_str = dk64_goal("Collect all 8 Keys to K. Lumsy's Cage")
                     case "Acquire Key 8":
-                        if settings['Lock Helm Key'] is True:
-                            goal_str = dk64_goal("Break into Hideout Helm and obtain Key 8")
+                        if settings["Lock Helm Key"] is True:
+                            goal_str = dk64_goal(
+                                "Break into Hideout Helm and obtain Key 8"
+                            )
                         else:
                             goal_str = dk64_goal("Obtain Key 8 for K. Lumsy's Cage")
                     case "Kremling Kapture":
-                        goal_str = dk64_goal("Take a photo of every single enemy in the game")
+                        goal_str = dk64_goal(
+                            "Take a photo of every single enemy in the game"
+                        )
                     case "DK Rap":
                         # Every item mentioned in the DK Rap
                         # That is:
@@ -1803,65 +2401,79 @@ def handle_state_tracking(player: Player, game: Game):
                         # Chunky: Barrel Throwing
                         # 'Fridge': Cranky, Peanut Popguns, Pineapple Launcher, Grape Shooter,
                         # Orange Throwing, Coconut Gun
-                        goal_str = dk64_goal("Collect every item mentioned in the DK Rap")
+                        goal_str = dk64_goal(
+                            "Collect every item mentioned in the DK Rap"
+                        )
                     case "Golden Bananas":
-                        required = settings['Goal Quantity']['Golden Bananas']
+                        required = settings["Goal Quantity"]["Golden Bananas"]
                         goal_str = dk64_goal(f"Collect {required} Golden Bananas")
                     case "Blueprints":
-                        required = settings['Goal Quantity']['Blueprints']
+                        required = settings["Goal Quantity"]["Blueprints"]
                         goal_str = dk64_goal(f"Collect {required} Blueprints")
                     case "Company Coins":
-                        required = settings['Goal Quantity']['Company Coins']
+                        required = settings["Goal Quantity"]["Company Coins"]
                         if required == 1:
-                            goal_str = dk64_goal("Find either the Nintendo or Rareware Company Coin")
+                            goal_str = dk64_goal(
+                                "Find either the Nintendo or Rareware Company Coin"
+                            )
                         elif required == 2:
-                            goal_str = dk64_goal("Find both the Nintendo and Rareware Company Coins")
+                            goal_str = dk64_goal(
+                                "Find both the Nintendo and Rareware Company Coins"
+                            )
                         else:
                             goal_str = dk64_goal(f"Collect {required} Company Coins")
                     case "Keys":
-                        required = settings['Goal Quantity']['Keys']
+                        required = settings["Goal Quantity"]["Keys"]
                         goal_str = dk64_goal(f"Collect {required} Keys")
                     case "Medals":
-                        required = settings['Goal Quantity']['Medals']
+                        required = settings["Goal Quantity"]["Medals"]
                         goal_str = dk64_goal(f"Collect {required} Banana Medals")
                     case "Crowns":
-                        required = settings['Goal Quantity']['Crowns']
+                        required = settings["Goal Quantity"]["Crowns"]
                         goal_str = dk64_goal(f"Collect {required} Battle Crowns")
                     case "Fairies":
-                        required = settings['Goal Quantity']['Fairies']
+                        required = settings["Goal Quantity"]["Fairies"]
                         goal_str = dk64_goal(f"Rescue {required} Fairies")
                     case "Rainbow Coins":
-                        required = settings['Goal Quantity']['Rainbow Coins']
+                        required = settings["Goal Quantity"]["Rainbow Coins"]
                         goal_str = dk64_goal(f"Collect {required} Rainbow Coins")
                     case "Bean":
                         goal_str = dk64_goal("Find The Bean")
                     case "Pearls":
-                        required = settings['Goal Quantity']['Pearls']
-                        goal_str = dk64_goal(f"Collect {required} Pearls for the Mermaid in Galleon")
+                        required = settings["Goal Quantity"]["Pearls"]
+                        goal_str = dk64_goal(
+                            f"Collect {required} Pearls for the Mermaid in Galleon"
+                        )
                     case "Bosses":
-                        required = settings['Goal Quantity']['Bosses']
+                        required = settings["Goal Quantity"]["Bosses"]
                         goal_str = dk64_goal(f"Defeat {required} Bosses")
                     case "Bonuses":
-                        required = settings['Goal Quantity']['Bonuses']
+                        required = settings["Goal Quantity"]["Bonuses"]
                         goal_str = dk64_goal(f"Complete {required} Bonus Barrels")
                     case "Treasure Hurry":
-                        goal_str = dk64_goal("Run down the clock by collecting treasure")
+                        goal_str = dk64_goal(
+                            "Run down the clock by collecting treasure"
+                        )
                     case "Krools Challenge":
-                        goal_str = "Defeat King K. Rool - but only after collecting all keys and blueprints, " \
-                                    "defeating every other boss, and completing all bonus barrels"
+                        goal_str = (
+                            "Defeat King K. Rool - but only after collecting all keys and blueprints, "
+                            "defeating every other boss, and completing all bonus barrels"
+                        )
                     case "Kill The Rabbit":
-                        goal_str = dk64_goal("Find your way to Chunky's Igloo in Crystal Caves, then watch the rabbit get " \
-                                    "blown up (you monster)")
+                        goal_str = dk64_goal(
+                            "Find your way to Chunky's Igloo in Crystal Caves, then watch the rabbit get "
+                            "blown up (you monster)"
+                        )
 
             case "Here Comes Niko!":
                 coins = player.get_item_count("Coin")
                 coins_required: int = None
 
-                goal = settings['Completion Goal']
+                goal = settings["Completion Goal"]
                 match goal:
                     case "Hired":
                         goal_str = "Get Hired as a Professional Friend"
-                        coins_required = settings['Elevator Cost']
+                        coins_required = settings["Elevator Cost"]
                     case "Employee":
                         goal_str = "Become Employee of the Month"
                         coins_required = 76
@@ -1875,7 +2487,7 @@ def handle_state_tracking(player: Player, game: Game):
                         # 'min_custom_goal_cost' and 'max_custom_goal_cost'
                         # Will need to find where it gets set in the generated seed
                         # for now:
-                        coins_required = settings['Max Custom Goal Cost']
+                        coins_required = settings["Max Custom Goal Cost"]
                         goal_str = f"Collect up to {coins_required} Coins"
                     case _:
                         goal_str = goal
@@ -1892,11 +2504,18 @@ def handle_state_tracking(player: Player, game: Game):
                 ]
 
                 player.stats.set_stat("coins", coins)
-                if bool(coins_required): player.stats.set_stat("coins_required", coins_required)
-                player.stats.set_stat("movement_abilities", [ability.name for ability in player.get_collected_items(movement_abilities)])
+                if bool(coins_required):
+                    player.stats.set_stat("coins_required", coins_required)
+                player.stats.set_stat(
+                    "movement_abilities",
+                    [
+                        ability.name
+                        for ability in player.get_collected_items(movement_abilities)
+                    ],
+                )
 
             case "Hollow Knight":
-                goal = settings['Goal']
+                goal = settings["Goal"]
 
                 match goal:
                     # Some of these I'll have to ask for clarification on, but for now:
@@ -1905,52 +2524,52 @@ def handle_state_tracking(player: Player, game: Game):
                     case "Hollowknight":
                         goal_str = "Defeat the Hollow Knight"
                     case "Siblings":
-                        pass # Needs clarification
+                        pass  # Needs clarification
                     case "Radiance":
                         goal_str = "Defeat the Radiance"
                     case "Godhome":
                         goal_str = "Complete Godhome"
                     case "Godhome Flower":
-                        pass # Needs clarification
+                        pass  # Needs clarification
                     case "Grub Hunt":
-                        required = settings['GrubHuntGoal']
+                        required = settings["GrubHuntGoal"]
                         goal_str = f"Rescue {required} Grubs"
                     case _:
                         goal_str = goal
 
             case "Kingdom Hearts 2":
-                match settings['Goal']:
+                match settings["Goal"]:
                     case "Three Proofs":
                         goal_str = "Collect the Three Proofs of Connection, Nonexistence and Peace"
                     case "Hitlist":
-                        required = settings['Bounties Required']
+                        required = settings["Bounties Required"]
                         goal_str = f"Collect {required} Bounties"
                     case _:
-                        goal_str = settings['Goal']
+                        goal_str = settings["Goal"]
 
             case "Jigsaw":
-                dimensions = settings['Puzzle dimension'].split("×")
+                dimensions = settings["Puzzle dimension"].split("×")
                 required = int(dimensions[0]) * int(dimensions[1])
                 goal_str = f"Complete a {settings['Puzzle dimension']} ({required} piece) Puzzle"
 
             case "A Link to the Past":
                 # Goal matching
-                if settings['Goal'].endswith("Triforce Hunt"):
-                    required_pieces = settings['Triforce Pieces Required']
+                if settings["Goal"].endswith("Triforce Hunt"):
+                    required_pieces = settings["Triforce Pieces Required"]
                     goal_str = f"Collect {required_pieces} Triforce Pieces"
-                elif settings['Goal'] == "Ganon":
+                elif settings["Goal"] == "Ganon":
                     goal_str = "Defeat Agahnim 2 and Ganon in the Dark World"
                 else:
-                    match settings['Goal']:
+                    match settings["Goal"]:
                         case "Crystals":
-                            required = settings['Crystals for Ganon']
+                            required = settings["Crystals for Ganon"]
                             goal_str = f"Obtain {required} Crystals, then defeat Ganon in the Dark World"
                         case "Bosses":
                             goal_str = "Purge Hyrule of dungeon bosses"
                         case "Pedestal":
                             goal_str = "Prove yourself worthy of pulling the Master Sword from its pedestal"
 
-                    if "Ganon" in settings['Goal'] and settings['Goal'] != "Ganon":
+                    if "Ganon" in settings["Goal"] and settings["Goal"] != "Ganon":
                         goal_str += ", then Defeat Ganon"
 
             case "Ocarina of Time":
@@ -1961,14 +2580,19 @@ def handle_state_tracking(player: Player, game: Game):
                 completed_heart_pieces = heart_pieces // 4
                 partial_hearts = heart_pieces % 4
 
-                current_hearts = starting_hearts + heart_containers + completed_heart_pieces
-                if current_hearts > max_hearts: current_hearts = max_hearts
+                current_hearts = (
+                    starting_hearts + heart_containers + completed_heart_pieces
+                )
+                if current_hearts > max_hearts:
+                    current_hearts = max_hearts
                 player.stats.set_stat("current_hearts", current_hearts)
 
-                match settings['Triforce Hunt']:
+                match settings["Triforce Hunt"]:
                     case True:
-                        goal_pieces = settings['Required Triforce Pieces']
-                        goal_str = f"Collect {goal_pieces} Triforce Pieces from around Hyrule"
+                        goal_pieces = settings["Required Triforce Pieces"]
+                        goal_str = (
+                            f"Collect {goal_pieces} Triforce Pieces from around Hyrule"
+                        )
 
                         triforce_pieces = player.get_item_count("Triforce Piece")
                     case False:
@@ -1977,57 +2601,72 @@ def handle_state_tracking(player: Player, game: Game):
                 # TODO Get main inventory
 
             case "Pokemon Emerald":
-                match settings['Goal']:
+                match settings["Goal"]:
                     case "Champion":
                         goal_str = "Become Champion of the Hoenn League"
 
             case "Refunct":
-                required = round(int(settings['Amount Of Grass']) * (int(settings['Required Grass Percentage']) / 100))
-                goal_platform = settings['Final Platform'].split(" ")
+                required = round(
+                    int(settings["Amount Of Grass"])
+                    * (int(settings["Required Grass Percentage"]) / 100)
+                )
+                goal_platform = settings["Final Platform"].split(" ")
                 goal_str = f"Collect {required} Grass, then reach the platform at Cluster {goal_platform[0]}, Platform {goal_platform[1]}"
 
             case "Ship of Harkinian":
-                match settings['Triforce Hunt']:
+                match settings["Triforce Hunt"]:
                     case True:
-                        goal_pieces = int(settings['Triforce Hunt Pieces Total']) * (int(settings['Triforce Hunt Pieces Required Percentage']) / 100)
-                        goal_str = f"Collect {goal_pieces} Triforce Pieces from around Hyrule"
+                        goal_pieces = int(settings["Triforce Hunt Pieces Total"]) * (
+                            int(settings["Triforce Hunt Pieces Required Percentage"])
+                            / 100
+                        )
+                        goal_str = (
+                            f"Collect {goal_pieces} Triforce Pieces from around Hyrule"
+                        )
 
                         triforce_pieces = player.get_item_count("Triforce Piece")
                     case False:
                         goal_str = "Defeat Ganon and Save Hyrule"
 
             case "Simon Tatham's Portable Puzzle Collection":
-                required = round(settings['puzzle count']
-                                    * (settings['Target Completion Percentage'] / 100))
+                required = round(
+                    settings["puzzle count"]
+                    * (settings["Target Completion Percentage"] / 100)
+                )
                 count = player.collected_locations
                 goal_str = f"Solve {required} puzzles"
 
             case "Spyro 3":
-                match settings['Completion Goal']:
+                match settings["Completion Goal"]:
                     case "All Skillpoints":
-                        goal_str = "Collect all 20 Skill Points across the Forgotten Worlds"
+                        goal_str = (
+                            "Collect all 20 Skill Points across the Forgotten Worlds"
+                        )
                     case _:
-                        goal_str = settings['Completion Goal']
+                        goal_str = settings["Completion Goal"]
 
             case "Super Cat Planet":
-                match settings['Goal Ending']:
+                match settings["Goal Ending"]:
                     case "Crows":
                         goal_str = "Evade Crows and Rescue the King of the Cats"
                     case "Final Boss":
                         goal_str = "Best the Dark Angel"
 
             case "Super Mario World":
-                match settings['Goal']:
+                match settings["Goal"]:
                     case "Yoshi Egg Hunt":
                         eggs = player.get_item_count("Yoshi Egg")
-                        required = round(settings['Max Number of Yoshi Eggs'] * (settings['Required Percentage of Yoshi Eggs'] / 100))
+                        required = round(
+                            settings["Max Number of Yoshi Eggs"]
+                            * (settings["Required Percentage of Yoshi Eggs"] / 100)
+                        )
                         goal_str = f"Return {required} Yoshi Eggs to Yoshi's House"
 
                         player.stats.set_stat("collected_eggs", eggs)
                         player.stats.set_stat("required_eggs", required)
                     case "Bowser":
                         boss_tokens = player.get_item_count("Boss Token")
-                        required = settings['Bosses Required']
+                        required = settings["Bosses Required"]
                         player.stats.set_stat("collected_boss_tokens", boss_tokens)
                         player.stats.set_stat("required_boss_tokens", required)
 
@@ -2037,81 +2676,111 @@ def handle_state_tracking(player: Player, game: Game):
                     "Climb",
                     "Swim",
                     "Progressive Powerup",
-                ] + [f"{color} Switch Palace" for color in ["Red", "Green", "Yellow", "Blue"]]
+                ] + [
+                    f"{color} Switch Palace"
+                    for color in ["Red", "Green", "Yellow", "Blue"]
+                ]
 
-                player.stats.set_stat("movement_abilities",
-                                      [ability.name for ability in player.get_collected_items(movement_abilities)])
+                player.stats.set_stat(
+                    "movement_abilities",
+                    [
+                        ability.name
+                        for ability in player.get_collected_items(movement_abilities)
+                    ],
+                )
 
             case "The Witness":
                 match settings["Victory Condition"]:
                     case "Panel Hunt":
                         ph_total = settings["Total Panel Hunt panels"]
-                        ph_required = round(ph_total * (settings['Percentage of required Panel Hunt panels'] / 100))
+                        ph_required = round(
+                            ph_total
+                            * (
+                                settings["Percentage of required Panel Hunt panels"]
+                                / 100
+                            )
+                        )
                         goal_str = f"Solve {ph_required} randomly selected panels to access a Secret"
                     case _:
                         goal_str = settings["Victory Condition"]
 
             case "Timespinner":
-                goal_str = "End the Nightmare" # Goal is static
+                goal_str = "End the Nightmare"  # Goal is static
 
             case "Trackmania":
                 medals = ["Bronze Medal", "Silver Medal", "Gold Medal", "Author Medal"]
                 # From TMAP docs:
                 # "The quickest medal equal to or below target difficulty is made the progression medal."
                 if game.has_spoiler:
-                    target_difficulty = settings['Target Time Difficulty']
+                    target_difficulty = settings["Target Time Difficulty"]
                 else:
-                    target_difficulty = player.slot_data['TargetTimeSetting'] * 100
+                    target_difficulty = player.slot_data["TargetTimeSetting"] * 100
                 progression_medal_lookup = target_difficulty // 100
                 progression_medal = medals[progression_medal_lookup]
                 player.stats.set_stat("progression_medal", progression_medal)
 
-                medal_total = len([l for l in game.spoiler_log[str(player)].values() if l.location.name.endswith("Target Time")])
-                medal_required = sum([t['MedalTotal'] for t in slot_data['SeriesData']])
+                medal_total = len(
+                    [
+                        l
+                        for l in game.spoiler_log[str(player)].values()
+                        if l.location.name.endswith("Target Time")
+                    ]
+                )
+                medal_required = sum([t["MedalTotal"] for t in slot_data["SeriesData"]])
                 goal_str = f"Race community maps to unlock items. Collect {medal_required} {progression_medal}s to win"
 
             case "TUNIC":
-                if settings['Hexagon Quest'] is True:
-                    required = settings['Gold Hexagons Required']
+                if settings["Hexagon Quest"] is True:
+                    required = settings["Gold Hexagons Required"]
                     gold_questagons = player.get_item_count("Gold Questagon")
                     goal_str = f"Collect {required} Hexagons and Return to the Heir"
                 else:
-                    seal_questagons = player.get_collected_items(["Red Questagon", "Green Questagon", "Blue Questagon"])
-                    player.stats.set_stat("collected_seal_questagons", [q.name for q in seal_questagons])
+                    seal_questagons = player.get_collected_items(
+                        ["Red Questagon", "Green Questagon", "Blue Questagon"]
+                    )
+                    player.stats.set_stat(
+                        "collected_seal_questagons", [q.name for q in seal_questagons]
+                    )
                     goal_str = "Claim Your Rightful Place"
 
                 treasures = {
                     "DEF": ["Secret Legend", "Phonomath"],
                     "POTION": ["Spring Falls", "Just Some Pals", "Back To Work"],
                     "SP": ["Forever Friend", "Mr Mayor", "Power Up", "Regal Weasel"],
-                    "MP": ["Sacred Geometry", "Vintage", "Dusty"]
+                    "MP": ["Sacred Geometry", "Vintage", "Dusty"],
                 }
 
                 for stat in ["ATT", "DEF", "HP", "SP", "MP", "POTION"]:
                     player.stats.set_stat(
                         f"logical_{stat.lower()}",
-                        player.get_item_count(f"{stat} Offering") +
-                        (len(player.get_collected_items(treasures[stat])) if stat in treasures else 0)
+                        player.get_item_count(f"{stat} Offering")
+                        + (
+                            len(player.get_collected_items(treasures[stat]))
+                            if stat in treasures
+                            else 0
+                        ),
                     )
 
             case "Wario Land 4":
-                golden_treasure_count = settings['Golden Treasure Count']
-                jewels_required = settings['Required Jewels']
-                match settings['Goal']:
+                golden_treasure_count = settings["Golden Treasure Count"]
+                jewels_required = settings["Required Jewels"]
+                match settings["Goal"]:
                     case "Golden Diva":
                         goal_str = f"Complete {jewels_required} jewels to reach the depths of the Golden Pyramid, and defeat the Golden Diva"
-                    case "Golden Treasure Hunt"|"Local Golden Treasure Hunt":
+                    case "Golden Treasure Hunt" | "Local Golden Treasure Hunt":
                         goal_str = f"Complete {jewels_required} jewels and find {golden_treasure_count} treasures, then escape the Golden Pyramid"
-                    case "Golden Diva Treasure Hunt"|"Local Golden Diva Treasure Hunt":
+                    case (
+                        "Golden Diva Treasure Hunt" | "Local Golden Diva Treasure Hunt"
+                    ):
                         goal_str = f"Complete {jewels_required} jewels and find {golden_treasure_count} treasures, then defeat the Golden Diva"
 
             # MANUAL GAMES
             case "Manual_PokemonPlatinum_Linneus":
-                match settings['goal']:
+                match settings["goal"]:
                     case "Pokemon League - Become Champion":
                         goal_str = "Become Champion of the Sinnoh League"
                     case _:
-                        goal_str = settings['goal']
+                        goal_str = settings["goal"]
 
             case _:
                 pass
@@ -2121,7 +2790,9 @@ def handle_state_tracking(player: Player, game: Game):
         logger.error(f"Couldn't update state for player {player.name}: {err}")
 
 
-def import_datapackage_from_checksum(hostname: str, game: str, checksum: str) -> list[str]:
+def import_datapackage_from_checksum(
+    hostname: str, game: str, checksum: str
+) -> list[str]:
     """Import a datapackage from the given checksum if not already imported.
     Returns the list of games that were imported."""
     if not sqlcon:
@@ -2131,7 +2802,10 @@ def import_datapackage_from_checksum(hostname: str, game: str, checksum: str) ->
     cursor = sqlcon.cursor()
 
     # Check if this checksum is already imported
-    cursor.execute("SELECT COUNT(*) FROM archipelago.item_classifications WHERE datapackage_checksum = %s", (checksum,))
+    cursor.execute(
+        "SELECT COUNT(*) FROM archipelago.item_classifications WHERE datapackage_checksum = %s",
+        (checksum,),
+    )
     if cursor.fetchone()[0] > 0:
         logger.info(f"Datapackage with checksum {checksum} already imported.")
         return []
@@ -2146,19 +2820,22 @@ def import_datapackage_from_checksum(hostname: str, game: str, checksum: str) ->
         logger.error(f"Failed to fetch datapackage from {datapackage_url}: {e}")
         return []
 
-
     logger.info(f"Importing datapackage for {game} with checksum {checksum}")
 
-    for item in datapackage['item_name_groups']['Everything']:
+    for item in datapackage["item_name_groups"]["Everything"]:
         cursor.execute(
             "INSERT INTO archipelago.item_classifications (game, item, classification, datapackage_checksum) VALUES (%s, %s, %s, %s) ON CONFLICT (game, item) DO UPDATE SET classification = COALESCE(EXCLUDED.classification, archipelago.item_classifications.classification), datapackage_checksum = COALESCE(EXCLUDED.datapackage_checksum, archipelago.item_classifications.datapackage_checksum);",
-            (game, item, None, checksum))
+            (game, item, None, checksum),
+        )
 
-    for location in datapackage['location_name_groups']['Everywhere']:
+    for location in datapackage["location_name_groups"]["Everywhere"]:
         cursor.execute(
             "INSERT INTO archipelago.game_locations (game, location, is_checkable) VALUES (%s, %s, %s) ON CONFLICT (game, location) DO UPDATE SET is_checkable = EXCLUDED.is_checkable;",
-            (game, location, True))
+            (game, location, True),
+        )
 
     sqlcon.commit()
-    logger.info(f"Successfully imported datapackage with checksum {checksum} for game: {game}")
+    logger.info(
+        f"Successfully imported datapackage with checksum {checksum} for game: {game}"
+    )
     return [game]
