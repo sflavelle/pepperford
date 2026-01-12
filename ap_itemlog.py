@@ -1178,7 +1178,8 @@ def get_checkable_locations(found: bool = False):
 def upload_data(slotname: str):
     player = game.players[slotname] or None
     if not player:
-        return jsonify({"error": "Player not found"}), 404
+        logger.error(f"Couldn't find player {slotname} to upload data to")
+        return jsonify({"error": f"Player {slotname} not found"}), 404
 
     try:
         data = request.get_json()
