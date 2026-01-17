@@ -2610,8 +2610,18 @@ def handle_state_tracking(player: Player, game: Game):
                     int(settings["Amount Of Grass"])
                     * (int(settings["Required Grass Percentage"]) / 100)
                 )
-                goal_platform = settings["Final Platform"].split(" ")
-                goal_str = f"Collect {required} Grass, then reach the platform at Cluster {goal_platform[0]}, Platform {goal_platform[1]}"
+                if settings["Final Platform"] == "Random Unknown":
+                    goal_platform = [
+                        slot_data["finish_platform_c"],
+                        slot_data["finish_platform_p"],
+                    ]
+                    if not player.has_item("Final Platform"):
+                        goal_str = f"Collect {required} Grass, then find the random goal platform"
+                    else:
+                        goal_str = f"Collect {required} Grass, then reach the platform at Cluster {goal_platform[0]}, Platform {goal_platform[1]}"
+                else:
+                    goal_platform = settings["Final Platform"].split(" ")
+                    goal_str = f"Collect {required} Grass, then reach the platform at Cluster {goal_platform[0]}, Platform {goal_platform[1]}"
 
             case "Ship of Harkinian":
                 match settings["Triforce Hunt"]:
