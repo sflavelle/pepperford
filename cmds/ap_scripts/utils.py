@@ -2560,14 +2560,13 @@ def handle_state_tracking(player: Player, game: Game):
                 elif settings["Goal"] == "Ganon":
                     goal_str = "Defeat Agahnim 2 and Ganon in the Dark World"
                 else:
-                    match settings["Goal"]:
-                        case "Crystals":
-                            required = settings["Crystals for Ganon"]
-                            goal_str = f"Obtain {required} Crystals, then defeat Ganon in the Dark World"
-                        case "Bosses":
-                            goal_str = "Purge Hyrule of dungeon bosses"
-                        case "Pedestal":
-                            goal_str = "Prove yourself worthy of pulling the Master Sword from its pedestal"
+                    if settings["Goal"] == "Crystals":
+                        required = settings["Crystals for Ganon"]
+                        goal_str = f"Obtain {required} Crystals, then defeat Ganon in the Dark World"
+                    elif "Bosses" in settings["Goal"]:
+                        goal_str = "Purge Hyrule of dungeon bosses"
+                    elif "Pedestal" in settings["Goal"]:
+                        goal_str = "Prove yourself worthy of pulling the Master Sword from its pedestal"
 
                     if "Ganon" in settings["Goal"] and settings["Goal"] != "Ganon":
                         goal_str += ", then Defeat Ganon"
