@@ -374,6 +374,32 @@ class Game(dict):
             if isinstance(player, Player):
                 player.slot_data = p["slot_data"]
 
+                if (
+                    player.slot_data.get("BLockerValues", False)
+                    and type(player.slot_data.get("BLockerValues", False)) is str
+                ):
+                    logger.info(
+                        f"Player {player.name} has BLockerValues string, parsing to dict..."
+                    )
+                    BLockerDict = {
+                        "Japes": [],
+                        "Aztec": [],
+                        "Factory": [],
+                        "Galleon": [],
+                        "Forest": [],
+                        "Caves": [],
+                        "Castle": [],
+                        "Helm": [],
+                    }
+                    BLockerString = player.slot_data["BLockerValues"]
+                    BLList = BLockerString.split(", ")
+                    for lvl in BLList:
+                        level = lvl.split(":")[0]
+                        itemnum, item = lvl.split(" ")[1:2]
+                        BLockerDict[level] = [itemnum, item]
+                        logger.info(f"Level {level} requires {itemnum} {item}")
+                        player.slot_data["BLockerValues"] = BLockerDict
+
         logger.info("Slot data successfully processed.")
         return True
 
@@ -1197,7 +1223,11 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                         return f"{item} (*{count}/{required}*)"
                     if item == "Golden Banana":
                         max_gbs = max(
-                            [settings[f"Level {num} B. Locker"] for num in range(1, 9)]
+                            [
+                                BLock[0]
+                                for BLock in slot_data["BLockerValues"]
+                                if BLock[1] == "GoldenBanana"
+                            ]
                         )
                         total = 201
                         return f"{item} (*{count}/{max_gbs}*/{total})"
