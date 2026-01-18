@@ -395,7 +395,7 @@ class Game(dict):
                     BLList = BLockerString.split(", ")
                     for lvl in BLList:
                         level = lvl.split(":")[0]
-                        itemnum, item = lvl.split(" ")[1:2]
+                        itemnum, item = lvl.split(" ")[1:]
                         BLockerDict[level] = [itemnum, item]
                         logger.info(f"Level {level} requires {itemnum} {item}")
                         player.slot_data["BLockerValues"] = BLockerDict
