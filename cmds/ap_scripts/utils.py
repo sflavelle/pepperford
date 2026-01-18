@@ -1225,7 +1225,7 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                         max_gbs = max(
                             [
                                 BLock[0]
-                                for BLock in slot_data["BLockerValues"]
+                                for BLock in slot_data["BLockerValues"].values()
                                 if BLock[1] == "GoldenBanana"
                             ]
                         )
