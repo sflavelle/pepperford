@@ -1638,7 +1638,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                         continue
                     hint_table[slot].update(
                         {
-                            item["location"]: {
+                            item["location"]["name"]: {
                                 "item": item["name"],
                                 "sender": item["location"]["player"],
                                 "receiver": item["receiver"],
