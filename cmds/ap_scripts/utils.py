@@ -1215,15 +1215,17 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                         "Vines": "Vine Swinging",
                     }
                     if item == "Banana Fairy":
-                        blocker_fairies = [
-                            int(x[0])
-                            for x in slot_data["BLockerValues"]
-                            if x[1] == "Fairy"
-                        ]
-                        bf_required = blocker_fairies.append(
+                        blocker_fairies = list(
+                            [
+                                int(x[0])
+                                for x in slot_data["BLockerValues"]
+                                if x[1] == "Fairy"
+                            ]
+                        )
+                        blocker_fairies.append(
                             settings["Rareware GB Requirment"]
                         )  # sic
-                        required = max(bf_required)
+                        required = max(blocker_fairies)
                         total = 20
                         return f"{item} (*{count}/{required}*/{total})"
                     if item == "Banana Medal":
@@ -1232,26 +1234,28 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                     if item.endswith(" Blueprint"):
                         kong = item.replace(" Blueprint", "")
                         individual_total = 8  # per kong
-                        blocker_blueprints = [
-                            int(x[0])
-                            for x in slot_data["BLockerValues"]
-                            if x[1] == "Blueprint"
-                        ]
+                        blocker_blueprints = list(
+                            [
+                                int(x[0])
+                                for x in slot_data["BLockerValues"]
+                                if x[1] == "Blueprint"
+                            ]
+                        )
                         return f"Blueprint ({kong} {count}/{individual_total})" + (
                             f" ({len(player.get_collected_items([f'{k} Blueprint' for k in kongs]))}/{max(blocker_blueprints)})"
                             if bool(settings["Chaos B. Lockers"])
                             else ""
                         )
                     if item == "Pearl":
-                        blocker_pearls = [
-                            int(x[0])
-                            for x in slot_data["BLockerValues"]
-                            if x[1] == "Pearl"
-                        ]
-                        pearls_required = blocker_pearls.append(
-                            settings["Mermaid Requirement"]
+                        blocker_pearls = list(
+                            [
+                                int(x[0])
+                                for x in slot_data["BLockerValues"]
+                                if x[1] == "Pearl"
+                            ]
                         )
-                        required = max(pearls_required)
+                        blocker_pearls.append(settings["Mermaid Requirement"])
+                        required = max(blocker_pearls)
                         total = 5
                         return f"{item} (*{count}/{required}*)"
                     if item == "Rainbow Coin":
