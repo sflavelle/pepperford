@@ -1215,14 +1215,55 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                         "Vines": "Vine Swinging",
                     }
                     if item == "Banana Fairy":
-                        required = settings["Rareware GB Requirment"]  # sic
+                        blocker_fairies = [
+                            x[0] for x in slot_data["BLockerValues"] if x[1] == "Fairy"
+                        ]
+                        gb_required = settings["Rareware GB Requirment"]  # sic
+                        required = max(blocker_fairies + +[gb_required])
                         total = 20
                         return f"{item} (*{count}/{required}*/{total})"
                     if item == "Banana Medal":
                         required = settings["Jetpac Requirement"]
                         return f"{item} (*{count}/{required}*)"
+                    if item.endswith(" Blueprint"):
+                        kong = item.replace(" Blueprint", "")
+                        individual_total = 8  # per kong
+                        blocker_blueprints = [
+                            x[0]
+                            for x in slot_data["BLockerValues"]
+                            if x[1] == "Blueprint"
+                        ]
+                        return f"Blueprint ({kong} {count}/{individual_total})" + (
+                            f" ({len(player.get_collected_items([f'{k} Blueprint' for k in kongs]))}/{max(blocker_blueprints)})"
+                            if bool(settings["Chaos B. Lockers"])
+                            else ""
+                        )
+                    if item == "Pearl":
+                        blocker_pearls = [
+                            x[0] for x in slot_data["BLockerValues"] if x[1] == "Pearl"
+                        ]
+                        pearls_required = settings["Mermaid Requirement"]
+                        required = max(blocker_pearls + +[pearls_required])
+                        total = 5
+                        return f"{item} (*{count}/{required}*)"
+                    if item == "Rainbow Coin":
+                        blocker_rainbowcoins = [
+                            x[0]
+                            for x in slot_data["BLockerValues"]
+                            if x[1] == "RainbowCoin"
+                        ]
+                        if bool(settings["Chaos B. Lockers"]):
+                            return f"{item} (*{count}/{max(blocker_rainbowcoins)}*)"
+                    if item == "Rareware Coin" or item == "Nintendo Coin":
+                        count = len(
+                            player.get_collected_items(
+                                ["Rareware Coin", "Nintendo Coin"]
+                            )
+                        )
+                        total = 2
+                        return f"{item} (*{count}/{total}*)"
                     if item == "Golden Banana":
-                        max_gbs = max(
+                        blocker_gbs = max(
                             [
                                 BLock[0]
                                 for BLock in slot_data["BLockerValues"].values()
@@ -1230,7 +1271,10 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                             ]
                         )
                         total = 201
-                        return f"{item} (*{count}/{max_gbs}*/{total})"
+                        if count > blocker_gbs:
+                            return f"{item} (*{count}*/{total})"
+                        else:
+                            return f"{item} (*{count}/{blocker_gbs}*/{total})"
                     if item.startswith("Key "):
                         keys = 8
                         collected_string = ""
