@@ -1221,7 +1221,7 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                             if x[1] == "Fairy"
                         ]
                         gb_required = settings["Rareware GB Requirment"]  # sic
-                        required = max(blocker_fairies + +[gb_required])
+                        required = max(blocker_fairies.extend([gb_required]))
                         total = 20
                         return f"{item} (*{count}/{required}*/{total})"
                     if item == "Banana Medal":
@@ -1247,7 +1247,7 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                             if x[1] == "Pearl"
                         ]
                         pearls_required = settings["Mermaid Requirement"]
-                        required = max(blocker_pearls + +[pearls_required])
+                        required = max(blocker_pearls.extend([pearls_required]))
                         total = 5
                         return f"{item} (*{count}/{required}*)"
                     if item == "Rainbow Coin":
