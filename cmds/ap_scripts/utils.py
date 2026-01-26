@@ -1216,7 +1216,9 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                     }
                     if item == "Banana Fairy":
                         blocker_fairies = [
-                            int(x[0]) for x in slot_data["BLockerValues"] if x[1] == "Fairy"
+                            int(x[0])
+                            for x in slot_data["BLockerValues"]
+                            if x[1] == "Fairy"
                         ]
                         gb_required = settings["Rareware GB Requirment"]  # sic
                         required = max(blocker_fairies + +[gb_required])
@@ -1229,7 +1231,7 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                         kong = item.replace(" Blueprint", "")
                         individual_total = 8  # per kong
                         blocker_blueprints = [
-                            int(x[0])]
+                            int(x[0])
                             for x in slot_data["BLockerValues"]
                             if x[1] == "Blueprint"
                         ]
@@ -1240,7 +1242,9 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                         )
                     if item == "Pearl":
                         blocker_pearls = [
-                            int(x[0]) for x in slot_data["BLockerValues"] if x[1] == "Pearl"
+                            int(x[0])
+                            for x in slot_data["BLockerValues"]
+                            if x[1] == "Pearl"
                         ]
                         pearls_required = settings["Mermaid Requirement"]
                         required = max(blocker_pearls + +[pearls_required])
