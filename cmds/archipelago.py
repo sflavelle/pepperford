@@ -8,6 +8,8 @@ import sys
 import time
 import traceback
 import typing
+import zipfile
+import io
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
@@ -137,6 +139,73 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
             raise AttributeError(
                 "Action successful, but couldn't log to channel: " + str(err)
             )
+        
+    @app_commands.command()
+    @app_commands.describe(
+        channel="Channel to download attachements from"
+    )
+    async def getyamls(self, interaction: discord.Interaction, channel: discord.TextChannel = None):
+        """Download all YAML attachments from a selected/set channel."""
+
+        channel_id = self.ctx.procs["archipelago"].get("channel_apsubmissions")
+        if not channel_id and not channel:
+            return await interaction.response.send_message(
+                "No channel specified, and no default channel set. Please specify a channel to set the default.",
+                ephemeral=True,
+            )
+        elif not channel:
+            channel = self.ctx.get_channel(channel_id)
+        if not channel:
+            return await interaction.response.send_message(
+                "The specified channel is invalid. Please specify a valid channel.",
+                ephemeral=True,
+            )
+        
+        await interaction.response.defer(ephemeral=True, thinking=True)
+        messages = []
+        try:
+            async for msg in channel.history(limit=None):
+                messages.append(msg)
+        except discord.errors.Forbidden:
+            return await interaction.followup.send(
+                "I don't have permission to read message history in that channel. Please check my permissions and try again.",
+                ephemeral=True,
+            )
+        
+        yaml_attachments = []
+        for msg in messages:
+            for attachment in msg.attachments:
+                if attachment.filename.endswith(".yaml") or attachment.filename.endswith(".yml"):
+                    yaml_attachments.append((attachment, msg.jump_url))
+        if not yaml_attachments:
+            return await interaction.followup.send(
+                "No YAML attachments found in that channel.",
+                ephemeral=True,
+            )
+        
+        await interaction.followup.send(
+            f"Found {len(yaml_attachments)} YAML attachments. Downloading...",
+            ephemeral=True,
+        )
+
+        # Now download each attachment, zip them up, and send them back to the user
+        zip_buffer = io.BytesIO()
+        with zipfile.ZipFile(zip_buffer, "w") as zip_file:
+            for attachment, jump_url in yaml_attachments:
+                try:
+                    data = await attachment.read()
+                    zip_file.writestr(attachment.filename, data)
+                except Exception as e:
+                    logger.error(f"Failed to download {attachment.filename} from {jump_url}: {e}")
+
+        zip_buffer.seek(0)
+        await interaction.followup.send(
+            "Here's the ZIP file containing all the YAML attachments:",
+            file=discord.File(zip_buffer, "yaml_attachments.zip"),
+            ephemeral=True,
+        )
+
+        return True
 
     @app_commands.command()
     @app_commands.describe(
@@ -1849,6 +1918,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
         if not self.ctx.procs.get("archipelago"):
             self.ctx.procs["archipelago"] = {
                 "channel_archivist": 1450616053204910191,
+                "channel_apsubmissions": 1424285864690716763,
             }
 
         if not self.ctx.extras.get("ap_rooms"):
