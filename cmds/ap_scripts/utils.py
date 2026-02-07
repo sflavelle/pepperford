@@ -1793,7 +1793,7 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                         return f"{item} ({count}/{required})"
                     if item == "Golden Yoshi Egg":
                         required = round(
-                            settings["Golden Yoshi Eggs in Pool"]
+                            settings["Yoshi Egg Count"]
                             * (
                                 settings["Required Percentage of Golden Yoshi Eggs"]
                                 / 100
