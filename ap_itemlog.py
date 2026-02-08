@@ -717,6 +717,8 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
                     icon = "<:trapitem:1450760161286295734>"
                 case "filler":
                     icon = "<:filler:1461179676365164729>"
+                case "currency":
+                    icon = "<:coin:1469865094665207879>"
                 case None:
                     icon = "<:unclassified:1450498207032283357>"
                 case _:

@@ -1510,6 +1510,17 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                     ):
                         required = 5
                         return f"{item} ({count}/{required})"
+                    if (
+                        item
+                        in [
+                            "Salmon Creek Forest Seed",
+                            "Hairball City Seed",
+                            "Bathhouse Seed",
+                        ]
+                        and settings["Seedsanity"] == "Insanity"
+                    ):
+                        required = 10
+                        return f"{item} ({count}/{required})"
                 case "HITMAN World of Assasination":  # sic
                     if item.startswith("Level - "):
                         count = len(
