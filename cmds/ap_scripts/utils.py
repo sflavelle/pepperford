@@ -43,6 +43,95 @@ item_table = {}
 
 gzd = gzDoomMapNames()
 
+hcn_friends_locations: list[str] = [
+
+    "Home - Give High Frog Lunchbox",
+
+    "Hairball City - BIG VOLLEY",
+    "Hairball City - Dustan on Lighthouse",
+    "Hairball City - Gunter on Skyscraper",
+    "Hairball City - Nina",
+    "Hairball City - Moomy",
+    "Hairball City - Fish with Fischer",
+    "Hairball City - Game Kid",
+    "Hairball City - Blippy Dog",
+    "Hairball City - Blippy",
+    "Hairball City - Serschel & Louist",
+    "Hairball City - Little Gabi's Flowers",
+    "Hairball City - Blessley",
+    "Hairball City - Mitch",
+    "Hairball City - Mai",
+
+    "Turbine Town - Blippy Dog",
+    "Turbine Town - Blippy",
+    "Turbine Town - Serschel & Louist",
+    "Turbine Town - Dustan on Wind Turbine",
+    "Turbine Town - Little Gabi's Flowers",
+    "Turbine Town - Blessley",
+    "Turbine Town - AIR VOLLEY",
+    "Turbine Town - Pelly the Engineer",
+    "Turbine Town - Fish with Fischer",
+    "Turbine Town - Mitch",
+    "Turbine Town - Mai",
+
+    "Salmon Creek Forest - Dustan on Mountain",
+    "Salmon Creek Forest - Nina",
+    "Salmon Creek Forest - Stijn & Melissa",
+    "Salmon Creek Forest - Treeman",
+    "Salmon Creek Forest - Blessley",
+    "Salmon Creek Forest - Little Gabi's Flowers",
+    "Salmon Creek Forest - Game Kid",
+    "Salmon Creek Forest - Blippy",
+    "Salmon Creek Forest - Serschel & Louist",
+    "Salmon Creek Forest - Blippy Dog",
+    "Salmon Creek Forest - Fish with Fischer",
+    "Salmon Creek Forest - SPORTVIVAL",
+    "Salmon Creek Forest - Moomy",
+    "Salmon Creek Forest - Mitch",
+    "Salmon Creek Forest - Mai",
+
+    "Public Pool - Blippy",
+    "Public Pool - Frogtective",
+    "Public Pool - Blippy Dog",
+    "Public Pool - Little Gabi's Flowers",
+    "Public Pool - Blessley",
+    "Public Pool - SPORTVIVAL VOLLEY",
+    "Public Pool - Fish with Fischer",
+    "Public Pool - Mitch",
+    "Public Pool - Mai",
+
+    "Bathhouse - Poppy",
+    "Bathhouse - Fish with Fischer",
+    "Bathhouse - Blessley",
+    "Bathhouse - Little Gabi's Flowers",
+    "Bathhouse - Blippy Dog",
+    "Bathhouse - Blippy",
+    "Bathhouse - Dustan on Bathhouse",
+    "Bathhouse - Game Kid",
+    "Bathhouse - LONG VOLLEY",
+    "Bathhouse - Nina",
+    "Bathhouse - Serschel & Louist",
+    "Bathhouse - Moomy",
+    "Bathhouse - Mitch",
+    "Bathhouse - Mai",
+
+    "Tadpole HQ - Blippy",
+    "Tadpole HQ - Little Gabi's Flowers",
+    "Tadpole HQ - Blippy Dog",
+    "Tadpole HQ - Blessley",
+    "Tadpole HQ - Serschel & Louist",
+    "Tadpole HQ - Frog King",
+    "Tadpole HQ - HUGE VOLLEY",
+    "Tadpole HQ - Fish with Fischer",
+    "Tadpole HQ - Mitch",
+    "Tadpole HQ - Mai",
+
+    "Gary's Garden - Gunter & Little Gabi",
+    "Gary's Garden - Mitch",
+    "Gary's Garden - Mai",
+
+]
+
 # def push_to_database(cursor: psql.cursor, game: Game, database: str, column: str, payload):
 #     try:
 #             cursor.execute(f"UPDATE {database} set {column} = %s WHERE room_id = %s", (payload, room_id))
@@ -2142,6 +2231,13 @@ def handle_location_tracking(game: Game, player: Player, item: Item):
                 if location.startswith("Tasksanity") and settings["Tasksanity"] is True:
                     total = settings["Tasksanity Check Count"]
                     return f"{location}/{total}"
+            case "Here Comes Niko!":
+                if location in hcn_friends_locations and settings['Completion Goal'] == "Friend":
+                    # Best Friend goal locations
+                    total = len([i for i in player.spoilers["locations"] if i.name in hcn_friends_locations])
+                    count = len([i for i in player.spoilers["locations"] if i.name in hcn_friends_locations and i.found is True])
+                    return f"{location} ({count}/{total})"
+
             case "Hollow Knight":
                 # There'll probably be something here later
                 return location.replace("_", " ").replace("-", " - ")
@@ -2945,3 +3041,4 @@ def import_datapackage_from_checksum(
         f"Successfully imported datapackage with checksum {checksum} for game: {game}"
     )
     return [game]
+

@@ -30,6 +30,7 @@ from cmds.ap_scripts.utils import (
     handle_item_tracking,
     handle_location_hinting,
     handle_location_tracking,
+    hcn_friends_locations,
 )
 
 DEBUG = (
@@ -737,6 +738,8 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
             ):
                 pass
             elif Item.location.game == "Simon Tatham's Portable Puzzle Collection":
+                pass
+            elif Item.location.game == "Here Comes Niko!" and Item.location.name in hcn_friends_locations:
                 pass
             # original rule
             elif Item.is_filler() or Item.is_currency():
