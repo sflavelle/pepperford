@@ -2229,8 +2229,8 @@ def handle_location_tracking(game: Game, player: Player, item: Item):
             case "Here Comes Niko!":
                 if location in hcn_friends_locations and settings['Completion Goal'] == "Friend":
                     # Best Friend goal locations
-                    total = len([i for i in player.spoilers["locations"] if i.name in hcn_friends_locations])
-                    count = len([i for i in player.spoilers["locations"] if i.name in hcn_friends_locations and i.found is True])
+                    total = len([i for i in spoiler.keys() if i in hcn_friends_locations])
+                    count = len([i for i in spoiler.values() if i.location.name in hcn_friends_locations and i.found is True])
                     return f"{location} (*{count}/{total}*)"
 
             case "Hollow Knight":
