@@ -1207,6 +1207,7 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
         itemlog = game
         settings = player.settings
         slot_data = player.slot_data
+        spoiler = game.spoiler_log[str(player)]
         game = player.game
         count = player.get_item_count(item)
 
@@ -1610,6 +1611,21 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                     ):
                         required = 10
                         return f"{item} ({count}/{required})"
+                    if (
+                        item in [
+                            "Hairball City Flower",
+                            "Turbine Town Flower",
+                            "Salmon Creek Forest Flower",
+                            "Public Pool Flower",
+                            "Bathhouse Flower",
+                            "Tadpole HQ Flower",
+                        ]
+                        and settings["Flowersanity"] == "Insanity"
+                    ):
+                        level = item.replace(" Flower", "")
+                        required = len([i for i in spoiler.keys() if i.startswith(f"{level} - Flowerbed")])
+                        return f"{item} ({count}/{required})"
+
                 case "HITMAN World of Assasination":  # sic
                     if item.startswith("Level - "):
                         count = len(
