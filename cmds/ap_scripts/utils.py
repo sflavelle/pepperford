@@ -1892,14 +1892,9 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                         required = settings["Bosses Required"]
                         return f"{item} ({count}/{required})"
                     if item == "Golden Yoshi Egg":
-                        required = round(
-                            settings["Yoshi Egg Count"]
-                            * (
-                                settings["Required Percentage of Golden Yoshi Eggs"]
-                                / 100
-                            )
-                        )
-                        return f"{item} ({count}/{required})"
+                        required = slot_data['required_egg_count']
+                        total = slot_data['actual_egg_count']
+                        return f"{item} (*{count}/{required}*)"
 
                 case "Trackmania":
                     medals = [
@@ -2236,7 +2231,7 @@ def handle_location_tracking(game: Game, player: Player, item: Item):
                     # Best Friend goal locations
                     total = len([i for i in player.spoilers["locations"] if i.name in hcn_friends_locations])
                     count = len([i for i in player.spoilers["locations"] if i.name in hcn_friends_locations and i.found is True])
-                    return f"{location} ({count}/{total})"
+                    return f"{location} (*{count}/{total}*)"
 
             case "Hollow Knight":
                 # There'll probably be something here later
