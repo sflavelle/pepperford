@@ -739,7 +739,11 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
                 pass
             elif Item.location.game == "Simon Tatham's Portable Puzzle Collection":
                 pass
-            elif Item.location.game == "Here Comes Niko!" and Item.location.name in hcn_friends_locations:
+            elif (
+                Item.location.game == "Here Comes Niko!"
+                and Item.location.name in hcn_friends_locations
+                and Item.location.player.settings["Completion Goal"] == "Friend"
+            ):
                 pass
             # original rule
             elif Item.is_filler() or Item.is_currency():

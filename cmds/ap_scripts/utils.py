@@ -1622,6 +1622,9 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                         ]
                         and settings["Flowersanity"] == "Insanity"
                     ):
+                        # Unlike the other sanities, the flower requirement is based on
+                        # how many flowerbeds there are in the level, rather than
+                        # there being a set amount
                         level = item.replace(" Flower", "")
                         required = len([i for i in spoiler.keys() if i.startswith(f"{level} - Flowerbed")])
                         return f"{item} ({count}/{required})"
