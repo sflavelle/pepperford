@@ -44,9 +44,7 @@ item_table = {}
 gzd = gzDoomMapNames()
 
 hcn_friends_locations: list[str] = [
-
     "Home - Give High Frog Lunchbox",
-
     "Hairball City - BIG VOLLEY",
     "Hairball City - Dustan on Lighthouse",
     "Hairball City - Gunter on Skyscraper",
@@ -61,7 +59,6 @@ hcn_friends_locations: list[str] = [
     "Hairball City - Blessley",
     "Hairball City - Mitch",
     "Hairball City - Mai",
-
     "Turbine Town - Blippy Dog",
     "Turbine Town - Blippy",
     "Turbine Town - Serschel & Louist",
@@ -73,7 +70,6 @@ hcn_friends_locations: list[str] = [
     "Turbine Town - Fish with Fischer",
     "Turbine Town - Mitch",
     "Turbine Town - Mai",
-
     "Salmon Creek Forest - Dustan on Mountain",
     "Salmon Creek Forest - Nina",
     "Salmon Creek Forest - Stijn & Melissa",
@@ -89,7 +85,6 @@ hcn_friends_locations: list[str] = [
     "Salmon Creek Forest - Moomy",
     "Salmon Creek Forest - Mitch",
     "Salmon Creek Forest - Mai",
-
     "Public Pool - Blippy",
     "Public Pool - Frogtective",
     "Public Pool - Blippy Dog",
@@ -99,7 +94,6 @@ hcn_friends_locations: list[str] = [
     "Public Pool - Fish with Fischer",
     "Public Pool - Mitch",
     "Public Pool - Mai",
-
     "Bathhouse - Poppy",
     "Bathhouse - Fish with Fischer",
     "Bathhouse - Blessley",
@@ -114,7 +108,6 @@ hcn_friends_locations: list[str] = [
     "Bathhouse - Moomy",
     "Bathhouse - Mitch",
     "Bathhouse - Mai",
-
     "Tadpole HQ - Blippy",
     "Tadpole HQ - Little Gabi's Flowers",
     "Tadpole HQ - Blippy Dog",
@@ -125,11 +118,9 @@ hcn_friends_locations: list[str] = [
     "Tadpole HQ - Fish with Fischer",
     "Tadpole HQ - Mitch",
     "Tadpole HQ - Mai",
-
     "Gary's Garden - Gunter & Little Gabi",
     "Gary's Garden - Mitch",
     "Gary's Garden - Mai",
-
 ]
 
 # def push_to_database(cursor: psql.cursor, game: Game, database: str, column: str, payload):
@@ -1612,7 +1603,8 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                         required = 10
                         return f"{item} ({count}/{required})"
                     if (
-                        item in [
+                        item
+                        in [
                             "Hairball City Flower",
                             "Turbine Town Flower",
                             "Salmon Creek Forest Flower",
@@ -1626,7 +1618,13 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                         # how many flowerbeds there are in the level, rather than
                         # there being a set amount
                         level = item.replace(" Flower", "")
-                        required = len([i for i in spoiler.keys() if i.startswith(f"{level} - Flowerbed")])
+                        required = len(
+                            [
+                                i
+                                for i in spoiler.keys()
+                                if i.startswith(f"{level} - Flowerbed")
+                            ]
+                        )
                         return f"{item} ({count}/{required})"
 
                 case "HITMAN World of Assasination":  # sic
@@ -1786,6 +1784,17 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                             collected_str += "🔼"
                         return f"{item} ({collected_str})"
 
+                case "Pokemon Crystal":
+                    unown_tiles = [
+                        "Kabuto Tile",  # A-K
+                        "Omanyte Tile",  # L-R
+                        "Aerodactyl Tile",  # S-W
+                        "Ho-Oh Tile",  # X-Z
+                    ]
+                    if item in unown_tiles and settings["Goal"] == "Unown Hunt":
+                        required = 16
+                        return f"{item} ({count}/{required})"
+
                 case "Pokemon Mystery Dungeon Explorers of Sky":
                     sky_peaks = [
                         "1st Station Pass",
@@ -1911,8 +1920,8 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                         required = settings["Bosses Required"]
                         return f"{item} ({count}/{required})"
                     if item == "Golden Yoshi Egg":
-                        required = slot_data['required_egg_count']
-                        total = slot_data['actual_egg_count']
+                        required = slot_data["required_egg_count"]
+                        total = slot_data["actual_egg_count"]
                         return f"{item} (*{count}/{required}*)"
 
                 case "Trackmania":
@@ -2246,10 +2255,22 @@ def handle_location_tracking(game: Game, player: Player, item: Item):
                     total = settings["Tasksanity Check Count"]
                     return f"{location}/{total}"
             case "Here Comes Niko!":
-                if location in hcn_friends_locations and settings['Completion Goal'] == "Friend":
+                if (
+                    location in hcn_friends_locations
+                    and settings["Completion Goal"] == "Friend"
+                ):
                     # Best Friend goal locations
-                    total = len([i for i in spoiler.keys() if i in hcn_friends_locations])
-                    count = len([i for i in spoiler.values() if i.location.name in hcn_friends_locations and i.found is True])
+                    total = len(
+                        [i for i in spoiler.keys() if i in hcn_friends_locations]
+                    )
+                    count = len(
+                        [
+                            i
+                            for i in spoiler.values()
+                            if i.location.name in hcn_friends_locations
+                            and i.found is True
+                        ]
+                    )
                     return f"{location} (*{count}/{total}*)"
 
             case "Hollow Knight":
@@ -2533,9 +2554,8 @@ def handle_state_tracking(player: Player, game: Game):
                 required_strawberries = settings["Total Strawberries"] * (
                     settings["Strawberries Required Percentage"] / 100
                 )
-                goal_with_strawbs = (
-                    lambda string: string
-                    + f" (with {int(required_strawberries)} Strawberries)"
+                goal_with_strawbs = lambda string: (
+                    string + f" (with {int(required_strawberries)} Strawberries)"
                 )
 
                 match goal:
@@ -2571,10 +2591,13 @@ def handle_state_tracking(player: Player, game: Game):
             case "Donkey Kong 64":
                 goal = settings["Goal"]
 
-                dk64_goal = lambda string: string + (
-                    ", then defeat King K. Rool"
-                    if settings["Require Beating K. Rool"]
-                    else ""
+                dk64_goal = lambda string: (
+                    string
+                    + (
+                        ", then defeat King K. Rool"
+                        if settings["Require Beating K. Rool"]
+                        else ""
+                    )
                 )
 
                 match goal:
@@ -2805,6 +2828,11 @@ def handle_state_tracking(player: Player, game: Game):
                         goal_str = "Defeat Ganon and Save Hyrule"
 
                 # TODO Get main inventory
+
+            case "Pokemon Crystal":
+                match settings["Goal"]:
+                    case "Unown Hunt":
+                        goal_str = "Catch every type of Unown"
 
             case "Pokemon Emerald":
                 match settings["Goal"]:
@@ -3055,4 +3083,3 @@ def import_datapackage_from_checksum(
         f"Successfully imported datapackage with checksum {checksum} for game: {game}"
     )
     return [game]
-
