@@ -235,11 +235,15 @@ class Game(dict):
 
     def get_player(self, player):
         """Get a Player object by name or ID."""
-        for v in self.players.values():
-            if isinstance(player, int) and v.id == player:
-                return v
-            elif isinstance(player, str) and v.name.lower() == player.lower():
-                return v
+        if isinstance(player, int):
+            for p in self.players.values():
+                if p.id == player:
+                    return p
+
+        elif isinstance(player, str):
+            for player_obj in self.players.values():
+                if player == player_obj.name:
+                    return player_obj
         return None
 
     def fetch_room_api(self):
