@@ -2331,7 +2331,7 @@ def handle_location_tracking(game: Game, player: Player, item: Item):
                         mapnum = int(match.groups()[1])
                         medal = match.groups()[2]
 
-                        mapinfo = player.upload_data.world[seriesnum - 1].maps[
+                        mapinfo = player.upload_data["world"][seriesnum - 1]["maps"][
                             mapnum - 1
                         ]
                         mapname = mapinfo["Name"]
