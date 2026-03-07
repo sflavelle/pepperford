@@ -2353,7 +2353,7 @@ def handle_location_tracking(game: Game, player: Player, item: Item):
                         seconds: float = float(medaltime_raw / 1000) % 60
                         minutes: int = math.floor(medaltime_raw / 1000 / 60)
 
-                        if url:
+                        if url is not None:
                             return f"S{seriesnum}M{mapnum}: [{mapname}]({url}) - {medal} Time ({minutes}:{seconds:03}"
                         else:
                             logger.warn(
