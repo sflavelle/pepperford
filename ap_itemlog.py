@@ -1546,8 +1546,12 @@ def upload_data(slotname: str):
             return jsonify({"error": "Invalid JSON format, expected a dictionary"}), 400
 
         player.upload_data = data
+
+        if not pathlib.Path(f".cache/{room_id}").exists():
+            pathlib.Path(f".cache/{room_id}").mkdir(parents=True, exist_ok=True)
         with open(f".cache/{room_id}/{player.name}.json", "w") as file:
             file.write(json.dumps(data))
+
         return jsonify(
             {"message": f"Data uploaded successfully for player {slotname}"}
         ), 200
