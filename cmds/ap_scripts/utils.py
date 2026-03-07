@@ -2356,6 +2356,9 @@ def handle_location_tracking(game: Game, player: Player, item: Item):
                         if url:
                             return f"S{seriesnum}M{mapnum}: [{mapname}]({url}) - {medal} Time ({minutes}:{seconds:03}"
                         else:
+                            logger.warn(
+                                f"Map name {mapname} has no URL! Titlepack: {title}"
+                            )
                             return f"S{seriesnum}M{mapnum}: {mapname} - {medal} Time ({minutes}:{seconds:03}"
 
             case _:
