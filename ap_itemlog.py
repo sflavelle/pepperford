@@ -1517,18 +1517,7 @@ def upload_data(slotname: str):
     logger.debug(f"Received slotname bytes: {slotname.encode('utf-8')}")
     logger.debug(f"Received slotname repr: {repr(slotname)}")
 
-    for player_name, player_obj in game.players.items():
-        logger.debug(
-            f"Comparing {repr(slotname)} == {repr(player_obj.name)}: {slotname == player_obj.name}"
-        )
-        if slotname == player_obj.name:
-            logger.info(f"FOUND MATCH: {slotname}")
-            player = player_obj
-            break
-    else:
-        player = None
-
-    # player = game.get_player(slotname)
+    player = game.get_player(slotname)
 
     if player is None:
         logger.error(f"Couldn't find player '{slotname}' to upload data to")
@@ -1540,7 +1529,7 @@ def upload_data(slotname: str):
         if not isinstance(data, dict):
             return jsonify({"error": "Invalid JSON format, expected a dictionary"}), 400
 
-        player.upload_data = data.json
+        player.upload_data = data
         return jsonify(
             {"message": f"Data uploaded successfully for player {slotname}"}
         ), 200
