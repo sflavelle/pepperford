@@ -1254,6 +1254,13 @@ def watch_log(url, interval):
         game.has_spoiler = True
         process_spoiler_log(seed_url)
     previous_lines = fetch_log(url)
+
+    if not previous_lines:
+        # Sleep and try again until we get something
+        while not previous_lines:
+            time.sleep(15)
+            previous_lines = fetch_log(url)
+
     logger.info("Parsing existing log lines before we start watching it...")
 
     # Get the last line number we processed from the database
@@ -1264,12 +1271,6 @@ def watch_log(url, interval):
             except TypeError:
                 # Last Line probably hasn't been set yet; this room is new
                 pass
-
-    if not previous_lines:
-        # Sleep and try again until we get something
-        while not previous_lines:
-            time.sleep(15)
-            previous_lines = fetch_log(url)
 
     process_new_log_lines(previous_lines[:last_line], True)  # Read for hints etc
     release_buffer = {}
