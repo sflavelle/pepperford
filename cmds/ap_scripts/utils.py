@@ -2339,7 +2339,7 @@ def handle_location_tracking(game: Game, player: Player, item: Item):
                         title = mapinfo["TitlePack"]
                         url = None
                         match title:
-                            case "Trackmania":
+                            case "Trackmania" | "TMStadium":
                                 url = f"https://trackmania.exchange/mapshow/{mapid}"
                             case _:
                                 pass
