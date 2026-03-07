@@ -2333,7 +2333,7 @@ def handle_location_tracking(game: Game, player: Player, item: Item):
 
                         mapinfo = player.upload_data["world"][seriesnum - 1]["maps"][
                             mapnum - 1
-                        ]
+                        ]["mapInfo"]
                         mapname = mapinfo["Name"]
                         mapid = mapinfo["MapId"]
                         title = mapinfo["TitlePack"]

@@ -3,6 +3,7 @@ import fnmatch
 import json
 import logging
 import os
+import pathlib
 import random
 import socket
 import sys
@@ -1253,6 +1254,14 @@ def watch_log(url, interval):
         logger.info("Processing spoiler log.")
         game.has_spoiler = True
         process_spoiler_log(seed_url)
+
+    if pathlib.Path(f".cache/{room_id}").exists():
+        for player in game.players.values():
+            if pathlib.Path(f".cache/{room_id}/{player.name}.json").exists():
+                logger.info(f"Restoring uploaded data for {player.name}...")
+                with open(f".cache/{room_id}/{player.name}.json") as file:
+                    player.upload_data = json.loads(file.read())
+
     previous_lines = fetch_log(url)
 
     if not previous_lines:
@@ -1537,6 +1546,8 @@ def upload_data(slotname: str):
             return jsonify({"error": "Invalid JSON format, expected a dictionary"}), 400
 
         player.upload_data = data
+        with open(f".cache/{room_id}/{player.name}.json", "w") as file:
+            file.write(json.dumps(data))
         return jsonify(
             {"message": f"Data uploaded successfully for player {slotname}"}
         ), 200
