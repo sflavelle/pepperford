@@ -1218,7 +1218,7 @@ def send_release_messages():
 def fetch_log(url):
     try:
         cookies = {"session": session_cookie}
-        response = requests.get(url, cookies=cookies, timeout=10)
+        response = requests.get(url, cookies=cookies, timeout=15)
         response.raise_for_status()
         return response.text.splitlines()
     except requests.RequestException as e:
@@ -1264,6 +1264,12 @@ def watch_log(url, interval):
             except TypeError:
                 # Last Line probably hasn't been set yet; this room is new
                 pass
+
+    if not previous_lines:
+        # Sleep and try again until we get something
+        while not previous_lines:
+            time.sleep(15)
+            previous_lines = fetch_log(url)
 
     process_new_log_lines(previous_lines[:last_line], True)  # Read for hints etc
     release_buffer = {}
