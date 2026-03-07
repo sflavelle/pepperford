@@ -2320,12 +2320,39 @@ def handle_location_tracking(game: Game, player: Player, item: Item):
                         ]
                     )
                     return f"{location} (*{count}/{total}*)"
-            # case "Trackmania":
-            #     if location.endswith("Target Time"):
-            #         total = len([l for l in spoiler.values() if l.location.endswith("Target Time")])
-            #         required = round(total * (settings['Series Medal Percentage'] / 100))
-            #         count = len([l for l in spoiler.values() if l.location.endswith("Target Time") and l.found is True])
-            #         return f"{location} ({count}/{required})"
+            case "Trackmania":
+                if player.has_uploaded_data():
+                    # Series 2 Map 2 - Bronze Time
+                    match_regex = re.compile(
+                        r"^Series (\d+) Map (\d+) - ([a-zA-Z]+) Time$"
+                    )
+                    if match := match_regex.match(location):
+                        seriesnum = int(match.groups()[0])
+                        mapnum = int(match.groups()[1])
+                        medal = match.groups()[2]
+
+                        mapinfo = player.upload_data.world[seriesnum - 1].maps[
+                            mapnum - 1
+                        ]
+                        mapname = mapinfo["Name"]
+                        mapid = mapinfo["MapId"]
+                        title = mapinfo["TitlePack"]
+                        url = None
+                        match title:
+                            case "Trackmania":
+                                url = f"https://trackmania.exchange/mapshow/{mapid}"
+                            case _:
+                                pass
+
+                        medaltime_raw = mapinfo["Medals"][medal]
+                        seconds: float = float(medaltime_raw / 1000) % 60
+                        minutes: int = floor(medaltime_raw / 1000 / 60)
+
+                        if url:
+                            return f"S{seriesnum}M{mapnum}: [{mapname}]({url}) - {medal} Time ({minutes}:{seconds:03d}"
+                        else:
+                            return f"S{seriesnum}M{mapnum}: {mapname} - {medal} Time ({minutes}:{seconds:03d}"
+
             case _:
                 return location
     return location
