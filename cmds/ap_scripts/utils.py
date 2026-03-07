@@ -2346,7 +2346,7 @@ def handle_location_tracking(game: Game, player: Player, item: Item):
 
                         medaltime_raw = mapinfo["Medals"][medal]
                         seconds: float = float(medaltime_raw / 1000) % 60
-                        minutes: int = floor(medaltime_raw / 1000 / 60)
+                        minutes: int = math.floor(medaltime_raw / 1000 / 60)
 
                         if url:
                             return f"S{seriesnum}M{mapnum}: [{mapname}]({url}) - {medal} Time ({minutes}:{seconds:03d}"
