@@ -1530,7 +1530,7 @@ def upload_data(slotname: str):
 
     # player = game.get_player(slotname)
 
-    if not player:
+    if player is None:
         logger.error(f"Couldn't find player '{slotname}' to upload data to")
         logger.error(f"Available: {[p.name for p in game.players.values()]}")
         return jsonify({"error": f"Player {slotname} not found"}), 404
