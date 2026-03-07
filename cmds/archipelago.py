@@ -1,4 +1,5 @@
 import asyncio
+import io
 import json
 import logging
 import os
@@ -9,7 +10,6 @@ import time
 import traceback
 import typing
 import zipfile
-import io
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
@@ -139,12 +139,12 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
             raise AttributeError(
                 "Action successful, but couldn't log to channel: " + str(err)
             )
-        
+
     @app_commands.command()
-    @app_commands.describe(
-        channel="Channel to download attachements from"
-    )
-    async def getyamls(self, interaction: discord.Interaction, channel: discord.TextChannel = None):
+    @app_commands.describe(channel="Channel to download attachements from")
+    async def getyamls(
+        self, interaction: discord.Interaction, channel: discord.TextChannel = None
+    ):
         """Download all YAML attachments from a selected/set channel."""
 
         channel_id = self.ctx.procs["archipelago"].get("channel_apsubmissions")
@@ -160,7 +160,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                 "The specified channel is invalid. Please specify a valid channel.",
                 ephemeral=True,
             )
-        
+
         await interaction.response.defer(ephemeral=True, thinking=True)
         messages = []
         try:
@@ -171,18 +171,21 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                 "I don't have permission to read message history in that channel. Please check my permissions and try again.",
                 ephemeral=True,
             )
-        
+
         yaml_attachments = []
         for msg in messages:
             for attachment in msg.attachments:
-                if attachment.filename.endswith(".yaml") or attachment.filename.endswith(".yml"):
+                if any(
+                    attachment.filename.endswith(ext)
+                    for ext in [".yaml", ".yml", ".txt"]
+                ):
                     yaml_attachments.append((attachment, msg.jump_url))
         if not yaml_attachments:
             return await interaction.followup.send(
                 "No YAML attachments found in that channel.",
                 ephemeral=True,
             )
-        
+
         await interaction.followup.send(
             f"Found {len(yaml_attachments)} YAML attachments. Downloading...",
             ephemeral=True,
@@ -196,7 +199,9 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                     data = await attachment.read()
                     zip_file.writestr(attachment.filename, data)
                 except Exception as e:
-                    logger.error(f"Failed to download {attachment.filename} from {jump_url}: {e}")
+                    logger.error(
+                        f"Failed to download {attachment.filename} from {jump_url}: {e}"
+                    )
 
         zip_buffer.seek(0)
         await interaction.followup.send(
@@ -902,7 +907,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
         await self.archivist_log(
             interaction,
             "classify_import",
-            f"Imported community classifications for **{updated}** items in {f'**{len(comm_classification_table)}** games' if len(comm_classification_table) > 1 else f'**{comm_classification_table.keys()[0]}**'}.\n\n"
+            f"Imported community classifications for **{updated}** items in **{len(comm_classification_table)}** games.\n\n"
             f"Progression: {progression}, Useful: {useful}, Filler: {filler}, Trap: {trap}",
         )
         return await newpost.edit(
@@ -1063,7 +1068,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
     @app_commands.default_permissions(manage_messages=True)
     @app_commands.guild_only()
     @app_commands.describe(room_url="Link to the Archipelago room")
-    async def set_room(self, interaction: discord.Interaction, room_url: str):
+    async def setroom(self, interaction: discord.Interaction, room_url: str):
         """Set the current Archipelago room for this server. Will affect other commands."""
 
         logger.info(
@@ -1204,15 +1209,15 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
 
         def player_status(player: dict) -> list[str]:
             status_lines = []
-            last_online = (
-                lambda player: "Online right now."
+            last_online = lambda player: (
+                "Online right now."
                 if player["online"] is True
                 else f"Last online <t:{int(player['last_online'])}:R>."
                 if player["last_online"] is not None
                 else "Never logged in."
             )
-            showgame_ifenabled = (
-                lambda player: f" ({player['game']})" if show_slot_game else ""
+            showgame_ifenabled = lambda player: (
+                f" ({player['game']})" if show_slot_game else ""
             )
             if player["goaled"] is True:
                 status_lines.append(

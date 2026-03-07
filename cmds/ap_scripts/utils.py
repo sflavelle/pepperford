@@ -238,7 +238,7 @@ class Game(dict):
         for v in self.players.values():
             if isinstance(player, int) and v.id == player:
                 return v
-            elif isinstance(player, str) and v.name == player:
+            elif isinstance(player, str) and v.name.lower() == player.lower():
                 return v
         return None
 
@@ -2832,7 +2832,7 @@ def handle_state_tracking(player: Player, game: Game):
             case "Pokemon Crystal":
                 match settings["Goal"]:
                     case "Unown Hunt":
-                        goal_str = "Catch every type of Unown"
+                        goal_str = "Show a completed Unown Dex to the Scientist in the Ruins of Alph"
 
             case "Pokemon Emerald":
                 match settings["Goal"]:
