@@ -2344,7 +2344,12 @@ def handle_location_tracking(game: Game, player: Player, item: Item):
                             case _:
                                 pass
 
-                        medaltime_raw = mapinfo["Medals"][medal]
+                        if medal == "Target":
+                            medaltime_raw = player.upload_data["world"][seriesnum - 1][
+                                "maps"
+                            ][mapnum - 1]["targetTime"]
+                        else:
+                            medaltime_raw = mapinfo["Medals"][medal]
                         seconds: float = float(medaltime_raw / 1000) % 60
                         minutes: int = math.floor(medaltime_raw / 1000 / 60)
 
