@@ -1511,6 +1511,7 @@ def get_checkable_locations(found: bool = False):
 
 @webview.route("/upload_data/<slotname>", methods=["POST"])
 def upload_data(slotname: str):
+    player = None
     logger.debug(f"Available players: {list(game.players.keys())}")
     logger.debug(f"Player names: {[p.name for p in game.players.values()]}")
     logger.debug(f"Received slotname bytes: {slotname.encode('utf-8')}")
