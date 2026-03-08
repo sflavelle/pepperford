@@ -2354,12 +2354,12 @@ def handle_location_tracking(game: Game, player: Player, item: Item):
                         minutes: int = math.floor(medaltime_raw / 1000 / 60)
 
                         if url is not None:
-                            return f"S{seriesnum}M{mapnum}: [{mapname}](<{url}>) - {medal} Time ({minutes}:{seconds:05.3f})"
+                            return f"S{seriesnum}M{mapnum}: [{mapname}](<{url}>) - {medal} Time ({minutes}:{seconds:06.3f})"
                         else:
                             logger.warn(
                                 f"Map name {mapname} has no URL! Titlepack: {title}"
                             )
-                            return f"S{seriesnum}M{mapnum}: {mapname} - {medal} Time ({f'{minutes}:' if minutes > 0 else ''}{seconds:05.3f})"
+                            return f"S{seriesnum}M{mapnum}: {mapname} - {medal} Time ({f'{minutes}:' if minutes > 0 else ''}{seconds:06.3f})"
 
             case _:
                 return location
