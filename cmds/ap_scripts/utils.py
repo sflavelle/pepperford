@@ -2330,41 +2330,42 @@ def handle_location_tracking(game: Game, player: Player, item: Item):
                         seriesnum = int(match.groups()[0])
                         mapnum = int(match.groups()[1])
                         medal = match.groups()[2]
-                        if len(player.upload_data["world"]) < seriesnum:
+
+                        try:
+                            mapinfo = player.upload_data["world"][seriesnum - 1][
+                                "maps"
+                            ][mapnum - 1]["mapInfo"]
+                            mapname = mapinfo["Name"]
+                            mapid = mapinfo["MapId"]
+                            title = mapinfo["TitlePack"]
+                            url = None
+                            match title:
+                                case "Trackmania" | "TMStadium":
+                                    url = f"https://trackmania.exchange/mapshow/{mapid}"
+                                case _:
+                                    pass
+
+                            if medal == "Target":
+                                medaltime_raw = player.upload_data["world"][
+                                    seriesnum - 1
+                                ]["maps"][mapnum - 1]["targetTime"]
+                            else:
+                                medaltime_raw = mapinfo["Medals"][medal]
+                            seconds: float = float(medaltime_raw / 1000) % 60
+                            minutes: int = math.floor(medaltime_raw / 1000 / 60)
+
+                            if url is not None:
+                                return f"S{seriesnum}M{mapnum}: [{mapname}](<{url}>) - {medal} Time ({minutes}:{seconds:06.3f})"
+                            else:
+                                logger.warn(
+                                    f"Map name {mapname} has no URL! Titlepack: {title}"
+                                )
+                                return f"S{seriesnum}M{mapnum}: {mapname} - {medal} Time ({f'{minutes}:' if minutes > 0 else ''}{seconds:06.3f})"
+                        except IndexError:
                             logger.warn(
-                                f"{player.name}: Uploaded data does not cover this series"
+                                f"{player.name} ({location}): Uploaded data does not cover this series"
                             )
                             return location
-
-                        mapinfo = player.upload_data["world"][seriesnum - 1]["maps"][
-                            mapnum - 1
-                        ]["mapInfo"]
-                        mapname = mapinfo["Name"]
-                        mapid = mapinfo["MapId"]
-                        title = mapinfo["TitlePack"]
-                        url = None
-                        match title:
-                            case "Trackmania" | "TMStadium":
-                                url = f"https://trackmania.exchange/mapshow/{mapid}"
-                            case _:
-                                pass
-
-                        if medal == "Target":
-                            medaltime_raw = player.upload_data["world"][seriesnum - 1][
-                                "maps"
-                            ][mapnum - 1]["targetTime"]
-                        else:
-                            medaltime_raw = mapinfo["Medals"][medal]
-                        seconds: float = float(medaltime_raw / 1000) % 60
-                        minutes: int = math.floor(medaltime_raw / 1000 / 60)
-
-                        if url is not None:
-                            return f"S{seriesnum}M{mapnum}: [{mapname}](<{url}>) - {medal} Time ({minutes}:{seconds:06.3f})"
-                        else:
-                            logger.warn(
-                                f"Map name {mapname} has no URL! Titlepack: {title}"
-                            )
-                            return f"S{seriesnum}M{mapnum}: {mapname} - {medal} Time ({f'{minutes}:' if minutes > 0 else ''}{seconds:06.3f})"
 
             case _:
                 return location
