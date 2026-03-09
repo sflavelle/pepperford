@@ -2330,6 +2330,11 @@ def handle_location_tracking(game: Game, player: Player, item: Item):
                         seriesnum = int(match.groups()[0])
                         mapnum = int(match.groups()[1])
                         medal = match.groups()[2]
+                        if len(player.upload_data["world"]) < seriesnum:
+                            logger.warn(
+                                f"{player.name}: Uploaded data does not cover this series"
+                            )
+                            return location
 
                         mapinfo = player.upload_data["world"][seriesnum - 1]["maps"][
                             mapnum - 1
