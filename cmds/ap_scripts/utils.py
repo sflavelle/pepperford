@@ -1929,6 +1929,24 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                         total = slot_data["actual_egg_count"]
                         return f"{item} (*{count}/{required}*)"
 
+                case "Super Metroid":
+                    if item == "Energy Tank":
+                        tank_capacity = 100
+                        current_capacity = count * tank_capacity
+                        return f"{item} ({current_capacity} Capacity)"
+                    if item == "Missile":
+                        capacity_per = 5
+                        current_capacity = count * capacity_per
+                        return f"{item} ({current_capacity} Capacity)"
+                    if item == "Super Missile":
+                        capacity_per = 5
+                        current_capacity = count * capacity_per
+                        return f"{item} ({current_capacity} Capacity)"
+                    if item == "Power Bomb":
+                        capacity_per = 5
+                        current_capacity = count * capacity_per
+                        return f"{item} ({current_capacity} Capacity)"
+
                 case "Trackmania":
                     medals = [
                         "Bronze Medal",
