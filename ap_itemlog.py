@@ -772,7 +772,7 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
             elif (
                 receiver in collect_buffer
                 and not skip_msg
-                and (timestamp - release_buffer[receiver]["timestamp"] <= RELEASE_DELTA)
+                and (timestamp - collect_buffer[receiver]["timestamp"] <= RELEASE_DELTA)
             ):
                 collect_buffer[receiver]["items"][sender].append(Item)
                 logger.debug(f"{Item.location.name} was collected by {receiver}.")
