@@ -149,6 +149,7 @@ local_timezone = time.tzname[time.daylight]
 
 # Buffer to store release and related sent item messages
 release_buffer = {}
+collect_buffer = {}
 message_buffer = []
 
 # Store for players, items, settings
@@ -589,6 +590,9 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
         "releases": re.compile(
             r"\[(.*?)\]: Notice \(all\): (.*?) \(Team #\d\) has released all remaining items from their world\.$"
         ),
+        "collects": re.compile(
+            r"\[(.*?)\]: Notice \(all\): (.*?) \(Team #\d\) has collected their items from other worlds\.$"
+        ),
         "messages": re.compile(r"\[(.*?)\]: Notice \(all\): (.*?): (.+)$"),
         "room_shutdown": re.compile(r"\[(.*?)\]: Shutting down due to inactivity.$"),
         "room_spinup": re.compile(r"\[(.*?)\]: Hosting game at (.+?)$"),
@@ -765,6 +769,13 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
             ):
                 release_buffer[sender]["items"][receiver].append(Item)
                 logger.debug(f"Adding {item} for {receiver} to release buffer.")
+            elif (
+                receiver in collect_buffer
+                and not skip_msg
+                and (timestamp - release_buffer[receiver]["timestamp"] <= RELEASE_DELTA)
+            ):
+                collect_buffer[receiver]["items"][sender].append(Item)
+                logger.debug(f"{Item.location.name} was collected by {receiver}.")
             else:
                 # Update item name based on settings for special items
                 location = item_location
@@ -931,19 +942,10 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
 
             message = f"**[Hint]** **{receiver}'s {item_with_icon(item, icon)}** is at {item_location} in {sender}'s World{f' (found at {entrance})' if bool(entrance) else ''}."
 
-            match hint_status:
-                case "avoid":
-                    message += " This item is not useful."
-                case "priority":
-                    Item.update_item_classification("progression")
-                    message += " **This item will unlock more checks.**"
-                case _:
-                    pass
-
             if bool(Item.location.requirements):
-                message += f"\n> -# This will cost {join_words(Item.location_costs)} to obtain."
+                message += f"\n> -# This will cost {join_words(Item.location.requirements)} to obtain."
             if bool(Item.location.description):
-                message += f"\n> -# {Item.location_info}"
+                message += f"\n> -# {Item.location.description}"
 
             if (
                 not skip_msg
@@ -981,6 +983,15 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
             if not skip_msg:
                 logging.info(f"{sender} has released their remaining items.")
                 release_buffer[sender] = {
+                    "timestamp": parse_to_datetime(timestamp),
+                    "items": defaultdict(list),
+                }
+        elif match := regex_patterns["collects"].match(line):
+            timestamp, receiver = match.groups()
+            game.players[receiver].collected = True
+            if not skip_msg:
+                logging.info(f"{receiver} has collected their remaining items.")
+                collect_buffer[receiver] = {
                     "timestamp": parse_to_datetime(timestamp),
                     "items": defaultdict(list),
                 }
@@ -1136,58 +1147,6 @@ def send_meta(sender, message):
 def send_release_messages():
     global release_buffer
 
-    def handle_currency(receiver, itemlist: dict):
-        currency = 0
-
-        currency_matches = {
-            "A Hat in Time": (re.compile(r"^([0-9]+) Pons$"), "Pons"),
-            "Final Fantasy": (re.compile(r"^Gold([0-9]+)$"), "Gold"),
-            "Jak and Daxter The Precursor Legacy": (
-                re.compile(r"^([0-9]+) Precursor Orbs?$"),
-                "Precursor Orbs",
-            ),
-            "Links Awakening DX": (re.compile(r"^([0-9]+) Rupees$"), "Rupees"),
-            "Link to the Past": (re.compile(r"^Rupees? \(([0-9]+)\)$"), "Rupees"),
-            "Ocarina of Time": (re.compile(r"^Rupees? \(([0-9]+)\)$"), "Rupees"),
-            "Pokemon FireRed and LeafGreen": (
-                re.compile(r"^([0-9]+) Coins?$"),
-                "Coins",
-            ),
-            "Sonic Adventure 2 Battle": (re.compile(r"^(\w+) Coins?$"), "Coins"),
-            "Super Mario World": (re.compile(r"^([0-9]+) coins?$"), "Coins"),
-        }
-
-        if game.players[receiver].game in currency_matches:
-            try:
-                for item, count in itemlist.copy().items():
-                    if match := currency_matches[game.players[receiver].game][0].match(
-                        item
-                    ):
-                        if game.players[receiver].game == "Sonic Adventure 2 Battle":
-                            amount = w2n.word_to_num(
-                                match.groups()[0]
-                            )  # why you make me do this
-                        else:
-                            amount = int(match.groups()[0])
-                        currency = currency + (amount * count)
-                        del itemlist[item]
-                if currency > 0:
-                    logger.info(
-                        f"Replacing (attempting) currency in {game.players[receiver].game} with '{currency} {currency_matches[game.players[receiver].game][1]}'"
-                    )
-                    itemlist.update(
-                        {
-                            f"{currency} {currency_matches[game.players[receiver].game][1]}": 1
-                        }
-                    )
-            except KeyError:
-                logger.info(
-                    f"No currency handler for {game.players[receiver].game}, but handle_currency matched it anyway somehow!"
-                )
-                raise
-
-        return itemlist
-
     for sender, data in release_buffer.copy().items():
         if len(data) == 0:
             continue
@@ -1202,7 +1161,6 @@ def send_release_messages():
                     if item.is_filler():
                         continue
                     item_counts[item.name] += 1
-                handle_currency(receiver, item_counts)
                 item_list = ", ".join(
                     [
                         f"{item} (x{count})" if count > 1 else item
@@ -1221,6 +1179,31 @@ def send_release_messages():
             send_log(message)
             logger.info(f"{sender} release sent.")
             del release_buffer[sender]
+
+
+def send_collection_messages():
+    global release_buffer
+
+    for sender, data in release_buffer.copy().items():
+        if len(data) == 0:
+            continue
+        if time.time() - data["timestamp"].timestamp() > 1:
+            message = f"**{sender}** has collected their items from the multiworld."
+            running_message = message
+            for receiver, items in data["items"].items():
+                if game.players[receiver].is_finished():
+                    continue
+                loc_list = ", ".join([i.location.name for i in items])
+                running_message += f"\n{dim_if_goaled(sender)}**{sender}**, {len(items)} locations collected: {loc_list}"
+                if len(running_message) > MAX_MSG_LENGTH:
+                    send_log(message)
+                    message = running_message.replace(message, "")
+                    time.sleep(1)
+                else:
+                    message = running_message
+            send_log(message)
+            logger.info(f"{sender} collection sent.")
+            del collect_buffer[sender]
 
 
 def fetch_log(url):
@@ -1247,7 +1230,7 @@ event_emitter.on("milestone", handle_milestone_message)
 
 
 def watch_log(url, interval):
-    global release_buffer
+    global collect_buffer
     global players
     global game
 
@@ -1290,6 +1273,7 @@ def watch_log(url, interval):
 
     process_new_log_lines(previous_lines[:last_line], True)  # Read for hints etc
     release_buffer = {}
+    collect_buffer = {}
     logger.info(f"Initial log lines: {len(previous_lines[:last_line])}")
     logger.info(
         f"Log lines queued up for processing: {len(previous_lines[last_line:])}"

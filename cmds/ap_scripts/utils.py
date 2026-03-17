@@ -583,14 +583,15 @@ class Player(dict):
         "locations": {},  # Locations associated with this player
     }
     online: bool = False
-    last_online: datetime.datetime = None
+    last_online: datetime.datetime | None = None
     tags = []
     settings: dict = {}
     slot_data: dict = {}
     upload_data: dict = {}
     stats: "PlayerState"  # Game-specific stats
-    goaled: bool = False
-    released: bool = False
+    goaled: bool = False  # Finished their game
+    released: bool = False  # Released their items
+    collected: bool = False  # Collected their items
     collected_locations: int = 0
     total_locations: int = 0
     collection_percentage: float = 0.0
@@ -636,6 +637,7 @@ class Player(dict):
         self.settings = PlayerSettings()
         self.goaled = False
         self.released = False
+        self.collected = False
         self.milestones = set()
         self.stats = Player.PlayerState()
 
@@ -671,7 +673,7 @@ class Player(dict):
         }
 
     def is_finished(self) -> bool:
-        return self.goaled or self.released
+        return self.goaled or self.released or self.collected
 
     def is_goaled(self) -> bool:
         return self.goaled
