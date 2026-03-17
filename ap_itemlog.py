@@ -1394,6 +1394,16 @@ def watch_log(url, interval):
                 logger.info(f"Release buffer period has already passed, sending.")
                 send_release_messages()
 
+        if len(collect_buffer) > 0:
+            if any(
+                datetime.now(ZoneInfo("UTC")).astimezone()
+                - collect_buffer[sender]["timestamp"]
+                > RELEASE_DELTA
+                for sender in collect_buffer.keys()
+            ):
+                logger.info(f"Collect buffer period has already passed, sending.")
+                send_collection_messages()
+
         if (
             len(message_buffer) == 0
             and bool(current_lines)
@@ -1407,6 +1417,7 @@ def watch_log(url, interval):
             all(p.is_finished() for p in game.players.values())
             and len(message_buffer) == 0
             and len(release_buffer) == 0
+            and len(collect_buffer) == 0
         ):
             logger.info(
                 "All players have finished and are offline, and there's no more messages in the buffers to process. We're done here."
@@ -1444,6 +1455,17 @@ def process_releases():
         while len(release_buffer) > 0:
             time.sleep(INTERVAL)
             send_release_messages()
+
+
+def process_collects():
+    global collect_buffer
+    logger.info("Watching for collects.")
+
+    while True:
+        time.sleep(10)
+        while len(collect_buffer) > 0:
+            time.sleep(INTERVAL)
+            send_collection_messages()
 
 
 # Flask stuff
@@ -1594,5 +1616,8 @@ if __name__ == "__main__":
 
     release_thread = threading.Thread(target=process_releases)
     release_thread.start()
+
+    collect_thread = threading.Thread(target=process_collects)
+    collect_thread.start()
 
     watch_log(log_url, INTERVAL)
