@@ -769,7 +769,7 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
             ):
                 release_buffer[sender]["items"][receiver].append(Item)
                 logger.debug(f"Adding {item} for {receiver} to release buffer.")
-            elif (
+            elif ( # Or if it is part of a collect
                 receiver in collect_buffer
                 and not skip_msg
                 and (timestamp - collect_buffer[receiver]["timestamp"] <= RELEASE_DELTA)
@@ -1184,14 +1184,14 @@ def send_release_messages():
 def send_collection_messages():
     global release_buffer
 
-    for sender, data in release_buffer.copy().items():
+    for receiver, data in release_buffer.copy().items():
         if len(data) == 0:
             continue
         if time.time() - data["timestamp"].timestamp() > 1:
-            message = f"**{sender}** has collected their items from the multiworld."
+            message = f"**{receiver}** has collected their items from the multiworld."
             running_message = message
-            for receiver, items in data["items"].items():
-                if game.players[receiver].is_finished():
+            for sender, items in data["items"].items():
+                if game.players[sender].is_finished():
                     continue
                 loc_list = ", ".join([i.location.name for i in items])
                 running_message += f"\n{dim_if_goaled(sender)}**{sender}**, {len(items)} locations collected: {loc_list}"
@@ -1202,8 +1202,8 @@ def send_collection_messages():
                 else:
                     message = running_message
             send_log(message)
-            logger.info(f"{sender} collection sent.")
-            del collect_buffer[sender]
+            logger.info(f"{receiver} collection sent.")
+            del collect_buffer[receiver]
 
 
 def fetch_log(url):
