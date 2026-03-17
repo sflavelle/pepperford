@@ -925,7 +925,9 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
                 case _:
                     icon = None
 
-            item_location = handle_location_tracking(game, game.players[sender], Item)
+            item_location = handle_location_tracking(
+                game, game.players[sender], Item, True
+            )
 
             message = f"**[Hint]** **{receiver}'s {item_with_icon(item, icon)}** is at {item_location} in {sender}'s World{f' (found at {entrance})' if bool(entrance) else ''}."
 
