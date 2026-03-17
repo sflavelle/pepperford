@@ -666,6 +666,7 @@ class Player(dict):
             "upload_data": self.upload_data,
             "goaled": self.goaled,
             "released": self.released,
+            "collected": self.collected,
             "collected_locations": self.collected_locations,
             "total_locations": self.total_locations,
             "collection_percentage": self.collection_percentage,
