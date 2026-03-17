@@ -1932,7 +1932,7 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                 case "Super Metroid":
                     if item == "Energy Tank":
                         tank_capacity = 100
-                        current_capacity = count * tank_capacity
+                        current_capacity = count * tank_capacity + 100
                         return f"{item} ({current_capacity} Capacity)"
                     if item == "Missile":
                         capacity_per = 5
@@ -2257,7 +2257,9 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
     return item
 
 
-def handle_location_tracking(game: Game, player: Player, item: Item):
+def handle_location_tracking(
+    game: Game, player: Player, item: Item, use_everywhere: bool = False
+):
     """If checking a location is an indicator of progress, we should track that in the location name."""
 
     ItemObject = item
@@ -2281,6 +2283,7 @@ def handle_location_tracking(game: Game, player: Player, item: Item):
                 if (
                     location in hcn_friends_locations
                     and settings["Completion Goal"] == "Friend"
+                    and not use_everywhere
                 ):
                     # Best Friend goal locations
                     total = len(
@@ -2306,7 +2309,7 @@ def handle_location_tracking(game: Game, player: Player, item: Item):
                     required = int(dimensions[0]) * int(dimensions[1])
                     return f"{location} (of {required})"
             case "Mega Man 2":
-                if location.endswith(" - Defeated"):
+                if location.endswith(" - Defeated") and not use_everywhere:
                     count = len(
                         [
                             l
@@ -2318,16 +2321,18 @@ def handle_location_tracking(game: Game, player: Player, item: Item):
                     required = 8
                     return f"{location} ({count}/{required})"
             case "Simon Tatham's Portable Puzzle Collection":
-                required = round(
-                    settings["puzzle count"]
-                    * (settings["Target Completion Percentage"] / 100)
-                )
-                count = player.collected_locations
-                return f"{location} ({count}/{required})"
+                if not use_everywhere:
+                    required = round(
+                        settings["puzzle count"]
+                        * (settings["Target Completion Percentage"] / 100)
+                    )
+                    count = player.collected_locations
+                    return f"{location} ({count}/{required})"
             case "Spyro 3":
                 if (
                     "Skill Point" in location
                     and settings["Completion Goal"] == "All Skillpoints"
+                    and not use_everywhere
                 ):
                     total = 20
                     count = len(
