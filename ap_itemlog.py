@@ -1182,9 +1182,9 @@ def send_release_messages():
 
 
 def send_collection_messages():
-    global release_buffer
+    global collect_buffer
 
-    for receiver, data in release_buffer.copy().items():
+    for receiver, data in collect_buffer.copy().items():
         if len(data) == 0:
             continue
         if time.time() - data["timestamp"].timestamp() > 1:
@@ -1203,7 +1203,7 @@ def send_collection_messages():
                     message = running_message
             send_log(message)
             logger.info(f"{receiver} collection sent.")
-            del collect_buffer[sender]
+            del collect_buffer[receiver]
 
 
 def fetch_log(url):
