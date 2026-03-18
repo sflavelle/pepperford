@@ -1203,7 +1203,7 @@ def send_collection_messages():
                     message = running_message
             send_log(message)
             logger.info(f"{receiver} collection sent.")
-            del collect_buffer[receiver]
+            del collect_buffer[sender]
 
 
 def fetch_log(url):
