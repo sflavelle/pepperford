@@ -762,6 +762,14 @@ class Player(dict):
         """Get the count of a specific item in the player's inventory."""
         return sum(1 for item in self.inventory if item.name == item_name)
 
+    def get_item_worldtotal(self, item_name: str) -> int:
+        """Returns count of all items with this name for this player."""
+        totalcount = 0
+        for item_obj in self._super.item_instance_cache.values():
+            if item_obj.name == item_name and item_obj.receiver == self:
+                totalcount += 1
+        return totalcount
+
     def has_item(self, item_name: str) -> bool:
         """Check if the player has at least one of the specified item in their inventory."""
         return any(item.name == item_name for item in self.inventory)
@@ -1949,6 +1957,14 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                         capacity_per = 5
                         current_capacity = count * capacity_per
                         return f"{item} ({current_capacity} Capacity)"
+
+                case "The Talos Principle Reawakened":
+                    tetrominos = {
+                        "Golden": ["I", "J", "L", "O", "S", "T", "Z"],
+                        "Green": ["I", "J", "L", "T", "Z"],
+                        "Red": ["I", "J", "L", "O", "S", "T", "Z"],
+                        "White": ["L", "O", "S"],
+                    }
 
                 case "Trackmania":
                     medals = [
