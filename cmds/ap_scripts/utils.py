@@ -1457,7 +1457,8 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                         return f"{item} (*{count}/{required}*)"
                 case "Final Fantasy Mystic Quest":
                     if item == "Sky Fragment":
-                        return f"{item} ({count})"
+                        total = player.get_item_worldtotal("Sky Fragment")
+                        return f"{item} ({count}/{total})"
                 case "gzDoom":
                     item_regex = re.compile(r"^([a-zA-Z ]+?) \((\S+)\)$")
                     if item.startswith("Level Access"):
@@ -1965,6 +1966,27 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                         "Red": ["I", "J", "L", "O", "S", "T", "Z"],
                         "White": ["L", "O", "S"],
                     }
+
+                    if item == "Star":
+                        required = 10
+                        return f"{item} ({count}/{required})"
+
+                    for t, pieces in tetrominos.items():
+                        for p in pieces:
+                            if item == f"{t} {p}":
+                                count = sum(
+                                    [
+                                        player.get_item_count(f"{t} {piece}")
+                                        for piece in pieces
+                                    ]
+                                )
+                                total = sum(
+                                    [
+                                        player.get_item_worldtotal(f"{t} {piece}")
+                                        for piece in pieces
+                                    ]
+                                )
+                                return f"{item} ({count}/{total}"
 
                 case "Trackmania":
                     medals = [
