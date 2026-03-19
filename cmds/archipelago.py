@@ -1610,7 +1610,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
         await newpost.edit(content="\n".join(msg_lines))
 
     @aproom.command()
-    async def get_hints(self, interaction: discord.Interaction, public: bool = False):
+    async def gethints(self, interaction: discord.Interaction, public: bool = False):
         """Get hints for the current room."""
 
         deferpost = await interaction.response.defer(
