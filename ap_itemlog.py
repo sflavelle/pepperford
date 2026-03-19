@@ -769,7 +769,7 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
             ):
                 release_buffer[sender]["items"][receiver].append(Item)
                 logger.debug(f"Adding {item} for {receiver} to release buffer.")
-            elif ( # Or if it is part of a collect
+            elif (  # Or if it is part of a collect
                 receiver in collect_buffer
                 and not skip_msg
                 and (timestamp - collect_buffer[receiver]["timestamp"] <= RELEASE_DELTA)
@@ -802,8 +802,9 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
 
                         non_trap_items = [
                             it.name
-                            for it in game.players[player.name].spoilers["items"]
+                            for it in game.item_instance_cache.values()
                             if it.classification not in ["trap", "currency", "filler"]
+                            and it.receiver == player
                             and it.found is False
                         ]
 
@@ -819,7 +820,7 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
 
                         # Full trap name
                         string = string.replace("$t", trap)
-                        # Trap name without the 'Trap' suffix
+                        # Trap name without the 'Trap' suffix, if it had one
                         string = string.replace("$T", trap.replace(" Trap", ""))
 
                         # Some random non-trap item from the receiver's spoiler log
@@ -837,6 +838,8 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
                             "**$s** is a FOOL! (collected a **$t**)",
                             "**$s** was **$T'd!**",
                             "A **$t** destroyed **$s's** world (and everything inside)",
+                            "**$s** tested out **their own $t**. It works!",
+                            "Let **$s** appreciate you the subtle strategy of taking this **$t**",
                         ]
                     else:
                         trap_messages = [
