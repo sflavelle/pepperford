@@ -63,14 +63,18 @@ class Bucket(commands.GroupCog, group_name="bucket"):
     asking it."""
 
     nouns = {}
-    random_chance: float = 0.35
+    random_chance = {
+        "recall": 0.35,
+        "infer": 0.2,
+    }
     rng = lambda x: random.random() < x
 
     blacklist: list[discord.User]
 
     def __init__(self, bot):
         self.ctx = bot
-        self.random_chance = bucketcfg['random_chance'] if 'random_chance' in bucketcfg else self.random_chance
+        self.random_chance['recall'] = bucketcfg['random_chance']['recall'] if 'random_chance' in bucketcfg else self.random_chance['recall']
+        self.random_chance['infer'] = bucketcfg['random_chance']['infer'] if 'random_chance' in bucketcfg else self.random_chance['infer']
 
     async def cog_command_error(self, ctx: Context[BotT], error: Exception) -> None:
         await ctx.reply(f"Command error: {error}",ephemeral=True)
