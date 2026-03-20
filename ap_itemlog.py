@@ -1155,6 +1155,7 @@ def send_release_messages():
             continue
         if time.time() - data["timestamp"].timestamp() > 1:
             message = f"**{sender}** has released their remaining items."
+            initial_msg = message
             running_message = message
             for receiver, items in data["items"].items():
                 if game.players[receiver].is_finished():
@@ -1179,8 +1180,11 @@ def send_release_messages():
                     time.sleep(1)
                 else:
                     message = running_message
-            send_log(message)
-            logger.info(f"{sender} release sent.")
+            if message == initial_msg:
+                return
+            else:
+                send_log(message)
+                logger.info(f"{sender} release sent.")
             del release_buffer[sender]
 
 
@@ -1192,6 +1196,7 @@ def send_collection_messages():
             continue
         if time.time() - data["timestamp"].timestamp() > 1:
             message = f"**{receiver}** has collected their items from the multiworld."
+            initial_msg = message
             running_message = message
             for sender, items in data["items"].items():
                 if game.players[sender].is_finished():
@@ -1204,8 +1209,11 @@ def send_collection_messages():
                     time.sleep(1)
                 else:
                     message = running_message
-            send_log(message)
-            logger.info(f"{receiver} collection sent.")
+            if message == initial_msg:
+                return
+            else:
+                send_log(message)
+                logger.info(f"{receiver} collection sent.")
             del collect_buffer[receiver]
 
 

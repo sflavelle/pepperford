@@ -1986,7 +1986,7 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                                         for piece in pieces
                                     ]
                                 )
-                                return f"{item} ({count}/{total}"
+                                return f"{item} ({count}/{total})"
 
                 case "Trackmania":
                     medals = [
