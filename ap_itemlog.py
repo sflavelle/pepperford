@@ -1115,6 +1115,9 @@ def send_chat(sender, message):
         if webhook is None or webhook == "":
             continue
         try:
+            if "/slack" in webhook:
+                payload["text"] = payload["content"]
+                del payload["content"]
             response = requests.post(webhook, json=payload, timeout=5)
             response.raise_for_status()
             # log_to_file(message)  # Log the message to a file
@@ -1129,6 +1132,9 @@ def send_log(message):
         if webhook is None or webhook == "":
             continue
         try:
+            if "/slack" in webhook:
+                payload["text"] = payload["content"]
+                del payload["content"]
             response = requests.post(webhook, json=payload, timeout=5)
             response.raise_for_status()
             # log_to_file(message)  # Log the message to a file
