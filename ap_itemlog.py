@@ -1115,6 +1115,8 @@ def send_chat(sender, message):
         if webhook is None or webhook == "":
             continue
         try:
+            if "discord.com" not in webhook:
+                payload["content"] = re.sub(r'<:\S+:\d+>', '' payload["content"])
             if "/slack" in webhook:
                 payload["text"] = payload["content"]
                 del payload["content"]
@@ -1132,6 +1134,8 @@ def send_log(message):
         if webhook is None or webhook == "":
             continue
         try:
+            if "discord.com" not in webhook:
+                payload["content"] = re.sub(r'<:\S+:\d+>', '' payload["content"])
             if "/slack" in webhook:
                 payload["text"] = payload["content"]
                 del payload["content"]
