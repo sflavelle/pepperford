@@ -1644,7 +1644,10 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                         )
                         return f"{item} ({count}/{required})"
 
-                    if item == "Gary's Garden Seed" and settings["Goal"] == "Garden":
+                    if (
+                        item == "Gary's Garden Seed"
+                        and settings["Completion Goal"] == "Garden"
+                    ):
                         total = player.get_item_worldtotal(item)
                         return f"{item} (*{count}/{total}*)"
 
