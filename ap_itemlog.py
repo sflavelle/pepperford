@@ -339,7 +339,8 @@ def process_spoiler_log(seed_url):
             parse_mode = "SBURBelago"
             game.world_settings["modifier"] = "SBURBelago"
             game["sburbelago"] = {
-                "layout": {}
+                "layout": {},
+                "players": {},
                 }
             for player in game.players.copy().items():
                 if player[1].game == "SBURBelago":
