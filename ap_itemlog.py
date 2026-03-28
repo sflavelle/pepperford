@@ -14,6 +14,7 @@ from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
 import dateparser
+import graphviz
 import psycopg2 as psql
 import regex as re
 import requests
@@ -334,6 +335,19 @@ def process_spoiler_log(seed_url):
             working_player = match.group(1)
             game.players[working_player].settings["Wild Pokemon Locations"] = {}
             logger.info(f"Parsing Pokemon locations for player {working_player}")
+        if line.startswith("SBURBelago layout:"):
+            parse_mode = "SBURBelago"
+            game.world_settings["modifier"] = "SBURBelago"
+            game["sburbelago"] = {
+                "layout": {}
+                }
+            for player in game.players.items():
+                if player[1].game == "SBURBelago":
+                    game["sburbelago"]["settings"] = player[1].settings.copy()
+                    del game.players[player[0]]
+                    logger.info(f"Deleted player {player[0]} as they are just a placeholder for SBURBelago connections")
+                player[1].settings["SBURBelago Connections"] = []
+            logger.info("Parsing SBURBelago layout")
         if line.strip() == "Playthrough:":
             parse_mode = "Spheres"
             game.spheres = {}
@@ -524,6 +538,40 @@ def process_spoiler_log(seed_url):
                     if player.spheres.get(current_sphere) is None:
                         player.spheres[current_sphere] = []
                     player.spheres[current_sphere].append(item)
+
+            case "SBURBelago":
+                if line.strip() == "Copy this into https://dreampuf.github.io/GraphvizOnline/?engine=circo":
+                    continue  # header line, not useful information
+                if line.strip() == "digraph SBURBelago {":
+                    game['sburbelago']['layout'] = graphviz.Digraph(comment='SBURBelago Full Layout', format='png', engine='circo')
+                if line.strip() == "}":
+                    parse_mode = None  # end of SBURBelago layout
+                if match := re.match(r'^\s*"(.+?)" \[label="(.+?)"\]$', line):
+                    player_id, player_name = match.groups()
+                    game["sburbelago"]["players"][player_id] = player_name
+                    game['sburbelago']['layout'].node(player_id, label=player_name)
+                    game.players[player_name].settings["SBURBelago Connections"] = []
+                    game.players[player_name].settings["SBURBelago Discovered Connections"] = []
+                if match := re.match(r'^\s(.+?) -> (.+?);', line):
+                    sender_id, receiver_id = match.groups()
+                    game['sburbelago']['layout'].edge(sender_id, receiver_id)
+
+                    # With SBURBelago players are arranged in a circle, they receive and send important items
+                    # to the players next to them. We need to store this in a way that we can use for item tracking later.
+                    # We'll store the player IDs of the next and previous players in the circle for each player.
+                    sender_name = game["sburbelago"]["players"].get(sender_id)
+                    receiver_name = game["sburbelago"]["players"].get(receiver_id)
+                    if sender_name and receiver_name:
+                        if sender_name not in game.players:
+                            game.players[sender_name] = Player(sender_name, game)
+                        if receiver_name not in game.players:
+                            game.players[receiver_name] = Player(receiver_name, game)
+
+                        game.players[sender_name].settings["SBURBelago Connections"].append(
+                            receiver_name
+                        )
+
+
             case _:
                 continue
 
@@ -910,6 +958,33 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
                     if not skip_msg:
                         message_buffer.append(message.replace("_", r"\_"))
 
+                match game.world_settings.get("modifier", ""):
+                    case "SBURBelago":
+                        # Has the player discovered this connection yet? If not, add a note about it
+                        if (
+                            receiver in player.settings["SBURBelago Connections"] and 
+                            receiver not in player.settings["SBURBelago Discovered Connections"] and
+                            game.world_settings.get("modifier", "") == "SBURBelago" and
+                            ((game["sburbelago"]["settings"]["Progression Only"] is True and Item.classification in ["progression", "useful"]) or 
+                             game["sburbelago"]["settings"]["Progression Only"] is False)
+                             ): 
+                            # Well that was a mess of a rule, but basically: if the item is progression or progression-only mode is off
+                            # then discovering this item also discovers the connection
+                            if not skip_msg:
+                                message_buffer.append(
+                                    f"**{sender}** has discovered a new SBURBelago connection to **{receiver}**!"
+                                )
+                                player.settings["SBURBelago Discovered Connections"].append(receiver)
+                                if player.settings["SBURBelago Connections"] == player.settings["SBURBelago Discovered Connections"]:
+                                    message_buffer.append(
+                                        f"**{sender}** has discovered all of their SBURBelago connections!"
+                                    )
+                                    connections = []
+                                    for i in enumerate(player.settings["SBURBelago Connections"]):
+                                        connections.append(f"**{"themselves" if player.settings['SBURBelago Connections'][i] == sender else player.settings['SBURBelago Connections'][i]}**")
+                                    message_buffer.append(
+                                        f"**{sender}** is connected to {join_words(connections)}."
+                                    )
                 if all(i.found for i in player.spheres[player.current_sphere]):
                     if not skip_msg:
                         message_buffer.append(
