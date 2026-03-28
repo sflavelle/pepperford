@@ -985,6 +985,9 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
                                     message_buffer.append(
                                         f"**{sender}** is connected to {join_words(connections)}."
                                     )
+                    case _:
+                        pass
+                    
                 if all(i.found for i in player.spheres[player.current_sphere]):
                     if not skip_msg:
                         message_buffer.append(
