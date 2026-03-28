@@ -206,6 +206,7 @@ def process_spoiler_log(seed_url):
 
     parse_mode = "Seed Info"
     working_player = None
+    current_sphere: int = None
 
     regex_patterns = {
         "location": re.compile(r"(.+) \((.+?)\): (.+) \((.+?)\)$"),
@@ -333,6 +334,9 @@ def process_spoiler_log(seed_url):
             working_player = match.group(1)
             game.players[working_player].settings["Wild Pokemon Locations"] = {}
             logger.info(f"Parsing Pokemon locations for player {working_player}")
+        if line.strip() == "Playthrough:":
+            parse_mode = "Spheres"
+            game.spheres = {}
 
         match parse_mode:
             case "Seed Info":
@@ -491,6 +495,35 @@ def process_spoiler_log(seed_url):
                         logger.error(f"Error parsing Pokemon location line: {line}")
                         logger.error(f"Error: {e}")
                         continue
+            case "Spheres":
+                # Sphere indicator line: `0: {`
+                if match := re.match(r"^(\d+): \{$", line):
+                    current_sphere = int(match.group(1))
+                    game.spheres[current_sphere] = []
+                # Sphere 0 is the starting inventory
+                if match := re.match(r"^  (.+) \((.+?)\)$", line):
+                    item_name, item_receiver = match.groups()
+                    player = game.get_player(item_receiver)
+                    item = game.get_or_create_item("Archipelago", player, item_name, f"Starting Items", received_timestamp=start_time)
+                    game.spheres[current_sphere].append(item)
+                    if player.spheres.get(current_sphere) is None:
+                        player.spheres[current_sphere] = []
+                    player.spheres[current_sphere].append(item)
+                # For all other spheres
+                if match := regex_patterns["location"].match(line):
+                    item_location, sender, item, receiver = match.groups()
+                    item_location = item_location.lstrip()
+                    player = game.get_player(sender)
+                    item = game.get_or_create_item(
+                        game.players[sender],
+                        game.players[receiver],
+                        item,
+                        item_location
+                    )
+                    game.spheres[current_sphere].append(item)
+                    if player.spheres.get(current_sphere) is None:
+                        player.spheres[current_sphere] = []
+                    player.spheres[current_sphere].append(item)
             case _:
                 continue
 
@@ -877,6 +910,13 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
                     if not skip_msg:
                         message_buffer.append(message.replace("_", r"\_"))
 
+                if all(i.found for i in player.spheres[player.current_sphere]):
+                    if not skip_msg:
+                        message_buffer.append(
+                            f"**{sender}** has completed their Sphere {player.current_sphere - 1}!"
+                        )
+                    player.current_sphere += 1
+
                 # Handle completion milestones
                 # if game.players[sender].collection_percentage == 100 and game.players[sender].is_finished() is False:
                 #     message = f"**That was their last check! They're probably just waiting to finish now...**"
@@ -1243,9 +1283,11 @@ def fetch_log(url):
 
 def handle_milestone_message(message):
     message_buffer.append(message)
-
+def handle_sphere_message(message):
+    message_buffer.append(message)
 
 event_emitter.on("milestone", handle_milestone_message)
+event_emitter.on("sphere_completion", handle_sphere_message)
 
 ### Main function to watch the log file
 

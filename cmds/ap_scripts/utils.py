@@ -146,6 +146,8 @@ class Game(dict):
     world_settings = {}
     spoiler_log = {}
     players = {}
+    spheres = {} # Playthrough spheres
+    current_sphere: int = 1
     collected_locations: int = 0
     total_locations: int = 0
     collection_percentage: float = 0.0
@@ -182,6 +184,15 @@ class Game(dict):
         )
 
         self.check_milestones()
+        self.check_sphere_completion()
+
+    def check_sphere_completion(self):
+        if self.current_sphere in self.spheres and all(
+            l.location.is_checked for l in self.spheres[self.current_sphere]
+        ):
+            message = f"**The game has completed Sphere {self.current_sphere}!**"
+            event_emitter.emit("sphere_completion", message)  # Emit the sphere completion message
+            self.current_sphere += 1
 
     def check_milestones(self):
         milestones = [25, 50, 75, 100]  # Define milestones
@@ -582,6 +593,8 @@ class Player(dict):
         "items": [],  # Items associated with this player
         "locations": {},  # Locations associated with this player
     }
+    spheres: dict = {} # Playthrough spheres, keyed by sphere number with list of locations in that sphere as value
+    current_sphere: int = 1
     online: bool = False
     last_online: datetime.datetime | None = None
     tags = []
