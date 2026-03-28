@@ -195,7 +195,7 @@ class Game(dict):
             self.current_sphere += 1
 
     def check_milestones(self):
-        milestones = [25, 50, 75, 100]  # Define milestones
+        milestones = [25, 50, 75, 80, 90, 100]  # Define milestones
         for milestone in milestones:
             if (
                 self.collection_percentage >= milestone
