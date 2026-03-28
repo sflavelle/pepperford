@@ -963,8 +963,8 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
                     case "SBURBelago":
                         # Has the player discovered this connection yet? If not, add a note about it
                         if (
-                            receiver in player.settings["SBURBelago Connections"] and 
-                            receiver not in player.settings["SBURBelago Discovered Connections"] and
+                            receiver in game.players[sender].settings["SBURBelago Connections"] and 
+                            receiver not in game.players[sender].settings["SBURBelago Discovered Connections"] and
                             game.world_settings.get("modifier", "") == "SBURBelago" and
                             ((game["sburbelago"]["settings"]["Progression Only"] is True and Item.classification in ["progression", "useful"]) or 
                              game["sburbelago"]["settings"]["Progression Only"] is False)
@@ -975,14 +975,14 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
                                 message_buffer.append(
                                     f"**{sender}** has discovered a new SBURBelago connection to **{receiver}**!"
                                 )
-                                player.settings["SBURBelago Discovered Connections"].append(receiver)
-                                if player.settings["SBURBelago Connections"] == player.settings["SBURBelago Discovered Connections"]:
+                                game.players[sender].settings["SBURBelago Discovered Connections"].append(receiver)
+                                if game.players[sender].settings["SBURBelago Connections"] == game.players[sender].settings["SBURBelago Discovered Connections"]:
                                     message_buffer.append(
                                         f"**{sender}** has discovered all of their SBURBelago connections!"
                                     )
                                     connections = []
-                                    for i in enumerate(player.settings["SBURBelago Connections"]):
-                                        connections.append(f"**{"themselves" if player.settings['SBURBelago Connections'][i] == sender else player.settings['SBURBelago Connections'][i]}**")
+                                    for i in enumerate(game.players[sender].settings["SBURBelago Connections"]):
+                                        connections.append(f"**{"themselves" if game.players[sender].settings['SBURBelago Connections'][i] == sender else player.settings['SBURBelago Connections'][i]}**")
                                     message_buffer.append(
                                         f"**{sender}** is connected to {join_words(connections)}."
                                     )
