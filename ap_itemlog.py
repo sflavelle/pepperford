@@ -987,13 +987,13 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
                                     )
                     case _:
                         pass
-                    
-                if all(i.found for i in player.spheres[player.current_sphere]):
+
+                if all(i.found for i in game.players[sender].spheres[game.players[sender].current_sphere]):
                     if not skip_msg:
                         message_buffer.append(
-                            f"**{sender}** has completed their Sphere {player.current_sphere - 1}!"
+                            f"**{sender}** has completed their Sphere {game.players[sender].current_sphere - 1}!"
                         )
-                    player.current_sphere += 1
+                    game.players[sender].current_sphere += 1
 
                 # Handle completion milestones
                 # if game.players[sender].collection_percentage == 100 and game.players[sender].is_finished() is False:
