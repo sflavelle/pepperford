@@ -341,7 +341,7 @@ def process_spoiler_log(seed_url):
             game["sburbelago"] = {
                 "layout": {}
                 }
-            for player in game.players.items():
+            for player in game.players.copy().items():
                 if player[1].game == "SBURBelago":
                     game["sburbelago"]["settings"] = player[1].settings.copy()
                     del game.players[player[0]]
