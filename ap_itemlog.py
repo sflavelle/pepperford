@@ -517,27 +517,31 @@ def process_spoiler_log(seed_url):
                         logger.error(f"Error: {e}")
                         continue
             case "Spheres":
-                sphere_item_count: int = 0
                 # Sphere indicator line: `0: {`
                 if match := re.match(r"^(\d+): \{$", line):
                     previous_sphere = current_sphere
+                    if previous_sphere is not None:
+                        logger.info(f"Parsed sphere {previous_sphere} with {sphere_item_count} items")
 
-                    logger.info(f"Parsed sphere {previous_sphere} with {sphere_item_count} items")
-
+                    sphere_item_count: int = 0
                     current_sphere = int(match.group(1))
                     logger.info(f"Parsing sphere {current_sphere}")
                     game.spheres[current_sphere] = []
                 # Sphere 0 is the starting inventory
-                if match := re.match(r"^  (.+) \((.+?)\)$", line):
+                if match := regex_patterns["starting_item"].match(line):
                     item_name, item_receiver = match.groups()
+                    item_name = item_name.lstrip()
+                    logger.debug(f"Parsing starting item for sphere 0: {item_name} for {item_receiver}")
+                    sphere_item_count += 1
                     player = game.get_player(item_receiver)
+                    logger.debug(f"Got player object")
                     item = game.get_or_create_item("Archipelago", player, item_name, f"Starting Items", received_timestamp=start_time, get_only=True)
                     if item is not None:
+                        logger.debug(f"Got item object: {item.name}")
                         game.spheres[current_sphere].append(item)
                         if player.spheres.get(current_sphere) is None:
                             player.spheres[current_sphere] = []
                         player.spheres[current_sphere].append(item)
-                    sphere_item_count += 1
                 # For all other spheres
                 if match := regex_patterns["location"].match(line):
                     item_location, sender, item, receiver = match.groups()
