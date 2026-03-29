@@ -879,7 +879,7 @@ class Location(dict):
         self.entrance = entrance
         self.item = item
         self.requirements, self.description = handle_location_hinting(
-            self.player, self.item
+            self.player, self
         )
         self.is_checkable = self.fetch_islocation_checkable()
         self.is_checked = False
