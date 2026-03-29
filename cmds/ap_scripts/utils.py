@@ -775,6 +775,8 @@ class Player(dict):
             message = f"**{self.name} has completed Sphere {self.current_sphere}!**"
             event_emitter.emit("sphere_completion", message)  # Emit the sphere completion message
             self.current_sphere += 1
+            while len(self.spheres[self.current_sphere]) == 0:
+                self.current_sphere += 1
 
     def check_milestones(self):
         milestones = [50, 75, 100]  # Define milestones
