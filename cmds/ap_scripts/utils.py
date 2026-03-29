@@ -236,6 +236,7 @@ class Game(dict):
         location,
         entrance=None,
         received_timestamp: float = None,
+        get_only: bool = False,
     ):
         key = (str(sender), location, itemname)
         if key in self.item_instance_cache:
@@ -243,9 +244,12 @@ class Game(dict):
             if received_timestamp is not None:
                 item.received_timestamp = received_timestamp
             return item
-        obj = Item(sender, receiver, itemname, location, entrance, received_timestamp)
-        self.item_instance_cache[key] = obj
-        return obj
+        elif get_only:
+            return None
+        else:
+            obj = Item(sender, receiver, itemname, location, entrance, received_timestamp)
+            self.item_instance_cache[key] = obj
+            return obj
 
     def get_player(self, player):
         """Get a Player object by name or ID."""

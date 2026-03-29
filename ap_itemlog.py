@@ -511,34 +511,44 @@ def process_spoiler_log(seed_url):
                         logger.error(f"Error: {e}")
                         continue
             case "Spheres":
+                sphere_item_count: int = 0
                 # Sphere indicator line: `0: {`
                 if match := re.match(r"^(\d+): \{$", line):
+                    previous_sphere = current_sphere
+
+                    logger.info(f"Parsed sphere {previous_sphere} with {sphere_item_count} items")
+
                     current_sphere = int(match.group(1))
+                    logger.info(f"Parsing sphere {current_sphere}")
                     game.spheres[current_sphere] = []
                 # Sphere 0 is the starting inventory
                 if match := re.match(r"^  (.+) \((.+?)\)$", line):
                     item_name, item_receiver = match.groups()
                     player = game.get_player(item_receiver)
-                    item = game.get_or_create_item("Archipelago", player, item_name, f"Starting Items", received_timestamp=start_time)
-                    game.spheres[current_sphere].append(item)
-                    if player.spheres.get(current_sphere) is None:
-                        player.spheres[current_sphere] = []
-                    player.spheres[current_sphere].append(item)
+                    item = game.get_or_create_item("Archipelago", player, item_name, f"Starting Items", received_timestamp=start_time, get_only=True)
+                    if item is not None:
+                        game.spheres[current_sphere].append(item)
+                        if player.spheres.get(current_sphere) is None:
+                            player.spheres[current_sphere] = []
+                        player.spheres[current_sphere].append(item)
                 # For all other spheres
                 if match := regex_patterns["location"].match(line):
                     item_location, sender, item, receiver = match.groups()
                     item_location = item_location.lstrip()
-                    player = game.get_player(sender)
+                    s_player = game.get_player(sender)
+                    r_player = game.get_player(receiver)
                     item = game.get_or_create_item(
-                        game.players[sender],
-                        game.players[receiver],
+                        s_player,
+                        r_player,
                         item,
-                        item_location
+                        item_location,
+                        get_only=True,
                     )
                     game.spheres[current_sphere].append(item)
-                    if player.spheres.get(current_sphere) is None:
-                        player.spheres[current_sphere] = []
-                    player.spheres[current_sphere].append(item)
+                    if s_player.spheres.get(current_sphere) is None:
+                        s_player.spheres[current_sphere] = []
+                    logger.debug(f"Adding item {item} to player {s_player.name} sphere {current_sphere}")
+                    s_player.spheres[current_sphere].append(item)
 
             case "SBURBelago":
                 if line.strip() == "Copy this into https://dreampuf.github.io/GraphvizOnline/?engine=circo":
