@@ -254,7 +254,7 @@ class Game(dict):
             self.item_instance_cache[key] = obj
             return obj
         
-    def add_to_sphere(self, item, sphere: int, player: 'Player' = None):
+    def add_to_sphere(self, item: 'Item', sphere: int, player: 'Player' = None):
         """Adds the item into the specified sphere, and creates the sphere if it doesn't exist yet.
         Also adds the item to the sending player's sphere."""
 
@@ -262,14 +262,16 @@ class Game(dict):
             logger.debug(f"Item {item.name} at location {item.location} is not checkable, skipping sphere assignment.")
             return
 
+        location = item.location
+
         sender = None
-        self.spheres[sphere].append(item)
-        sender = self.get_player(item.location.player)
-        if sender is not None and sender.game == item.location.game and (sender == player or player is None):
+        self.spheres[sphere].append(location)
+        sender = self.get_player(location.player)
+        if sender is not None and sender.game == location.game and (sender == player or player is None):
             if sender.spheres.get(sphere) is None:
                 sender.spheres[sphere] = []
             logger.debug(f"Adding item {item.name} to sender {sender.name} sphere {sphere}")
-            sender.spheres[sphere].append(item)
+            sender.spheres[sphere].append(location)
 
     def get_player(self, player):
         """Get a Player object by name or ID."""
