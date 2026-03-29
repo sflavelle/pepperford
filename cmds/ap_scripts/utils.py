@@ -3057,9 +3057,9 @@ def handle_state_tracking(player: Player, game: Game):
             case "Ship of Harkinian":
                 match settings["Triforce Hunt"]:
                     case True:
-                        goal_pieces = int(settings["Triforce Hunt Pieces Total"]) * (
+                        goal_pieces = int(int(settings["Triforce Hunt Pieces Total"]) * (
                             int(settings["Triforce Hunt Pieces Required Percentage"])
-                            / 100
+                            / 100)
                         )
                         goal_str = (
                             f"Collect {goal_pieces} Triforce Pieces from around Hyrule"
