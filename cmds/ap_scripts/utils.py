@@ -220,6 +220,8 @@ class Game(dict):
                 for k, v in self.spoiler_log.items()
             },
             "players": {k: v.to_dict() for k, v in self.players.items()},
+            "spheres": {k: [l.to_dict() for l in v] for k, v in self.spheres.items()},
+            "current_sphere": self.current_sphere,
             "collected_locations": self.collected_locations,
             "total_locations": self.total_locations,
             "collection_percentage": self.collection_percentage,
@@ -670,6 +672,8 @@ class Player(dict):
                     k: v.to_dict() for k, v in self.spoilers["locations"].items()
                 },
             },
+            "spheres": {k: [l.to_dict() for l in v] for k, v in self.spheres.items()},
+            "current_sphere": self.current_sphere,
             "online": self.online,
             "last_online": self.last_online.timestamp() if self.last_online else None,
             "tags": self.tags,
