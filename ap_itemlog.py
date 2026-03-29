@@ -971,6 +971,7 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
                              ): 
                             # Well that was a mess of a rule, but basically: if the item is progression or progression-only mode is off
                             # then discovering this item also discovers the connection
+                            logger.info(f"{sender} has discovered a new SBURBelago connection to {receiver} by receiving {item} ({Item.classification}) from them!")
                             if not skip_msg:
                                 message_buffer.append(
                                     f"**{sender}** has discovered a new SBURBelago connection to **{receiver}**!"
@@ -992,8 +993,9 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
                 if all(i.found for i in game.players[sender].spheres[game.players[sender].current_sphere]):
                     if not skip_msg:
                         message_buffer.append(
-                            f"**{sender}** has completed their Sphere {game.players[sender].current_sphere - 1}!"
+                            f"**{sender}** has finished their Sphere {game.players[sender].current_sphere - 1}!"
                         )
+                    logger.info(f"{sender} has finished Sphere {game.players[sender].current_sphere - 1}.")
                     game.players[sender].current_sphere += 1
 
                 # Handle completion milestones

@@ -207,6 +207,7 @@ class Game(dict):
                 event_emitter.emit("milestone", message)  # Emit the milestone message
 
     def to_dict(self):
+        logger.info("Serializing game state to dictionary.")
         return {
             "seed": self.seed,
             "room_id": self.room_id,
@@ -220,7 +221,7 @@ class Game(dict):
                 for k, v in self.spoiler_log.items()
             },
             "players": {k: v.to_dict() for k, v in self.players.items()},
-            "spheres": {k: [l.to_dict() for l in v] for k, v in self.spheres.items()},
+            "spheres": {str(k): [l.to_dict() for l in v] for k, v in self.spheres.items()},
             "current_sphere": self.current_sphere,
             "collected_locations": self.collected_locations,
             "total_locations": self.total_locations,
@@ -660,6 +661,7 @@ class Player(dict):
         return self.name
 
     def to_dict(self):
+        logger.info(f"Serializing player {self.name} to dictionary.")
         return {
             "name": self.name,
             "game": self.game,
@@ -672,7 +674,7 @@ class Player(dict):
                     k: v.to_dict() for k, v in self.spoilers["locations"].items()
                 },
             },
-            "spheres": {k: [l.to_dict() for l in v] for k, v in self.spheres.items()},
+            "spheres": {str(k): [l.to_dict() for l in v] for k, v in self.spheres.items()},
             "current_sphere": self.current_sphere,
             "online": self.online,
             "last_online": self.last_online.timestamp() if self.last_online else None,
