@@ -258,6 +258,10 @@ class Game(dict):
         """Adds the item into the specified sphere, and creates the sphere if it doesn't exist yet.
         Also adds the item to the sending player's sphere."""
 
+        if not item.location.is_checkable:
+            logger.debug(f"Item {item.name} at location {item.location} is not checkable, skipping sphere assignment.")
+            return
+
         sender = None
         self.spheres[sphere].append(item)
         sender = self.get_player(item.location.player)
