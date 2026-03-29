@@ -553,7 +553,7 @@ def process_spoiler_log(seed_url):
                         get_only=True,
                     )
                     if item is not None:
-                        game.add_to_sphere(item, current_sphere)
+                        game.add_to_sphere(item, current_sphere, s_player)
                     sphere_item_count += 1
 
             case "SBURBelago":
@@ -1006,7 +1006,7 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
                     case _:
                         pass
 
-                if all(i.found for i in game.players[sender].spheres[game.players[sender].current_sphere]):
+                if all(i.location.is_checked for i in game.players[sender].spheres[game.players[sender].current_sphere]):
                     if not skip_msg:
                         message_buffer.append(
                             f"**{sender}** has finished their Sphere {game.players[sender].current_sphere - 1}!"
