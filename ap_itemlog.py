@@ -69,7 +69,9 @@ try:
         port=sqlcfg["port"],
     )
 except psql.OperationalError:
-    # TODO Disable commands that need SQL connectivity
+    logger.warning(
+        "Could not connect to the database, some features will be unavailable. Check your configuration and database status."
+    )
     sqlcon = False
 
 # Disclaimer: Copilot helped me with the initial setup of this file.
@@ -352,6 +354,9 @@ def process_spoiler_log(seed_url):
         if line.strip() == "Playthrough:":
             parse_mode = "Spheres"
             game.spheres = {}
+        if line.strip() == "Unreachable Progression Items:":
+            parse_mode = None  # we don't need to parse this information for item tracking, and it can be complex to do so accurately
+            continue
 
         match parse_mode:
             case "Seed Info":
@@ -364,15 +369,16 @@ def process_spoiler_log(seed_url):
                     logger.info(
                         f"Generated on Archipelago version {game.version_generator}"
                     )
-                    with sqlcon.cursor() as cursor:
-                        game.pushdb(cursor, "pepper.ap_all_rooms", "seed", game.seed)
-                        game.pushdb(
-                            cursor,
-                            "pepper.ap_all_rooms",
-                            "version",
-                            game.version_generator,
-                        )
-                        sqlcon.commit()
+                    if sqlcon:
+                        with sqlcon.cursor() as cursor:
+                            game.pushdb(cursor, "pepper.ap_all_rooms", "seed", game.seed)
+                            game.pushdb(
+                                cursor,
+                                "pepper.ap_all_rooms",
+                                "version",
+                                game.version_generator,
+                            )
+                            sqlcon.commit()
                 else:
                     try:
                         current_key, value = line.strip().split(":", 1)

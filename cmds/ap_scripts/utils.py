@@ -239,14 +239,17 @@ class Game(dict):
         get_only: bool = False,
     ):
         key = (str(sender), location, itemname)
+        logger.debug(f"Looking for item with key: '{key}' in cache.")
         if key in self.item_instance_cache:
             item = self.item_instance_cache[key]
             if received_timestamp is not None:
                 item.received_timestamp = received_timestamp
             return item
         elif get_only:
+            logger.debug(f"Item with key: {key} not found in cache. get_only=True, returning None.")
             return None
         else:
+            logger.debug(f"Item with key: {key} not found in cache. Creating new item instance.")
             obj = Item(sender, receiver, itemname, location, entrance, received_timestamp)
             self.item_instance_cache[key] = obj
             return obj
@@ -890,14 +893,20 @@ class Location(dict):
                 # So let's assume they they are all checkable
                 return True
             case _:
-                with sqlcon.cursor() as cursor:
-                    cursor.execute(
-                        "SELECT is_checkable FROM archipelago.game_locations WHERE game = %s AND location = %s;",
-                        (self.game, self.name),
+                if sqlcon:
+                    with sqlcon.cursor() as cursor:
+                        cursor.execute(
+                            "SELECT is_checkable FROM archipelago.game_locations WHERE game = %s AND location = %s;",
+                            (self.game, self.name),
+                        )
+                        response = cursor.fetchone()
+                        # logger.info(f"locationsdb: {self.sender.game}: {self.location} is checkable: {response[0]}") # debugging in info, yes i know
+                        return response[0] if response else False
+                else:
+                    logger.debug(
+                        "No database connection available, defaulting to checkable for all locations."
                     )
-                    response = cursor.fetchone()
-                    # logger.info(f"locationsdb: {self.sender.game}: {self.location} is checkable: {response[0]}") # debugging in info, yes i know
-                    return response[0] if response else False
+                    return True
 
     def db_add_location(self, is_check: bool = False):
         """Add this item's location to the database if it doesn't already exist.
@@ -908,6 +917,11 @@ class Location(dict):
         this function will update the value in the database.
 
         This should help to establish accurate location counts when we start tracking those."""
+        if not sqlcon:
+            logger.debug(
+                "No database connection available, skipping database update for location."
+            )
+            return
         cursor = sqlcon.cursor()
 
         cursor.execute(
@@ -1078,62 +1092,69 @@ class Item(dict):
             case "SlotLock" | "APBingo":
                 response = "progression"  # metagames are generally always progression
             case _:
-                cursor = sqlcon.cursor()
-
-                response = None
-
-                cursor.execute(
-                    "CREATE TABLE IF NOT EXISTS archipelago.item_classifications (game bpchar, item bpchar, classification varchar(32), datapackage_checksum varchar(64))"
-                )
-                # Add column if it doesn't exist
-                try:
-                    cursor.execute(
-                        "ALTER TABLE archipelago.item_classifications ADD COLUMN IF NOT EXISTS datapackage_checksum varchar(64)"
-                    )
-                except psql.Error:
-                    pass  # Column might already exist
-                finally:
-                    sqlcon.commit()
-
-                try:
-                    cursor.execute(
-                        "SELECT classification, datapackage_checksum FROM archipelago.item_classifications WHERE game = %s AND item = %s;",
-                        (self.game, self.name),
-                    )
-                    result = cursor.fetchone()
-                    if result and result[1]:  # Only use if datapackage_checksum exists
-                        response = result[0]
-                    else:
-                        response = None
-                except TypeError:
-                    response = None
-                if response is None:
+                if not sqlcon:
                     logger.debug(
-                        "Nothing found for this item, or no datapackage_checksum"
+                        "No database connection available, defaulting to unclassified for all items."
                     )
-                    # Only add to db if we have a datapackage_checksum for this game/item
+                    response = None
+                    return
+                else:
+                    cursor = sqlcon.cursor()
+
+                    response = None
+
                     cursor.execute(
-                        "SELECT datapackage_checksum FROM archipelago.item_classifications WHERE game = %s AND item = %s;",
-                        (self.game, self.name),
+                        "CREATE TABLE IF NOT EXISTS archipelago.item_classifications (game bpchar, item bpchar, classification varchar(32), datapackage_checksum varchar(64))"
                     )
-                    checksum_result = cursor.fetchone()
-                    if (
-                        checksum_result
-                        and checksum_result[0]
-                        and (bool(response) and response != checksum_result[0])
-                    ):
-                        logger.info(
-                            f"itemsdb: adding {self.game}: {self.name} to the db"
-                        )
+                    # Add column if it doesn't exist
+                    try:
                         cursor.execute(
-                            "INSERT INTO archipelago.item_classifications VALUES (%s, %s, %s, %s) ON CONFLICT (game, item) DO UPDATE SET classification = COALESCE(EXCLUDED.classification, archipelago.item_classifications.classification), datapackage_checksum = COALESCE(EXCLUDED.datapackage_checksum, archipelago.item_classifications.datapackage_checksum);",
-                            (self.game, self.name, None, None),
+                            "ALTER TABLE archipelago.item_classifications ADD COLUMN IF NOT EXISTS datapackage_checksum varchar(64)"
                         )
-                    else:
+                    except psql.Error:
+                        pass  # Column might already exist
+                    finally:
+                        sqlcon.commit()
+
+                    try:
+                        cursor.execute(
+                            "SELECT classification, datapackage_checksum FROM archipelago.item_classifications WHERE game = %s AND item = %s;",
+                            (self.game, self.name),
+                        )
+                        result = cursor.fetchone()
+                        if result and result[1]:  # Only use if datapackage_checksum exists
+                            response = result[0]
+                        else:
+                            response = None
+                    except TypeError:
+                        response = None
+                    if response is None:
                         logger.debug(
-                            f"itemsdb: skipping {self.game}: {self.name} as it has no datapackage_checksum"
+                            "Nothing found for this item, or no datapackage_checksum"
                         )
-                    sqlcon.commit()
+                        # Only add to db if we have a datapackage_checksum for this game/item
+                        cursor.execute(
+                            "SELECT datapackage_checksum FROM archipelago.item_classifications WHERE game = %s AND item = %s;",
+                            (self.game, self.name),
+                        )
+                        checksum_result = cursor.fetchone()
+                        if (
+                            checksum_result
+                            and checksum_result[0]
+                            and (bool(response) and response != checksum_result[0])
+                        ):
+                            logger.info(
+                                f"itemsdb: adding {self.game}: {self.name} to the db"
+                            )
+                            cursor.execute(
+                                "INSERT INTO archipelago.item_classifications VALUES (%s, %s, %s, %s) ON CONFLICT (game, item) DO UPDATE SET classification = COALESCE(EXCLUDED.classification, archipelago.item_classifications.classification), datapackage_checksum = COALESCE(EXCLUDED.datapackage_checksum, archipelago.item_classifications.datapackage_checksum);",
+                                (self.game, self.name, None, None),
+                            )
+                        else:
+                            logger.debug(
+                                f"itemsdb: skipping {self.game}: {self.name} as it has no datapackage_checksum"
+                            )
+                        sqlcon.commit()
 
         logger.debug(f"itemsdb: classified {self.game}: {self.name} as {response}")
         if self.game not in classification_cache:
