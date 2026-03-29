@@ -1903,7 +1903,7 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                 case "Refunct":
                     if item == "Grass":
                         total = int(slot_data["amount_grass"])
-                        required = int(total * (int(slot_data["required_grass"]) / 100))
+                        required = int(slot_data["required_grass"])
                         return f"{item} ({count}/{required})"
                     if item.startswith("Trigger Cluster"):
                         count = len(
@@ -2990,7 +2990,10 @@ def handle_state_tracking(player: Player, game: Game):
                     else:
                         goal_str = f"Collect {required} Grass, then reach the platform at Cluster {goal_platform[0]}, Platform {goal_platform[1]}"
                 else:
-                    goal_platform = settings["Final Platform"].split(" ")
+                    goal_platform = [
+                        slot_data["finish_platform_c"],
+                        slot_data["finish_platform_p"],
+                    ]
                     goal_str = f"Collect {required} Grass, then reach the platform at Cluster {goal_platform[0]}, Platform {goal_platform[1]}"
 
             case "Ship of Harkinian":
