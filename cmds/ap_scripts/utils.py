@@ -258,12 +258,14 @@ class Game(dict):
         """Adds the item into the specified sphere, and creates the sphere if it doesn't exist yet.
         Also adds the item to the sending player's sphere."""
 
+        sender = None
         self.spheres[sphere].append(item)
-        sender = item.location.player
-        if sender.spheres.get(sphere) is None:
-            sender.spheres[sphere] = []
-        logger.debug(f"Adding item {item.name} to sender {sender.name} sphere {sphere}")
-        sender.spheres[sphere].append(item)
+        sender = self.get_player(item.location.player)
+        if sender is not None:
+            if sender.spheres.get(sphere) is None:
+                sender.spheres[sphere] = []
+            logger.debug(f"Adding item {item.name} to sender {sender.name} sphere {sphere}")
+            sender.spheres[sphere].append(item)
 
     def get_player(self, player):
         """Get a Player object by name or ID."""
@@ -276,6 +278,9 @@ class Game(dict):
             for player_obj in self.players.values():
                 if player == player_obj.name:
                     return player_obj
+        
+        elif isinstance(player, Player):
+            return player
         return None
 
     def fetch_room_api(self):
