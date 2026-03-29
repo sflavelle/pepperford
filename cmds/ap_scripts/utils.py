@@ -188,7 +188,7 @@ class Game(dict):
 
     def check_sphere_completion(self):
         if self.current_sphere in self.spheres and all(
-            l.location.is_checked for l in self.spheres[self.current_sphere]
+            l.is_checked for l in self.spheres[self.current_sphere]
         ):
             message = f"**The game has completed Sphere {self.current_sphere}!**"
             event_emitter.emit("sphere_completion", message)  # Emit the sphere completion message
@@ -766,6 +766,15 @@ class Player(dict):
         )
 
         self.check_milestones()
+        self.check_sphere_completion()
+
+    def check_sphere_completion(self):
+        if self.current_sphere in self.spheres and all(
+            l.is_checked for l in self.spheres[self.current_sphere]
+        ):
+            message = f"**{self.name} has completed Sphere {self.current_sphere}!**"
+            event_emitter.emit("sphere_completion", message)  # Emit the sphere completion message
+            self.current_sphere += 1
 
     def check_milestones(self):
         milestones = [50, 75, 100]  # Define milestones

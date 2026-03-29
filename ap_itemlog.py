@@ -1006,14 +1006,6 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
                     case _:
                         pass
 
-                if all(i.location.is_checked for i in game.players[sender].spheres[game.players[sender].current_sphere]):
-                    if not skip_msg:
-                        message_buffer.append(
-                            f"**{sender}** has finished their Sphere {game.players[sender].current_sphere - 1}!"
-                        )
-                    logger.info(f"{sender} has finished Sphere {game.players[sender].current_sphere - 1}.")
-                    game.players[sender].current_sphere += 1
-
                 # Handle completion milestones
                 # if game.players[sender].collection_percentage == 100 and game.players[sender].is_finished() is False:
                 #     message = f"**That was their last check! They're probably just waiting to finish now...**"
