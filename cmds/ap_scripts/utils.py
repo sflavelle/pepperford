@@ -1963,15 +1963,15 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                         total = int(slot_data["amount_grass"])
                         required = int(slot_data["required_grass"])
                         return f"{item} ({count}/{required})"
-                    if item.startswith("Trigger Cluster"):
+                    if item.startswith("Trigger Cluster") or item.startswith("Cluster "):
                         count = len(
                             [
                                 i
                                 for i in player.inventory
-                                if str(i).startswith("Trigger Cluster ")
+                                if (str(i).startswith("Trigger Cluster ") or str(i).startswith("Cluster "))
                             ]
                         )
-                        total = 31
+                        total = 30
                         return f"{item} ({count}/{total})"
 
                 case "Simon Tatham's Portable Puzzle Collection":
