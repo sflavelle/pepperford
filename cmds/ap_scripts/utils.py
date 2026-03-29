@@ -253,6 +253,17 @@ class Game(dict):
             obj = Item(sender, receiver, itemname, location, entrance, received_timestamp)
             self.item_instance_cache[key] = obj
             return obj
+        
+    def add_to_sphere(self, item, sphere: int):
+        """Adds the item into the specified sphere, and creates the sphere if it doesn't exist yet.
+        Also adds the item to the sending player's sphere."""
+
+        self.spheres[sphere].append(item)
+        sender = item.location.player
+        if sender.spheres.get(sphere) is None:
+            sender.spheres[sphere] = []
+        logger.debug(f"Adding item {item.name} to sender {sender.name} sphere {sphere}")
+        sender.spheres[sphere].append(item)
 
     def get_player(self, player):
         """Get a Player object by name or ID."""

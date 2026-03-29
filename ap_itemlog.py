@@ -538,11 +538,7 @@ def process_spoiler_log(seed_url):
                     item = game.get_or_create_item("Archipelago", player, item_name, f"Starting Items", received_timestamp=start_time, get_only=True)
                     if item is not None:
                         logger.debug(f"Got item object: {item.name}")
-                        game.spheres[current_sphere].append(item)
-                        if player.spheres.get(current_sphere) is None:
-                            player.spheres[current_sphere] = []
-                        logger.debug(f"Adding item {item} to player {player.name} sphere {current_sphere}")
-                        player.spheres[current_sphere].append(item)
+                        game.add_to_sphere(item, current_sphere)
                 # For all other spheres
                 if match := regex_patterns["location"].match(line):
                     item_location, sender, item, receiver = match.groups()
@@ -557,12 +553,7 @@ def process_spoiler_log(seed_url):
                         get_only=True,
                     )
                     if item is not None:
-                        game.spheres[current_sphere].append(item)
-                        if item.location.player.name == s_player.name:
-                            if s_player.spheres.get(current_sphere) is None:
-                                s_player.spheres[current_sphere] = []
-                            logger.debug(f"Adding item {item} to player {s_player.name} sphere {current_sphere}")
-                            s_player.spheres[current_sphere].append(item)
+                        game.add_to_sphere(item, current_sphere)
                     sphere_item_count += 1
 
             case "SBURBelago":
