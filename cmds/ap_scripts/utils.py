@@ -264,10 +264,10 @@ class Game(dict):
 
         location = item.location
 
-        sender = None
         self.spheres[sphere].append(location)
         sender = self.get_player(location.player)
-        if sender is not None and sender.game == location.game and (sender == player or player is None):
+        player = self.get_player(player) if player else None
+        if sender is not None and sender.game == location.game and ((sender == player and player.game == location.game) or player is None):
             if sender.spheres.get(sphere) is None:
                 sender.spheres[sphere] = []
             logger.debug(f"Adding item {item.name} to sender {sender.name} sphere {sphere}")
