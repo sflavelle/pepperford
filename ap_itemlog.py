@@ -1731,7 +1731,7 @@ def run_flask():
     while True:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             try:
-                s.bind(("127.0.0.1", port))
+                s.bind(("0.0.0.0", port))
                 s.close()
 
                 # Check if the port is already in use by another seed in the database
