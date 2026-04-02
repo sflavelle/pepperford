@@ -220,12 +220,12 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
         share_room="Sharing the room link will allow players to join/connect to the room",
         tracker="Optional link to the public Tracker page for the room",
         include_files="Set a link to patch files etc to include in the post",
-        include_games="List out each player's games as well",
+        include_games="List out each player's games as well (needs room url)",
     )
     async def roomdetails(
         self,
         interaction: discord.Interaction,
-        room_url: str,
+        room_url: str = None,
         comment: str = None,
         public: bool = True,
         tracker: str = None,
@@ -233,7 +233,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
         include_files: str = None,
         include_games: bool = False,
     ):
-        """Post the details of an Archipelago room to the channel."""
+        """Post the details of an Archipelago room or tracker to the channel."""
 
         deferpost = await interaction.response.defer(
             ephemeral=not public, thinking=True
@@ -249,7 +249,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                     content=f"**:no_entry_sign: You tried!**\n{interaction.user.display_name} gave me a tracker link, "
                     "but I need a room URL to post room details."
                 )
-                raise ValueError
+                return
 
         api_url = f"https://{hostname}/api/room_status/{room_id}"
 
@@ -260,9 +260,19 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
 
         # Form message
         msg = ""
+        if not room_url and not tracker:
+            await newpost.edit(
+                content=f"**:no_entry_sign: You tried!**\n{interaction.user.display_name} didn't provide a room URL or tracker link for me to post details about."
+            )
+            return
         if comment:
             msg = comment + "\n"
         if share_room:
+            if not room_url:
+                await newpost.edit(
+                    content=f"**:no_entry_sign: You tried!**\n{interaction.user.display_name} said to share the room, but didn't provide a room URL."
+                )
+                return
             msg += room_url + "\n"
         if tracker:
             msg += f"Tracker: {tracker}\n"
