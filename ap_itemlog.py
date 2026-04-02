@@ -1724,6 +1724,78 @@ def upload_data(slotname: str):
         logger.error(f"Error uploading data for player {slotname}: {e}")
         return jsonify({"error": str(e)}), 500
 
+def create_progress_bar(percentage: float, width: int = 20) -> str:
+    """Create a text-based progress bar representation.
+    
+    Args:
+        percentage: Progress as a percentage (0-100)
+        width: Width of the progress bar in characters
+    
+    Returns:
+        A string representation of the progress bar
+    """
+    filled = int((percentage / 100) * width)
+    bar = "█" * filled + "░" * (width - filled)
+    return f"[{bar}] {percentage:.1f}%"
+
+
+@webview.route("/progress", methods=["GET"])
+def get_progress():
+    """Get overall multiworld progress for all players."""
+    try:
+        progress_data = {
+            "total_percentage": game.collection_percentage,
+            "collected_locations": game.collected_locations,
+            "total_locations": game.total_locations,
+            "progress_bar": create_progress_bar(game.collection_percentage),
+            "players": {}
+        }
+        
+        for player_name, player in game.players.items():
+            progress_data["players"][player_name] = {
+                "game": player.game,
+                "percentage": player.collection_percentage,
+                "collected_locations": player.collected_locations,
+                "total_locations": player.total_locations,
+                "progress_bar": create_progress_bar(player.collection_percentage),
+                "is_finished": player.is_finished(),
+                "goaled": player.goaled,
+                "released": player.released,
+                "collected": player.collected
+            }
+        
+        return jsonify(progress_data), 200
+    except Exception as e:
+        logger.error(f"Error getting progress: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@webview.route("/progress/<player_name>", methods=["GET"])
+def get_player_progress(player_name: str):
+    """Get progress for a specific player."""
+    try:
+        player = game.get_player(player_name)
+        
+        if player is None:
+            return jsonify({"error": f"Player '{player_name}' not found"}), 404
+        
+        progress_data = {
+            "player_name": player.name,
+            "game": player.game,
+            "percentage": player.collection_percentage,
+            "collected_locations": player.collected_locations,
+            "total_locations": player.total_locations,
+            "progress_bar": create_progress_bar(player.collection_percentage),
+            "is_finished": player.is_finished(),
+            "goaled": player.goaled,
+            "released": player.released,
+            "collected": player.collected
+        }
+        
+        return jsonify(progress_data), 200
+    except Exception as e:
+        logger.error(f"Error getting progress for player {player_name}: {e}")
+        return jsonify({"error": str(e)}), 500
 
 def run_flask():
     # Dynamically select an available port starting from 42069
