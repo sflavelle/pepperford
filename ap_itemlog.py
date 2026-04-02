@@ -1760,7 +1760,7 @@ def run_flask():
         with sqlcon.cursor() as cursor:
             game.pushdb(cursor, "pepper.ap_all_rooms", "flask_port", port)
             sqlcon.commit()
-    webview.run(host="127.0.0.1", port=port, debug=False, use_reloader=False)
+    webview.run(host="0.0.0.0", port=port, debug=False, use_reloader=False)
 
 
 if __name__ == "__main__":
