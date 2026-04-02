@@ -1958,7 +1958,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                     log["msghooks"][0] if len(log["msghooks"]) > 0 else None
                 )
                 env["METAHOOK_URL"] = (
-                    log["meta_webhook"] if "meta_webhook" in log else None
+                    log["meta_webhook"] if "meta_webhook" in log and log["meta_webhook"] is not None else None
                 )
 
                 try:
