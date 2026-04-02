@@ -890,18 +890,6 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                         continue
                     if classification == "mcguffin":
                         classification = "progression"
-                    # Update counts for archivist log
-                    match classification:
-                        case "progression":
-                            progression += 1
-                        case "useful":
-                            useful += 1
-                        case "filler":
-                            filler += 1
-                        case "trap":
-                            trap += 1
-                        case _:
-                            pass
                     if skip_classified:
                         cursor.execute(
                             "UPDATE archipelago.item_classifications SET classification = %s where game = %s and item = %s and classification is null;",
@@ -909,6 +897,18 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                         )
                         if cursor.rowcount > 0:
                             updated += 1
+                            # Update counts for archivist log
+                            match classification:
+                                case "progression":
+                                    progression += 1
+                                case "useful":
+                                    useful += 1
+                                case "filler":
+                                    filler += 1
+                                case "trap":
+                                    trap += 1
+                                case _:
+                                    pass
 
                     else:
                         cursor.execute(
@@ -917,6 +917,18 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                         )
                         if cursor.rowcount > 0:
                             updated += 1
+                            # Update counts for archivist log
+                            match classification:
+                                case "progression":
+                                    progression += 1
+                                case "useful":
+                                    useful += 1
+                                case "filler":
+                                    filler += 1
+                                case "trap":
+                                    trap += 1
+                                case _:
+                                    pass
                     processed += 1
                     logger.info(
                         f"Updated {game}: {item} to {classification} in item_classifications table."
