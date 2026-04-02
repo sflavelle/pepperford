@@ -217,6 +217,8 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
         room_url="Link to the Archipelago room",
         comment="Additional comment to prefix the room details with",
         public="Whether to post publically or to yourself",
+        share_room="Sharing the room link will allow players to join/connect to the room",
+        tracker="Optional link to the public Tracker page for the room",
         include_files="Set a link to patch files etc to include in the post",
         include_games="List out each player's games as well",
     )
@@ -226,6 +228,8 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
         room_url: str,
         comment: str = None,
         public: bool = True,
+        tracker: str = None,
+        share_room: bool = True,
         include_files: str = None,
         include_games: bool = False,
     ):
@@ -258,7 +262,10 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
         msg = ""
         if comment:
             msg = comment + "\n"
-        msg += room_url + "\n"
+        if share_room:
+            msg += room_url + "\n"
+        if tracker:
+            msg += f"Tracker: {tracker}\n"
         if bool(include_files):
             msg += f"Patches + Misc Files: {include_files}\n"
         if include_games:
