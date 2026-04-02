@@ -20,6 +20,7 @@ import regex as re
 import requests
 import yaml
 from flask import Flask, Response, jsonify, request
+from flask_cors import CORS
 from word2number import w2n
 
 from cmds.ap_scripts.emitter import event_emitter
@@ -1622,6 +1623,7 @@ def process_collects():
 
 # Flask stuff
 webview = Flask(__name__)
+CORS(webview)
 
 
 def safe_globals():
