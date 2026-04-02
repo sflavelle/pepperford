@@ -1969,6 +1969,8 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                     self.ctx.procs["archipelago"][log["guild"]] = process
                 except:
                     logger.error("Error starting log:", exc_info=True)
+                    logger.error(f"Executable path: {sys.executable}")
+                    logger.error(f"Script path: {script_path}")
                     logger.error(f"ENV variables:")
                     for key in ["LOG_URL", "WEBHOOK_URL", "SESSION_COOKIE", "SPOILER_URL", "MSGHOOK_URL", "METAHOOK_URL"]:
                         logger.error(f"{key}: {env[key]}")
