@@ -2170,6 +2170,11 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                         if count < 20:
                             required = 20
                         return f"{item} ({count}/{required})"
+                case "Undertale":
+                    if item == "Key Piece" and settings["Key Piece Hunt"] is True:
+                        required = settings["Key Piece Amount"]
+                        return f"{item} (*{count}/{required}*)"
+
                 case "Void Stranger":
                     if item == "Greed Coin":
                         required = 15
