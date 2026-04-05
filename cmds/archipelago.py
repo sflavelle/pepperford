@@ -860,16 +860,16 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                         "INSERT INTO archipelago.item_classifications (game, item, classification, datapackage_checksum) VALUES (%s, %s, %s, %s) ON CONFLICT (game, item) DO UPDATE SET classification = COALESCE(EXCLUDED.classification, archipelago.item_classifications.classification), datapackage_checksum = COALESCE(EXCLUDED.datapackage_checksum, archipelago.item_classifications.datapackage_checksum);",
                         (game, item, classification, checksum),
                     )
-                for group in datapackage["item_name_groups"]:
+                for group in data["item_name_groups"]:
                     if group == "Everything":
                         continue
                     classification = group
-                    for item in datapackage["item_name_groups"][group]:
+                    for item in data["item_name_groups"][group]:
                         cursor.execute(
                             "UPDATE archipelago.item_classifications SET group_name = %s, datapackage_checksum = %s WHERE game = %s AND item = %s;",
                             (classification, checksum, game, item),
                         )
-                for item, id in datapackage["item_name_to_id"].items():
+                for item, id in data["item_name_to_id"].items():
                     cursor.execute(
                         "UPDATE archipelago.item_classifications SET item_id = %s WHERE game = %s AND item = %s;",
                         (id, game, item)
