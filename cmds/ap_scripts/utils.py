@@ -965,7 +965,7 @@ class Location(dict):
 
         try:
             cursor.execute(
-                "SELECT * FROM archipelago.game_locations WHERE game = %s AND location = %s;",
+                "SELECT game, location, is_checkable FROM archipelago.game_locations WHERE game = %s AND location = %s;",
                 (self.game, self.name),
             )
             game, location, is_checkable = cursor.fetchone()
