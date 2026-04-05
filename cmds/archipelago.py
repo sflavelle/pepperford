@@ -485,23 +485,31 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
         # If user is a classifier, or is playing the game they are classifying for
         is_classifier = interaction.user.get_role(1450512048583610502) is not None
         is_playing = False
+        is_playing_game = False
         cursor.execute(
-            "SELECT 1 FROM pepper.ap_linked_slots ls JOIN pepper.ap_all_rooms ar ON ls.room_id = ar.room_id WHERE ls.discord_id = %s AND ar.game = %s AND ar.active = 'true' LIMIT 1;",
+            "SELECT ls.discord_id, ar.game FROM pepper.ap_linked_slots ls JOIN pepper.ap_all_rooms ar ON ls.room_id = ar.room_id WHERE ls.discord_id = %s AND ar.game = %s AND ar.active = 'true' LIMIT 1;",
             (interaction.user.id, game),
         )
-        if cursor.fetchone():
-            is_playing = True
+        match = cursor.fetchone()
+        if match:
+            if match[0] == interaction.user.id:
+                is_playing = True
+            if match[1] == game:
+                is_playing_game = True
 
-        if not is_playing:
-            return await interaction.followup.send(
-                f"You don't have permission to classify items for {game}. If you think this is a mistake, please contact a server administrator.",
-                ephemeral=True,
-            )
         if not is_classifier:
-            return await interaction.followup.send(
-                "You don't have permission to classify items. If you think this is a mistake, please contact a server administrator.",
-                ephemeral=True,
-            )
+            if is_playing and not is_playing_game:
+                return await interaction.followup.send(
+                    f"You don't have permission to classify items for {game}. If you think this is a mistake, please contact a server administrator.",
+                    ephemeral=True,
+                )
+            elif is_playing and is_playing_game:
+                pass
+            else:
+                return await interaction.followup.send(
+                    "You don't have permission to classify items. If you think this is a mistake, please contact a server administrator.",
+                    ephemeral=True,
+                )
 
         if group:
             cursor.execute(
