@@ -1415,11 +1415,12 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                                 if x[1] == "Blueprint"
                             ]
                         )
-                        return f"Blueprint ({kong} {count}/{individual_total})" + (
-                            f" ({len(player.get_collected_items([f'{k} Blueprint' for k in kongs]))}/{max(blocker_blueprints)})"
-                            if bool(settings["Chaos B. Lockers"])
-                            else ""
-                        )
+                        if len(blocker_blueprints) > 0:
+                            return f"Blueprint ({kong} {count}/{individual_total})" + (
+                                f" ({len(player.get_collected_items([f'{k} Blueprint' for k in kongs]))}/{max(blocker_blueprints)})"
+                                if bool(settings["Chaos B. Lockers"])
+                                else ""
+                            )
                     if item == "Pearl":
                         blocker_pearls = list(
                             [
