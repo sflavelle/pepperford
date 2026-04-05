@@ -482,6 +482,27 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
         await interaction.response.defer(ephemeral=True, thinking=True)
         cursor = sqlcon.cursor()
 
+        # If user is a classifier, or is playing the game they are classifying for
+        is_classifier = interaction.user.get_role(1450512048583610502) is not None
+        is_playing = False
+        cursor.execute(
+            "SELECT 1 FROM pepper.ap_linked_slots ls JOIN pepper.ap_all_rooms ar ON ls.room_id = ar.room_id WHERE ls.discord_id = %s AND ar.game = %s AND ar.active = 'true' LIMIT 1;",
+            (interaction.user.id, game),
+        )
+        if cursor.fetchone():
+            is_playing = True
+
+        if not is_playing:
+            return await interaction.followup.send(
+                f"You don't have permission to classify items for {game}. If you think this is a mistake, please contact a server administrator.",
+                ephemeral=True,
+            )
+        if not is_classifier:
+            return await interaction.followup.send(
+                "You don't have permission to classify items. If you think this is a mistake, please contact a server administrator.",
+                ephemeral=True,
+            )
+
         if group:
             cursor.execute(
                 "UPDATE archipelago.item_classifications SET classification = %s where game = %s and group_name = %s RETURNING item",
