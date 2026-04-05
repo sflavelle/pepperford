@@ -348,21 +348,21 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
         )
         response = sorted([opt[0] for opt in cursor.fetchall()])
 
-        # Fetch three items from each group to show as part of the name
-        # So the user knows they have the right one
-        group_items = {}
-        for group in response:
-            cursor.execute(
-                f"select item from archipelago.item_classifications where game = '{str(game_selection)}' and group_name = '{group}' limit 3;"
-            )
-            items = [opt[0] for opt in cursor.fetchall()]
-            group_items[group] = items
+        # # Fetch three items from each group to show as part of the name
+        # # So the user knows they have the right one
+        # group_items = {}
+        # for group in response:
+        #     cursor.execute(
+        #         f"select item from archipelago.item_classifications where game = '{str(game_selection)}' and group_name = '{group}' limit 3;"
+        #     )
+        #     items = [opt[0] for opt in cursor.fetchall()]
+        #     group_items[group] = items
 
         if len(current) == 0:
-            return [app_commands.Choice(name=f"{opt} ({', '.join(group_items[opt])})", value=opt) for opt in response[:20]]
+            return [app_commands.Choice(name=f"{opt}", value=opt) for opt in response[:20]]
         else:
             return [
-                app_commands.Choice(name=f"{opt} ({', '.join(group_items[opt])})", value=opt)
+                app_commands.Choice(name=f"{opt}", value=opt)
                 for opt in response
                 if current.lower() in opt.lower()
             ][:20]
@@ -472,9 +472,9 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
         self,
         interaction: discord.Interaction,
         game: str,
-        group: str,
-        item: str,
         classification: str,
+        item: str = None,
+        group: str = None,
     ):
         """Update the classification of an item."""
         # Defer the response because contacting itemlogs may take time
