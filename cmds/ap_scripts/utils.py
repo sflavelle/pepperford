@@ -3251,9 +3251,9 @@ def import_datapackage_from_checksum(
 
     # Check if group column exists
     cursor.execute(
-        "SELECT column_name FROM information_schema.columns WHERE table_name='archipelago.item_classifications' AND column_name='group';"
+        "SELECT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='archipelago.item_classifications' AND column_name='group');"
     )
-    if cursor.fetchone() is None:
+    if cursor.fetchone()[0] is False:
         # need to add group column
         try:
             cursor.execute(
@@ -3270,9 +3270,9 @@ def import_datapackage_from_checksum(
 
     # Check if id column exists
     cursor.execute(
-        "SELECT column_name FROM information_schema.columns WHERE table_name='archipelago.item_classifications' AND column_name='item_id';"
+        "SELECT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='archipelago.item_classifications' AND column_name='item_id');"
     )
-    if cursor.fetchone() is None:
+    if cursor.fetchone()[0] is False:
         # need to add id column
         try:
             cursor.execute(
