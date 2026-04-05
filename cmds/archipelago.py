@@ -338,6 +338,35 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                 if current.lower() in opt.lower()
             ][:20]
 
+    async def db_group_complete(
+        self, ctx: discord.Interaction, current: str
+    ) -> typing.List[app_commands.Choice[str]]:
+        cursor = sqlcon.cursor()
+        game_selection = ctx.data["options"][0]["options"][0]["options"][0]["value"]
+        cursor.execute(
+            f"select group_name from archipelago.item_classifications where game = '{str(game_selection)}' and group_name is not null group by group_name;"
+        )
+        response = sorted([opt[0] for opt in cursor.fetchall()])
+
+        # Fetch three items from each group to show as part of the name
+        # So the user knows they have the right one
+        group_items = {}
+        for group in response:
+            cursor.execute(
+                f"select item from archipelago.item_classifications where game = '{str(game_selection)}' and group_name = '{group}' limit 3;"
+            )
+            items = [opt[0] for opt in cursor.fetchall()]
+            group_items[group] = items
+
+        if len(current) == 0:
+            return [app_commands.Choice(name=f"{opt} ({', '.join(group_items[opt])})", value=opt) for opt in response[:20]]
+        else:
+            return [
+                app_commands.Choice(name=f"{opt} ({', '.join(group_items[opt])})", value=opt)
+                for opt in response
+                if current.lower() in opt.lower()
+            ][:20]
+
     async def db_location_complete(
         self, ctx: discord.Interaction, current: str
     ) -> typing.List[app_commands.Choice[str]]:
@@ -429,11 +458,13 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
     @db.command(name="classify_item")
     @app_commands.describe(
         game="The game that contains the item",
+        group="The group of items to classify (overrides individual item selection)",
         item="The item to act on (wildcards: ? one, % many)",
         classification="The item's importance",
     )
     @app_commands.autocomplete(
         game=db_game_complete,
+        group=db_group_complete,
         item=db_item_complete,
         classification=db_classification_complete,
     )
@@ -441,6 +472,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
         self,
         interaction: discord.Interaction,
         game: str,
+        group: str,
         item: str,
         classification: str,
     ):
@@ -448,6 +480,69 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
         # Defer the response because contacting itemlogs may take time
         await interaction.response.defer(ephemeral=True, thinking=True)
         cursor = sqlcon.cursor()
+
+        if group:
+            cursor.execute(
+                "UPDATE archipelago.item_classifications SET classification = %s where game = %s and group_name = %s RETURNING item",
+                (classification.lower(), game, group),
+            )
+            sqlcon.commit()
+            count = cursor.rowcount
+            matched_items = [r[0] for r in cursor.fetchall()]
+            logger.info(
+                f"Classified {str(count)} item(s) in group '{group}' in {game} to {classification}"
+            )
+
+            await self.archivist_log(
+                interaction,
+                "classify",
+                f"Classified **{join_words(matched_items)}** in group **{group}** in **{game}** to **{classification.title()}**.",
+            )
+
+             # Send immediate acknowledgement so user knows we're working on notifying itemlogs
+            ack_msg = await interaction.followup.send(
+                f"Classification updated for {game}'s group '{group}'. Contacting running itemlogs to refresh classifications...",
+                ephemeral=True,
+            )
+
+            # Notify running itemlogs to refresh this game's classifications (wildcard -> refresh whole game)
+            refreshed = 0
+            attempted = 0
+            try:
+                cursor.execute(
+                    "SELECT flask_port FROM pepper.ap_all_rooms WHERE active = 'true' AND flask_port IS NOT NULL;"
+                )
+                ports = [r[0] for r in cursor.fetchall()]
+            except Exception:
+                ports = []
+
+            for port in ports:
+                attempted += 1
+                try:
+                    resp = requests.get(
+                        f"http://localhost:{port}/refreshclassifications",
+                        params={"game": game},
+                        timeout=3,
+                    )
+                    if resp.status_code == 200:
+                        refreshed += 1
+                except requests.RequestException:
+                    logger.warning(
+                        f"Failed to contact itemlog at port {port} to refresh classifications for game {game}."
+                    )
+
+            final_reply = f"Classification for {game}'s group '{group}' was successful."
+            if attempted > 0:
+                final_reply += f" Notified {refreshed}/{attempted} running itemlog(s) to refresh classifications for the game '{game}'."
+            else:
+                final_reply += " No running itemlogs were found to notify."
+
+            try:
+                await ack_msg.edit(content=final_reply)
+            except Exception:
+                # If editing fails, send a followup instead
+                await interaction.followup.send(final_reply, ephemeral=True)
+            return
 
         if "%" in item or r"?" in item:
             cursor.execute(
