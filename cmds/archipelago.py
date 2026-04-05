@@ -358,7 +358,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
         #     items = [opt[0] for opt in cursor.fetchall()]
         #     group_items[group] = items
         if len(response) == 0:
-            return [app_commands.Choice(name="There are no groups for this game.", value=None)]
+            return [app_commands.Choice(name="There are no item groups for this game.", value=None)]
         elif len(current) == 0:
             return [app_commands.Choice(name=f"{opt}", value=opt) for opt in response[:20]]
         else:
