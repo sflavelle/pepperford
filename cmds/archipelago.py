@@ -839,7 +839,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
 
                 # Check if this checksum already exists in the database
                 cursor.execute(
-                    "SELECT 1 FROM archipelago.item_classifications WHERE game = %s AND datapackage_checksum = %s LIMIT 1;",
+                    "SELECT 1 FROM archipelago.item_classifications WHERE game = %s AND datapackage_checksum = %s AND group_name IS NOT NULL AND item_id IS NOT NULL LIMIT 1;",
                     (game, checksum),
                 )
                 if cursor.fetchone():
@@ -889,6 +889,8 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                     )
                 else:
                     pass
+
+            # archivist log?
 
         return await newpost.edit(content="Import *should* be complete!")
 
