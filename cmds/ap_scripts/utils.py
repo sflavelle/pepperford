@@ -3246,46 +3246,6 @@ def import_datapackage_from_checksum(
         return []
 
     cursor = sqlcon.cursor()
-    groups_ok: bool = False
-    ids_ok: bool = False
-
-    # Check if group column exists
-    cursor.execute(
-        "SELECT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='archipelago.item_classifications' AND column_name='group');"
-    )
-    if cursor.fetchone()[0] is False:
-        # need to add group column
-        try:
-            cursor.execute(
-                "ALTER TABLE archipelago.item_classifications ADD COLUMN group_name TEXT;"
-            )
-            sqlcon.commit()
-            logger.info("Added group_name column to archipelago.item_classifications")
-            groups_ok = True
-        except Exception as e:
-            logger.error(f"Failed to add group_name column: {e}")
-            groups_ok = False
-    else:
-        groups_ok = True
-
-    # Check if id column exists
-    cursor.execute(
-        "SELECT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='archipelago.item_classifications' AND column_name='item_id');"
-    )
-    if cursor.fetchone()[0] is False:
-        # need to add id column
-        try:
-            cursor.execute(
-                "ALTER TABLE archipelago.item_classifications ADD COLUMN item_id SERIAL PRIMARY KEY;"
-            )
-            sqlcon.commit()
-            logger.info("Added item_id column to archipelago.item_classifications")
-            ids_ok = True
-        except Exception as e:
-            logger.error(f"Failed to add item_id column: {e}")
-            ids_ok = False
-    else:
-        ids_ok = True
 
     # Check if this checksum is already imported
     cursor.execute(
@@ -3313,22 +3273,20 @@ def import_datapackage_from_checksum(
             "INSERT INTO archipelago.item_classifications (game, item, classification, datapackage_checksum) VALUES (%s, %s, %s, %s) ON CONFLICT (game, item) DO UPDATE SET classification = COALESCE(EXCLUDED.classification, archipelago.item_classifications.classification), datapackage_checksum = COALESCE(EXCLUDED.datapackage_checksum, archipelago.item_classifications.datapackage_checksum);",
             (game, item, None, checksum),
         )
-    if groups_ok:
-        for group in datapackage["item_name_groups"]:
-            if group == "Everything":
-                continue
-            classification = group
-            for item in datapackage["item_name_groups"][group]:
-                cursor.execute(
-                    "UPDATE archipelago.item_classifications SET group_name = %s, datapackage_checksum = %s WHERE game = %s AND item = %s;",
-                    (classification, checksum, game, item),
-                )
-    if ids_ok:
-        for item, id in datapackage["item_name_to_id"].items():
+    for group in datapackage["item_name_groups"]:
+        if group == "Everything":
+            continue
+        classification = group
+        for item in datapackage["item_name_groups"][group]:
             cursor.execute(
-                "UPDATE archipelago.item_classifications SET item_id = %s WHERE game = %s AND item = %s;",
-                (id, game, item)
+                "UPDATE archipelago.item_classifications SET group_name = %s, datapackage_checksum = %s WHERE game = %s AND item = %s;",
+                (classification, checksum, game, item)
             )
+    for item, id in datapackage["item_name_to_id"].items():
+        cursor.execute(
+            "UPDATE archipelago.item_classifications SET item_id = %s WHERE game = %s AND item = %s;",
+            (id, game, item)
+        )
 
     for location in datapackage["location_name_groups"]["Everywhere"]:
         cursor.execute(
