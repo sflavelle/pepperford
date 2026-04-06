@@ -462,6 +462,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
         group="The group of items to classify (overrides individual item selection)",
         item="The item to act on (wildcards: ? one, % many)",
         classification="The item's importance",
+        skip_classified="Whether to skip items that already have a classification when doing a group or wildcard classification (not applicable to individual item classification)",
     )
     @app_commands.autocomplete(
         game=db_game_complete,
@@ -476,6 +477,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
         classification: str,
         item: str = None,
         group: str = None,
+        skip_classified: bool = False,
     ):
         """Update the classification of an item."""
         # Defer the response because contacting itemlogs may take time
@@ -513,7 +515,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
 
         if group:
             cursor.execute(
-                "UPDATE archipelago.item_classifications SET classification = %s where game = %s and group_name = %s RETURNING item",
+                f"UPDATE archipelago.item_classifications SET classification = %s where game = %s and group_name = %s {"AND classification IS NULL" if bool(skip_classified) else ""} RETURNING item",
                 (classification.lower(), game, group),
             )
             sqlcon.commit()
