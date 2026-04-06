@@ -486,16 +486,16 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
         is_classifier = interaction.user.get_role(1450512048583610502) is not None
         is_playing = False
         is_playing_game = False
-        cursor.execute(
-            "SELECT ls.discord_id, ar.game FROM pepper.ap_linked_slots ls JOIN pepper.ap_all_rooms ar ON ls.room_id = ar.room_id WHERE ls.discord_id = %s AND ar.game = %s AND ar.active = 'true' LIMIT 1;",
-            (interaction.user.id, game),
-        )
-        match = cursor.fetchone()
-        if match:
-            if match[0] == interaction.user.id:
-                is_playing = True
-            if match[1] == game:
-                is_playing_game = True
+        # cursor.execute(
+        #     "SELECT ls.discord_user, ar.game FROM pepper.ap_players ls JOIN pepper.ap_room_players ar ON ls.room_id = ar.room_id WHERE ls.discord_user = %s AND ar.game = %s AND ar.active = 'true' LIMIT 1;",
+        #     (interaction.user.id, game),
+        # )
+        # match = cursor.fetchone()
+        # if match:
+        #     if match[0] == interaction.user.id:
+        #         is_playing = True
+        #     if match[1] == game:
+        #         is_playing_game = True
 
         if not is_classifier:
             if is_playing and not is_playing_game:
