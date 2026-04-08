@@ -1886,6 +1886,10 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                             collected_str += "🔼"
                         return f"{item} ({collected_str})"
 
+                case "Paper Mario: The Thousand-Year Door":
+                    if item == "Star Piece":
+                        return f"{item} ({count})"
+
                 case "Pokemon Crystal":
                     unown_tiles = [
                         "Kabuto Tile",  # A-K
