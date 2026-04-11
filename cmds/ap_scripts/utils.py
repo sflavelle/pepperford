@@ -248,14 +248,15 @@ class Game(dict):
             return None
         
         key = (sender_key, location, itemname)
-        logger.debug(f"Looking for item with key: '{key}' in cache.")
+        # logger.debug(f"Looking for item with key: '{key}' in cache.")
         
         if key in self.item_instance_cache:
             item = self.item_instance_cache[key]
             if received_timestamp is not None:
                 item.received_timestamp = received_timestamp
+            logger.debug(f"Item with key: {key} found in cache. Returning cached instance.")
             return item
-        elif get_only:
+        elif get_only is True and key not in self.item_instance_cache:
             logger.debug(f"Item with key: {key} not found in cache. get_only=True, returning None.")
             # Debug: Show what keys ARE in cache for this sender/location combo
             similar_keys = [k for k in self.item_instance_cache.keys() if k[0] == sender_key and k[1] == location]
@@ -1017,9 +1018,9 @@ class Location(dict):
                         # logger.info(f"locationsdb: {self.sender.game}: {self.location} is checkable: {response[0]}") # debugging in info, yes i know
                         return response[0] if response else False
                 else:
-                    logger.debug(
-                        "No database connection available, defaulting to checkable for all locations."
-                    )
+                    # logger.debug(
+                    #     "No database connection available, defaulting to checkable for all locations."
+                    # )
                     return True
 
     def db_add_location(self, is_check: bool = False):
@@ -1032,9 +1033,9 @@ class Location(dict):
 
         This should help to establish accurate location counts when we start tracking those."""
         if not sqlcon:
-            logger.debug(
-                "No database connection available, skipping database update for location."
-            )
+            # logger.debug(
+            #     "No database connection available, skipping database update for location."
+            # )
             return
         cursor = sqlcon.cursor()
 
@@ -1207,9 +1208,9 @@ class Item(dict):
                 response = "progression"  # metagames are generally always progression
             case _:
                 if not sqlcon:
-                    logger.debug(
-                        "No database connection available, defaulting to unclassified for all items."
-                    )
+                    # logger.debug(
+                    #     "No database connection available, defaulting to unclassified for all items."
+                    # )
                     response = None
                     return
                 else:
