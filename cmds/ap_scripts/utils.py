@@ -854,11 +854,26 @@ class Player(dict):
         if self.current_sphere in self.spheres and all(
             l.is_checked for l in self.spheres[self.current_sphere]
         ):
-            message = f"**{self.name} has completed Sphere {self.current_sphere}!**"
+            message = f"**{self.name} has completed their Sphere {self.current_sphere}!**"
             event_emitter.emit("sphere_completion", message)  # Emit the sphere completion message
             self.current_sphere += 1
             while len(self.spheres[self.current_sphere]) == 0:
                 self.current_sphere += 1
+
+    def collapse_spheres(self):
+        """Collapse the player's spheres so that there are no gaps in sphere numbering.
+        If a sphere has no locations in it, it will be removed and the higher spheres will be shifted down."""
+        old_count = len(self.spheres)
+        new_spheres = {}
+        new_sphere_number = 0
+        for old_sphere_number in sorted(self.spheres.keys()):
+            if len(self.spheres[old_sphere_number]) > 0:
+                new_spheres[new_sphere_number] = self.spheres[old_sphere_number]
+                new_sphere_number += 1
+        self.spheres = new_spheres
+        new_count = len(self.spheres)
+        if old_count != new_count:
+            logger.info(f"Collapsed spheres for player {self.name}: {old_count} -> {new_count}")
 
     def check_milestones(self):
         milestones = [50, 75, 100]  # Define milestones

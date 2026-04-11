@@ -1397,6 +1397,12 @@ def watch_log(url, interval):
         logger.info("Processing spoiler log.")
         game.has_spoiler = True
         process_spoiler_log(seed_url)
+        for player in game.players.values():
+            # We're going to 'collapse' player spheres here:
+            # If any player has *no* items in a sphere, delete that sphere
+            # That way we can still have accurate sphere counts and milestones without
+            # worrying about players having different sphere distributions
+            player.collapse_spheres()
 
     if pathlib.Path(f".cache/{room_id}").exists():
         for player in game.players.values():
