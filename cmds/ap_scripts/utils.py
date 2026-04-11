@@ -193,6 +193,9 @@ class Game(dict):
             message = f"**The game has completed Sphere {self.current_sphere}!**"
             event_emitter.emit("sphere_completion", message)  # Emit the sphere completion message
             self.current_sphere += 1
+            if self.current_sphere in self.spheres: 
+                while len(self.spheres[self.current_sphere]) == 0: # This shouldn't happen, but just in case
+                    self.current_sphere += 1
 
     def check_milestones(self):
         milestones = [25, 50, 75, 80, 90, 100]  # Define milestones
@@ -857,8 +860,9 @@ class Player(dict):
             message = f"**{self.name} has completed their Sphere {self.current_sphere}!**"
             event_emitter.emit("sphere_completion", message)  # Emit the sphere completion message
             self.current_sphere += 1
-            while len(self.spheres[self.current_sphere]) == 0:
-                self.current_sphere += 1
+            if self.current_sphere in self.spheres:
+                while len(self.spheres[self.current_sphere]) == 0:
+                    self.current_sphere += 1
 
     def collapse_spheres(self):
         """Collapse the player's spheres so that there are no gaps in sphere numbering.
