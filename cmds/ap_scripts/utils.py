@@ -1506,7 +1506,7 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                             for x in slot_data["BLockerValues"]
                             if x[1] == "RainbowCoin"
                         ]
-                        if bool(settings["Chaos B. Lockers"]):
+                        if bool(settings["Chaos B. Lockers"]) and bool(blocker_rainbowcoins):
                             return f"{item} (*{count}/{max(blocker_rainbowcoins)}*)"
                     if item == "Rareware Coin" or item == "Nintendo Coin":
                         count = len(
