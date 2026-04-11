@@ -238,8 +238,18 @@ class Game(dict):
         received_timestamp: float = None,
         get_only: bool = False,
     ):
-        key = (str(sender), location, itemname)
+        # Normalize sender to a string name for consistent cache keys
+        if isinstance(sender, Player):
+            sender_key = sender.name
+        elif isinstance(sender, str):
+            sender_key = sender
+        else:
+            logger.error(f"Invalid sender type: {type(sender)}")
+            return None
+        
+        key = (sender_key, location, itemname)
         logger.debug(f"Looking for item with key: '{key}' in cache.")
+        
         if key in self.item_instance_cache:
             item = self.item_instance_cache[key]
             if received_timestamp is not None:
@@ -247,6 +257,10 @@ class Game(dict):
             return item
         elif get_only:
             logger.debug(f"Item with key: {key} not found in cache. get_only=True, returning None.")
+            # Debug: Show what keys ARE in cache for this sender/location combo
+            similar_keys = [k for k in self.item_instance_cache.keys() if k[0] == sender_key and k[1] == location]
+            if similar_keys:
+                logger.debug(f"  Similar cached items found: {similar_keys}")
             return None
         else:
             logger.debug(f"Item with key: {key} not found in cache. Creating new item instance.")
