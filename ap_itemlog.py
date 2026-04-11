@@ -539,7 +539,7 @@ def process_spoiler_log(seed_url):
                     player = game.get_player(item_receiver)
                     logger.debug(f"Got player object")
                     item = game.get_or_create_item("Archipelago", player, item_name, f"Starting Items", received_timestamp=start_time, get_only=True)
-                    if player is not None and item is not None:
+                    if player is not None:
                         game.add_to_sphere(item, current_sphere, player)
                     else:
                         logger.error(f"Could not find receiver {item_receiver}")
