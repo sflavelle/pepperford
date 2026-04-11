@@ -214,8 +214,8 @@ def process_spoiler_log(seed_url):
     current_sphere: int = None
 
     regex_patterns = {
-        "location": re.compile(r"(.+) \((.+?)\): (.+) \((.+?)\)$"),
-        "starting_item": re.compile(r"^(.+) \((.+?)\)$"),
+        "location": re.compile(r"^\s*(.+) \((.+?)\): (.+) \((.+?)\)$"),
+        "starting_item": re.compile(r"^\s*(.+) \((.+?)\)$"),
         "pokemon_locations": re.compile(r"^Wild Pokemon \((.+?)\):$"),
     }
 
@@ -529,25 +529,33 @@ def process_spoiler_log(seed_url):
                     current_sphere = int(match.group(1))
                     logger.info(f"Parsing sphere {current_sphere}")
                     game.spheres[current_sphere] = []
+                    continue
+                elif line == "}" or line == "Playthrough:": 
+                    continue # end of sphere/junk messages
                 # Sphere 0 is the starting inventory
-                if match := regex_patterns["starting_item"].match(line):
-                    continue # Starting items are already handled elsewhere
-                # For all other spheres
-                if match := regex_patterns["location"].match(line):
+                elif match := regex_patterns["location"].match(line):
                     item_location, sender, item, receiver = match.groups()
                     item_location = item_location.lstrip()
                     s_player = game.get_player(sender)
                     r_player = game.get_player(receiver)
-                    item = game.get_or_create_item(
-                        s_player,
-                        r_player,
-                        item,
-                        item_location,
-                        get_only=True,
-                    )
+                    item = game.get_or_create_item(s_player,r_player,item,item_location,get_only=True)
                     if item is not None:
+                        sphere_item_count += 1
                         game.add_to_sphere(item, current_sphere, s_player)
-                    sphere_item_count += 1
+                    else:
+                        logger.warning(f"Failed to find item for sphere {current_sphere}: {item} from {sender} to {receiver} at {item_location}")
+                elif match := regex_patterns["starting_item"].match(line):
+                    item, receiver = match.groups()
+                    r_player = game.get_player(receiver)
+                    item = game.get_or_create_item("Archipelago",r_player,item,"Starting Items",get_only=True)
+                    if item is not None:
+                        sphere_item_count += 1
+                        game.add_to_sphere(item, current_sphere, r_player)
+                    else:
+                        logger.warning(f"Failed to find item for sphere {current_sphere}: {item} from {sender} to {receiver} at {item_location}")
+                else:
+                    logger.warning(f"Unrecognized line in sphere {current_sphere}: {line}")
+                    continue
 
             case "SBURBelago":
                 if line.strip() == "Copy this into https://dreampuf.github.io/GraphvizOnline/?engine=circo":
