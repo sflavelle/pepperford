@@ -256,37 +256,104 @@ class Game(dict):
         
     def add_to_sphere(self, item: 'Item', sphere: int, player: 'Player' = None):
         """Adds the item into the specified sphere, and creates the sphere if it doesn't exist yet.
-        Also adds the item to the sending player's sphere."""
-
+        Also adds the item to the sending player's sphere.
+        
+        Args:
+            item: The Item object to add
+            sphere: The sphere number
+            player: Optional sender Player object for validation
+        """
+        
+        if not isinstance(item, Item):
+            logger.error(f"add_to_sphere: Expected Item object, got {type(item)}")
+            return
+        
+        if item.location is None:
+            logger.error(f"add_to_sphere: Item {item.name} has no location")
+            return
+        
         if not item.location.is_checkable:
             logger.debug(f"Item {item.name} at location {item.location} is not checkable, skipping sphere assignment.")
             return
-
+        
+        # Ensure sphere exists
+        if sphere not in self.spheres:
+            self.spheres[sphere] = []
+        
         location = item.location
-
-        self.spheres[sphere].append(location)
-        sender = self.get_player(location.player)
-        player = self.get_player(player) if player else None
-        if sender is not None and sender.game == location.game and ((sender == player and player.game == location.game) or player is None):
-            if sender.spheres.get(sphere) is None:
-                sender.spheres[sphere] = []
-            logger.debug(f"Adding item {item.name} to sender {sender.name} sphere {sphere}")
-            sender.spheres[sphere].append(location)
+        
+        # Get the sender/owner of the location
+        location_owner = self.get_player(location.player)
+        
+        if location_owner is None:
+            logger.error(
+                f"add_to_sphere: Could not find location owner '{location.player}' "
+                f"(item: {item.name}, location: {location.name})"
+            )
+            return
+        
+        # Validate that location_owner's game matches location's game
+        if location_owner.game != location.game:
+            logger.error(
+                f"add_to_sphere: Location owner game mismatch! "
+                f"Owner: {location_owner.name} ({location_owner.game}), "
+                f"Location: {location.name} ({location.game})"
+            )
+            return
+        
+        # If player was explicitly provided, verify it matches
+        if player is not None:
+            provided_player = self.get_player(player)
+            if provided_player is None:
+                logger.error(f"add_to_sphere: Provided player {player} not found")
+                return
+            
+            if provided_player != location_owner:
+                logger.warning(
+                    f"add_to_sphere: Provided player {provided_player.name} "
+                    f"doesn't match location owner {location_owner.name}. "
+                    f"Using location owner."
+                )
+        
+        # Add to global sphere
+        if location not in self.spheres[sphere]:
+            self.spheres[sphere].append(location)
+            logger.debug(f"Added {item.name} to global sphere {sphere}")
+        
+        # Add to location owner's sphere
+        if location_owner.spheres.get(sphere) is None:
+            location_owner.spheres[sphere] = []
+        
+        if location not in location_owner.spheres[sphere]:
+            location_owner.spheres[sphere].append(location)
+            logger.debug(f"Added {item.name} to {location_owner.name}'s sphere {sphere}")
 
     def get_player(self, player):
         """Get a Player object by name or ID."""
-        if isinstance(player, int):
+        if isinstance(player, Player):
+            # Verify it's actually in our players dict
+            if player in self.players.values():
+                return player
+            # If not, try to find by name as fallback
+            if hasattr(player, 'name') and player.name in self.players:
+                return self.players[player.name]
+            logger.warning(f"Player object {player} not found in game.players")
+            return None
+        
+        elif isinstance(player, int):
             for p in self.players.values():
                 if p.id == player:
                     return p
-
-        elif isinstance(player, str):
-            for player_obj in self.players.values():
-                if player == player_obj.name:
-                    return player_obj
+            logger.warning(f"No player with ID {player} found")
+            return None
         
-        elif isinstance(player, Player):
-            return player
+        elif isinstance(player, str):
+            if player in self.players:
+                return self.players[player]
+            logger.warning(f"No player named '{player}' found")
+            return None
+        
+        logger.warning(f"Invalid player parameter type: {type(player)}")
         return None
 
     def fetch_room_api(self):
