@@ -1020,6 +1020,21 @@ class Location(dict):
             "is_checked": self.is_checked,
         }
 
+    def fetch_id(self) -> int:
+        """Fetch the location ID from the database, if it exists. Otherwise return None."""
+        if not sqlcon:
+            # logger.debug(
+            #     "No database connection available, cannot fetch location ID."
+            # )
+            return None
+        with sqlcon.cursor() as cursor:
+            cursor.execute(
+                "SELECT location_id FROM archipelago.game_locations WHERE game = %s AND location = %s;",
+                (self.game, self.name),
+            )
+            response = cursor.fetchone()
+            return response[0] if response else None
+
     def fetch_islocation_checkable(self) -> bool:
         if not isinstance(self.player, Player):
             return False  # Archipelago starting items, etc
@@ -1105,6 +1120,7 @@ class Item(dict):
     receiver = None
     name = None
     game = None
+    id: int = None
     location: Location = None
     classification = None
     count = 1
@@ -1126,6 +1142,7 @@ class Item(dict):
         self.receiver = receiver
         self.name = item
         self.game = receiver.game
+        self.id = self.fetch_id()
         self.location = Location(
             self,
             sender,
@@ -1170,6 +1187,23 @@ class Item(dict):
             if self.received_timestamp
             else None,
         }
+    
+    def to_hint_text(self) -> str:
+        """Convert this item to a human-readable hint text format, e.g. "Player X has Item Y at Location Z"."""
+        item_with_icon = lambda item, icon: f"{icon} {item}" if bool(icon) else item
+
+        match Item.classification:
+            case "progression":
+                icon = "<:progression:1424290927735869461>"
+            case "trap":
+                icon = "<:trapitem:1450760161286295734>"
+            case None:
+                icon = "<:unclassified:1450498207032283357>"
+            case _:
+                icon = None
+
+        message = f"**[Hint]** **{self.receiver}'s {item_with_icon(self.name, icon)}** is at {self.location} in {self.location.game}{f' (found at {self.location.entrance})' if bool(self.location.entrance) else ''}."
+        return message
 
     def collect(self):
         """Mark this item as collected and add it to the receiver's inventory."""
@@ -1182,6 +1216,26 @@ class Item(dict):
 
     def spoil(self):
         self.spoiled = True
+
+    def fetch_id(self):
+        """Fetch the item ID from the database, if it exists."""
+        if not sqlcon:
+            # logger.debug(
+            #     "No database connection available, cannot fetch item ID."
+            # )
+            return None
+        cursor = sqlcon.cursor()
+
+        try:
+            cursor.execute(
+                "SELECT item_id FROM archipelago.item_classifications WHERE game = %s AND item = %s;",
+                (self.game, self.name),
+            )
+            response = cursor.fetchone()
+            return response[0] if response else None
+        except TypeError:
+            logger.debug("Nothing found for this item, likely")
+            return None
 
     def set_item_classification(self, player: Player = None):
         """Refer to the itemdb and see whether the provided Item has a classification.
@@ -2768,6 +2822,11 @@ def handle_location_hinting(
                     if location in shop_prices:
                         requirements.append(f"{shop_prices[location]} Rupees")
 
+            case "TUNIC":
+                if location.startswith("Shop - Potion") or location.startswith("Shop - Coin"):
+                    price = 300 # fixed price for rando items
+                    requirements.append(f"{price} Money")
+
     if bool(requirements):
         logger.info(
             f"Updating item's location {l.name} with requirements: {requirements}"
@@ -3364,7 +3423,15 @@ def import_datapackage_from_checksum(
         "SELECT COUNT(*) FROM archipelago.item_classifications WHERE datapackage_checksum = %s AND group_name IS NOT NULL AND item_id IS NOT NULL;",
         (checksum,),
     )
-    if cursor.fetchone()[0] > 0:
+    items_imported = cursor.fetchone()[0]
+    
+    cursor.execute(
+        "SELECT COUNT(*) FROM archipelago.game_locations WHERE datapackage_checksum = %s AND location_id IS NOT NULL;",
+        (checksum,),
+    )
+    locations_imported = cursor.fetchone()[0]
+
+    if items_imported > 0 and locations_imported > 0:
         logger.info(f"Datapackage with checksum {checksum} already imported.")
         return []
 
@@ -3391,8 +3458,10 @@ def import_datapackage_from_checksum(
         classification = group
         for item in datapackage["item_name_groups"][group]:
             cursor.execute(
-                "UPDATE archipelago.item_classifications SET group_name = %s, datapackage_checksum = %s WHERE game = %s AND item = %s;",
-                (classification, checksum, game, item)
+                "UPDATE archipelago.item_classifications SET group_name = CASE " \
+                "WHEN group_name IS NULL THEN ARRAY[%s] ELSE group_name || ARRAY[%s] END, " \
+                "datapackage_checksum = %s WHERE game = %s AND item = %s;",
+                ([classification], [classification], checksum, game, item)
             )
     for item, id in datapackage["item_name_to_id"].items():
         cursor.execute(
@@ -3404,6 +3473,12 @@ def import_datapackage_from_checksum(
         cursor.execute(
             "INSERT INTO archipelago.game_locations (game, location, is_checkable) VALUES (%s, %s, %s) ON CONFLICT (game, location) DO UPDATE SET is_checkable = EXCLUDED.is_checkable;",
             (game, location, True),
+        )
+
+    for location, id in datapackage["location_name_to_id"].items():
+        cursor.execute(
+            "UPDATE archipelago.game_locations SET location_id = %s WHERE game = %s AND location = %s;",
+            (id, game, location)
         )
 
     sqlcon.commit()

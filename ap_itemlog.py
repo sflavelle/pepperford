@@ -1056,27 +1056,14 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
             ):
                 continue
 
-            icon: str = None
-            item_with_icon = lambda item, icon: f"{icon} {item}" if bool(icon) else item
-
-            match Item.classification:
-                case "progression":
-                    icon = "<:progression:1424290927735869461>"
-                case "trap":
-                    icon = "<:trapitem:1450760161286295734>"
-                case None:
-                    icon = "<:unclassified:1450498207032283357>"
-                case _:
-                    icon = None
-
             item_location = handle_location_tracking(
                 game, game.players[sender], Item, True
             )
 
-            message = f"**[Hint]** **{receiver}'s {item_with_icon(item, icon)}** is at {item_location} in {sender}'s World{f' (found at {entrance})' if bool(entrance) else ''}."
+            message = Item.to_hint_text()
 
             if bool(Item.location.requirements):
-                message += f"\n> -# This will cost {join_words(Item.location.requirements)} to obtain."
+                message += f"\n> -# This will require {join_words(Item.location.requirements)} to obtain."
             if bool(Item.location.description):
                 message += f"\n> -# {Item.location.description}"
 
@@ -1431,6 +1418,16 @@ def watch_log(url, interval):
                 pass
 
     process_new_log_lines(previous_lines[:last_line], True)  # Read for hints etc
+
+    if pathlib.Path(f".cache/{room_id}").exists() and pathlib.Path(f".cache/{room_id}/spoiled_items.json").exists():
+        with open(f".cache/{room_id}/spoiled_items.json", "r") as file:
+                    for line in file:
+                        # Parse "PlayerName`ItemName`LocationName" into a dict with keys "player", "item", and "location"
+                        try:
+                            receiver, item, sender, location = line.strip().split("`")
+                            game.spoiler_log[sender][location].spoiled = True
+                        except ValueError:
+                            logger.error(f"Failed to parse spoiled item line: {line.strip()}")
     release_buffer = {}
     collect_buffer = {}
     logger.info(f"Initial log lines: {len(previous_lines[:last_line])}")
@@ -1656,6 +1653,32 @@ def inspect():
 @webview.route("/inspectgame", methods=["GET"])
 def get_game():
     return jsonify(game.to_dict())
+
+@webview.route("/spoilitem/<player_name>/<item>", methods=["GET"])
+def spoil_item(player_name: str, item: str):
+    """Reveal the location of a specific item in a player's spoiler log.
+    Marks the item as 'spoiled'."""
+    player = game.get_player(player_name)
+    if player is None:
+        return jsonify({"error": f"Player '{player_name}' not found"}), 404
+
+    for item_location, item_obj in game.spoiler_log[player_name].items():
+        if item_obj.name == item:
+            item_obj.spoiled = True
+
+            if not pathlib.Path(f".cache/{room_id}").exists():
+                pathlib.Path(f".cache/{room_id}").mkdir(parents=True, exist_ok=True)
+            with open(f".cache/{room_id}/spoiled_items.json", "a") as file:
+                file.write(f"{player_name}`{item}`{item_obj.location.player}`{item_location}\n")
+
+            return jsonify({
+                "player": player_name,
+                "item": item,
+                "location": item_location,
+                "hint_text": item_obj.to_hint_text(),
+            }), 200
+
+    return jsonify({"error": f"Item '{item}' not found in {player_name}'s spoiler log"}), 404
 
 
 @webview.route("/refreshclassifications", methods=["GET"])
