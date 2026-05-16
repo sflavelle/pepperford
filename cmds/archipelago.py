@@ -344,7 +344,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
         cursor = sqlcon.cursor()
         game_selection = ctx.data["options"][0]["options"][0]["options"][0]["value"]
         cursor.execute(
-            f"select group_name from archipelago.item_classifications where game = '{str(game_selection)}' and group_name is not null group by group_name;"
+            f"select DISTINCT unnest(group_name) from archipelago.item_classifications where game = '{str(game_selection)}' and group_name is not null group by group_name;"
         )
         response = sorted([opt[0] for opt in cursor.fetchall()])
 
@@ -515,7 +515,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
 
         if group:
             cursor.execute(
-                f"UPDATE archipelago.item_classifications SET classification = %s where game = %s and group_name = %s {"AND classification IS NULL" if bool(skip_classified) else ""} RETURNING item",
+                f"UPDATE archipelago.item_classifications SET classification = %s where game = %s and %s = ANY(group_name) {"AND classification IS NULL" if bool(skip_classified) else ""} RETURNING item",
                 (classification.lower(), game, group),
             )
             sqlcon.commit()
