@@ -3471,8 +3471,8 @@ def import_datapackage_from_checksum(
 
     for location in datapackage["location_name_groups"]["Everywhere"]:
         cursor.execute(
-            "INSERT INTO archipelago.game_locations (game, location, is_checkable) VALUES (%s, %s, %s) ON CONFLICT (game, location) DO UPDATE SET is_checkable = EXCLUDED.is_checkable;",
-            (game, location, True),
+            "INSERT INTO archipelago.game_locations (game, location, is_checkable, datapackage_checksum) VALUES (%s, %s, %s, %s) ON CONFLICT (game, location) DO UPDATE SET is_checkable = EXCLUDED.is_checkable;",
+            (game, location, True, checksum),
         )
 
     for location, id in datapackage["location_name_to_id"].items():
