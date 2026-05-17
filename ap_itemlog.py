@@ -1364,7 +1364,7 @@ def handle_sphere_message(message):
     message_buffer.append(message)
 
 event_emitter.on("milestone", handle_milestone_message)
-event_emitter.on("sphere_completion", handle_sphere_message)
+# event_emitter.on("sphere_completion", handle_sphere_message)
 
 ### Main function to watch the log file
 
