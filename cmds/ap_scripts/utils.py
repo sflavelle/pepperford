@@ -1192,7 +1192,7 @@ class Item(dict):
         """Convert this item to a human-readable hint text format, e.g. "Player X has Item Y at Location Z"."""
         item_with_icon = lambda item, icon: f"{icon} {item}" if bool(icon) else item
 
-        match Item.classification:
+        match self.classification:
             case "progression":
                 icon = "<:progression:1424290927735869461>"
             case "trap":
@@ -1202,7 +1202,7 @@ class Item(dict):
             case _:
                 icon = None
 
-        message = f"**[Hint]** **{self.receiver}'s {item_with_icon(self.name, icon)}** is at {self.location} in {self.location.game}{f' (found at {self.location.entrance})' if bool(self.location.entrance) else ''}."
+        message = f"**[Hint]** **{self.receiver}'s {item_with_icon(self.name, icon)}** is at {self.location} in {self.location.player}'s world{f' (found at {self.location.entrance})' if bool(self.location.entrance) else ''}."
         return message
 
     def collect(self):
