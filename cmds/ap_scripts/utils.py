@@ -1458,6 +1458,10 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
 
         try:
             match game:
+                case "Actraiser":
+                    if item == "Dheim Crystal" and settings["Goal Requires Dheim Crystals"] is True:
+                        required = settings["Crystal Count"]
+                        return f"{item} (*{count}/{required}*)"
                 case "A Hat in Time":
                     if item == "Time Piece" and not settings["Death Wish Only"]:
                         required = 0
@@ -1796,6 +1800,31 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                         if not player.has_item(f"Level Access ({map})"):
                             collected_string = f"~~{collected_string}~~"  # Strikethrough keys if map not found
                         return f"{item} ({collected_string})"
+                case "Haste":
+                    if item == "Progressive Speed Upgrade":
+                        base_speed = 0.6 # 60%
+                        speed_per_item = 0.1 # 10% per upgrade
+                        total_speed = base_speed + (speed_per_item * count)
+                        return f"{item} ({total_speed:.0%} Speed)"
+                    if item == "Progressive Shard":
+                        total = 10
+                        count = 1 + count # Shard 1 is given at the start of the game, so we add 1 to the count to reflect that
+                        return f"{item} ({count}/{total})"
+                    
+                    # TODO find upgrade stats
+                    if item == "Item Rarity Upgrade":
+                        pass
+                    if item == "Max Energy Upgrade":
+                        pass
+                    if item == "Max Health Upgrade":
+                        pass
+                    if item == "Max Lives Upgrade":
+                        pass
+                    if item == "Sparks in Fragments Upgrade":
+                        pass
+                    if item == "Starting Sparks Upgrade":
+                        pass
+
                 case "Here Comes Niko!":
                     if item == "Cassette":
                         required = max(
@@ -2190,6 +2219,12 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                         required = slot_data["required_egg_count"]
                         total = slot_data["actual_egg_count"]
                         return f"{item} (*{count}/{required}*)"
+                    if item == "Progressive Swim" and game == "SMW: Spicy Mycena Waffles":
+                        upgrades = ["Swimming", "Carry Speed"]
+                        return f"{item} ({upgrades[count - 1]})"
+                    if item == "Progressive Run" and game == "SMW: Spicy Mycena Waffles":
+                        if count == 2:
+                            return f"{item} (Wall Run)"
 
                 case "Super Metroid":
                     if item == "Energy Tank":
