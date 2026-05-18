@@ -2207,6 +2207,7 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                         )
                         return f"{item} ({count}/{required})"
                 case "Super Mario World" | "SMW: Spicy Mycena Waffles":
+                    switches = ["Yellow Switch Palace", "Blue Switch Palace", "Red Switch Palace", "Green Switch Palace"]
                     if item == "Progressive Powerup":
                         prog_powerup = ["Super Mushroom", "Fire Flower", "Cape Feather"]
                         return f"{item} ({prog_powerup[count - 1]})"
@@ -2219,6 +2220,13 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                     if item == "Boss Token" and settings["Goal"] == "Bowser":
                         required = settings["Bosses Required"]
                         return f"{item} ({count}/{required})"
+                    if item in switches:
+                        switchcol = ""
+                        for s in switches:
+                            if player.has_item(s):
+                                switchcol += s[0] # Initial
+                            else: switchcol += "_"
+                        return f"{item} ({switchcol})"
                     if item == "Golden Yoshi Egg":
                         required = slot_data["required_egg_count"]
                         total = slot_data["actual_egg_count"]
