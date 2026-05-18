@@ -1537,6 +1537,10 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                             total * (settings["Strawberries Required Percentage"] / 100)
                         )
                         return f"{item} *({count}/{required})*"
+                case "Chrono Trigger Jets of Time":
+                    if item == "Fragment":
+                        total = settings["Fragment Count"]
+                        return f"{item} ({count}/{total})"
                 case "Donkey Kong 64":
                     kongs = ["Donkey", "Diddy", "Lanky", "Tiny", "Chunky"]
                     shopkeepers = ["Candy", "Cranky", "Funky", "Snide"]
