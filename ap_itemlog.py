@@ -763,6 +763,12 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
                     response = "progression"
                 elif item.name in filler_medals:
                     response = "filler"
+            if item.game == "Pokemon Black and White":
+                if item.name.startswith("TM") or item.name == "HM02 Fly":
+                    if setting["Goal"] in ("tmhm_hunt", "pokemon_master"):
+                        response = "progression"
+                    else:
+                        response = "useful"
             # After checking everything, if not re-classified, it's probably progression
             if response == "conditional progression":
                 response = "progression"
