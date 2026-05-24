@@ -2207,7 +2207,7 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                         )
                         return f"{item} ({count}/{required})"
                 case "Super Mario World" | "SMW: Spicy Mycena Waffles":
-                    switches = ["Yellow Switch Palace", "Blue Switch Palace", "Red Switch Palace", "Green Switch Palace"]
+                    switches = [f"{color} Switch Palace" for color in ["Red", "Green", "Blue", "Yellow"]]
                     if item == "Progressive Powerup":
                         prog_powerup = ["Super Mushroom", "Fire Flower", "Cape Feather"]
                         return f"{item} ({prog_powerup[count - 1]})"
@@ -2284,6 +2284,10 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                                     ]
                                 )
                                 return f"{item} ({count}/{total})"
+                            
+                    if item == "Purple Sigil":
+                        required = 24
+                        return f"{item} ({count}/{required})"
 
                 case "Trackmania":
                     medals = [

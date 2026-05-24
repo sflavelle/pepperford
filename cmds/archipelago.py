@@ -1399,7 +1399,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
             )
             if player["goaled"] is True:
                 status_lines.append(
-                    f"- **{player['name']}{showgame_ifenabled(player)}**: finished their game with {round(player['finished_percentage'], 2)}% checks collected."
+                    f"- **{player['name']}{showgame_ifenabled(player)}**: finished with {round(player['finished_percentage'], 2)}% checks collected."
                 )
             elif player["released"] is True and player["goaled"] is False:
                 status_lines.append(
