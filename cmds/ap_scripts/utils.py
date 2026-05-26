@@ -2734,12 +2734,12 @@ def handle_location_tracking(
                             if url is not None:
                                 return f"S{seriesnum}M{mapnum}: [{mapname}](<{url}>) - {medal} Time ({minutes}:{seconds:06.3f})"
                             else:
-                                logger.warn(
+                                logger.warning(
                                     f"Map name {mapname} has no URL! Titlepack: {title}"
                                 )
                                 return f"S{seriesnum}M{mapnum}: {mapname} - {medal} Time ({f'{minutes}:' if minutes > 0 else ''}{seconds:06.3f})"
                         except IndexError:
-                            logger.warn(
+                            logger.warning(
                                 f"{player.name} ({location}): Uploaded data does not cover this series"
                             )
                             return location
@@ -2873,6 +2873,21 @@ def handle_location_hinting(
                             requirements.append(
                                 f"{v} {k.replace('RANCIDEGGS', 'Rancid Eggs').title()}"
                             )
+
+            case "Refunct":
+                minigames = [game for game in settings["Likeliness of minigames"].keys()]
+                cubes_setting = settings["Cubes"]
+                excubes_setting = settings["Extra Cubes"]
+
+                if any([location.startswith(minigame) for minigame in minigames]):
+                    for minigame in minigames:
+                        if location.startswith(minigame):
+                            requirements.append(minigame)
+
+                if location.startswith("Cube") and cubes_setting.endswith("Cubes Bag"):
+                    requirements.append(cubes_setting)
+                if location.startswith("Extra Cube") and excubes_setting.endswith("Cubes Bag"):
+                    requirements.append(excubes_setting)
 
             case "Ship of Harkinian":
                 if bool(player.slot_data) and bool(player.slot_data.get("shop_prices")):
@@ -3268,25 +3283,23 @@ def handle_state_tracking(player: Player, game: Game):
                         goal_str = "Become Champion of the Hoenn League"
 
             case "Refunct":
-                required = round(
-                    int(settings["Amount Of Grass"])
-                    * (int(settings["Required Grass Percentage"]) / 100)
-                )
-                if settings["Final Platform"] == "Random Unknown":
+                required = slot_data["required_grass"]
+                goal_type = "Platform" if slot_data['goal_t'] == "P" else "Button"
+                if slot_data['goal_known'] is False:
                     goal_platform = [
-                        slot_data["finish_platform_c"],
-                        slot_data["finish_platform_p"],
+                        slot_data["goal_c"],
+                        slot_data["goal_p"],
                     ]
-                    if not player.has_item("Final Platform"):
-                        goal_str = f"Collect {required} Grass, then find the random goal platform"
+                    if not player.has_item("Goal Location"):
+                        goal_str = f"Collect {required} Grass, then find the random goal {goal_type.lower()}"
                     else:
-                        goal_str = f"Collect {required} Grass, then reach the platform at Cluster {goal_platform[0]}, Platform {goal_platform[1]}"
+                        goal_str = f"Collect {required} Grass, then reach Cluster {goal_platform[0]}, {goal_type} {goal_platform[1]}"
                 else:
                     goal_platform = [
-                        slot_data["finish_platform_c"],
-                        slot_data["finish_platform_p"],
+                        slot_data["goal_c"],
+                        slot_data["goal_p"],
                     ]
-                    goal_str = f"Collect {required} Grass, then reach the platform at Cluster {goal_platform[0]}, Platform {goal_platform[1]}"
+                    goal_str = f"Collect {required} Grass, then reach Cluster {goal_platform[0]}, {goal_type} {goal_platform[1]}"
 
             case "Ship of Harkinian":
                 match settings["Triforce Hunt"]:
