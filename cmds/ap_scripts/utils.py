@@ -1537,6 +1537,9 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                             total * (settings["Strawberries Required Percentage"] / 100)
                         )
                         return f"{item} *({count}/{required})*"
+                    if item.startswith("The Summit A - Gem"):
+                        total = 6
+                        return f"{item} ({count}/{total})"
                 case "Chrono Trigger Jets of Time":
                     if item == "Fragment":
                         total = settings["Fragment Count"]
