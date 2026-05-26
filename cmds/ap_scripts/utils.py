@@ -2671,13 +2671,17 @@ def handle_location_tracking(
                     required = 8
                     return f"{location} ({count}/{required})"
             case "Simon Tatham's Portable Puzzle Collection":
+                puzzle_id = int(location.split(" ")[1])
+                puzzle_setting = slot_data["puzzles"][puzzle_id-1].split(":")
                 if not use_everywhere:
                     required = round(
                         settings["puzzle count"]
                         * (settings["Target Completion Percentage"] / 100)
                     )
-                    count = player.collected_locations
-                    return f"{location} ({count}/{required})"
+                    count = player.collected_locations - settings["starting puzzles"]
+                    return f"{location} ({puzzle_setting[0].title()} {puzzle_setting[1]}) ({count}/{required})"
+                else:
+                    return f"{location} ({puzzle_setting[0]} {puzzle_setting[1]})"
             case "Spyro 3":
                 if (
                     "Skill Point" in location
