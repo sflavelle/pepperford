@@ -2003,6 +2003,32 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                             return f"{item} (+1 Heart Container)"
                         else:
                             return f"{item} ({count % 4}/4)"
+                case "Marble It Up! Ultra":
+                    if item == "Completion Medal":
+                        chapters = [
+                            "Get Moving",
+                            "The Subtle Joy Of Rolling",
+                            "Focus On Flow",
+                            "Kick It Up A Notch",
+                            "Show Me What You Got",
+                            "Play For Keeps",
+                        ]
+                        final_chapter = settings["Final Chapter"]
+                        chapters_in_play = chapters[: chapters.index(final_chapter)]
+                        medals_per_unlock = settings["Medals Per Chapter"] # always 5 for Chapter 2
+                        goal_required = (len(chapters_in_play[1:]) * medals_per_unlock) + 5
+                        next_required: int
+                        current_chapter: int
+                        for idx, chapter in enumerate(chapters):
+                            next_required = (idx * medals_per_unlock) + 5
+                            if count >= next_required:
+                                continue
+                            elif count < next_required:
+                                current_chapter = chapters[idx]
+                                break
+                        next_required_string = f" ({count}/{next_required} to {chapters[idx]})" if current_chapter < len(chapters)-1 else ""
+                        return f"{item} (*{count}/{goal_required}*){next_required_string}"
+
                 case "Mega Man 2":
                     if item.endswith("Access Codes"):
                         total = 8
