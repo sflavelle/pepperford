@@ -2019,12 +2019,14 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                         goal_required = (len(chapters_in_play[1:]) * medals_per_unlock) + 5
                         next_required: int
                         current_chapter: int
+                        current_chapter_str: str
                         for idx, chapter in enumerate(chapters):
                             next_required = (idx * medals_per_unlock) + 5
                             if count >= next_required:
                                 continue
                             elif count < next_required:
-                                current_chapter = chapters[idx]
+                                current_chapter = idx - 1
+                                current_chapter_str = chapters[idx]
                                 break
                         next_required_string = f" ({count}/{next_required} to {chapters[idx]})" if current_chapter < len(chapters)-1 else ""
                         return f"{item} (*{count}/{goal_required}*){next_required_string}"
