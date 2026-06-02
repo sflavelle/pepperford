@@ -2034,7 +2034,34 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                                 break
                         next_required_string = f" ({count}/{next_required} to {next_chapter_str})" if current_chapter < len(chapters)-1 else ""
                         return f"{item} (*{count}/{goal_required}*){next_required_string}"
-
+                    if item == "Gold Completion Medal":
+                        bonus_chapters = [
+                            "Keep On Rolling",
+                            "The Way Of The Marble",
+                            "Keep Your Cool",
+                            "Challenge Accepted",
+                        ]
+                        final_bonus = settings["Bonus Arc Chapters"]
+                        chapters_in_play = bonus_chapters[: bonus_chapters.index(final_bonus)]
+                        medals_per_unlock = settings["Medals Per Chapter"] # always 5 for Chapter 2
+                        goal_required = (len(chapters_in_play[1:]) * medals_per_unlock) + 5
+                        next_required: int
+                        current_chapter: int
+                        current_chapter_str: str
+                        next_chapter: int
+                        next_chapter_str: str
+                        for idx, chapter in enumerate(chapters_in_play):
+                            next_required = (idx * medals_per_unlock) + 5
+                            if count >= next_required:
+                                continue
+                            elif count < next_required:
+                                current_chapter = idx
+                                next_chapter = idx + 1
+                                current_chapter_str = chapters_in_play[current_chapter]
+                                next_chapter_str = chapters_in_play[next_chapter]
+                                break
+                        next_required_string = f" ({count}/{next_required} to {next_chapter_str})" if current_chapter < len(chapters_in_play)-1 else ""
+                        return f"{item} (*{count}/{goal_required}*){next_required_string}"
                 case "Mega Man 2":
                     if item.endswith("Access Codes"):
                         total = 8
@@ -2214,6 +2241,23 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                     total = settings["puzzle count"]
                     count = len(player.inventory)
                     return f"{item} ({count}/{total})"
+                case "SMZ3": # Super Metroid / Link To The Past Combo Randomizer
+                    if item == "ETank":
+                        tank_capacity = 100
+                        current_capacity = count * tank_capacity + 100
+                        return f"{item} ({current_capacity} Capacity)"
+                    if item == "Missile":
+                        capacity_per = 5
+                        current_capacity = count * capacity_per
+                        return f"{item} ({current_capacity} Capacity)"
+                    if item == "Super":
+                        capacity_per = 5
+                        current_capacity = count * capacity_per
+                        return f"{item} ({current_capacity} Capacity)"
+                    if item == "PowerBomb":
+                        capacity_per = 5
+                        current_capacity = count * capacity_per
+                        return f"{item} ({current_capacity} Capacity)"
                 case "Sonic Adventure 2 Battle":
                     if item == "Emblem":
                         required = round(
@@ -2272,7 +2316,6 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                     if item == "Progressive Run" and game == "SMW: Spicy Mycena Waffles":
                         if count == 2:
                             return f"{item} (Wall Run)"
-
                 case "Super Metroid":
                     if item == "Energy Tank":
                         tank_capacity = 100
