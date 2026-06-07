@@ -2046,7 +2046,7 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                         medals_per_unlock = settings["Medals Per Chapter"]
                         goal_required = (len(chapters_in_play[1:]) * medals_per_unlock)
                         next_required: int
-                        current_chapter: int
+                        current_chapter: int = 0
                         current_chapter_str: str
                         next_chapter: int
                         next_chapter_str: str
