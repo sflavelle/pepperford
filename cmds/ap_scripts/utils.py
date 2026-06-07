@@ -2027,8 +2027,8 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                             if count >= next_required:
                                 continue
                             elif count < next_required:
-                                current_chapter = idx
-                                next_chapter = idx + 1
+                                current_chapter = idx - 1
+                                next_chapter = idx
                                 current_chapter_str = chapters_in_play[current_chapter]
                                 next_chapter_str = chapters_in_play[next_chapter]
                                 break
@@ -2043,20 +2043,20 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                         ]
                         final_bonus = settings["Bonus Arc Chapters"]
                         chapters_in_play = bonus_chapters[: bonus_chapters.index(final_bonus)]
-                        medals_per_unlock = settings["Medals Per Chapter"] # always 5 for Chapter 2
-                        goal_required = (len(chapters_in_play[1:]) * medals_per_unlock) + 5
+                        medals_per_unlock = settings["Medals Per Chapter"]
+                        goal_required = (len(chapters_in_play[1:]) * medals_per_unlock)
                         next_required: int
                         current_chapter: int
                         current_chapter_str: str
                         next_chapter: int
                         next_chapter_str: str
                         for idx, chapter in enumerate(chapters_in_play):
-                            next_required = (idx * medals_per_unlock) + 5
+                            next_required = (idx * medals_per_unlock)
                             if count >= next_required:
                                 continue
                             elif count < next_required:
-                                current_chapter = idx
-                                next_chapter = idx + 1
+                                current_chapter = idx - 1
+                                next_chapter = idx
                                 current_chapter_str = chapters_in_play[current_chapter]
                                 next_chapter_str = chapters_in_play[next_chapter]
                                 break
@@ -2414,6 +2414,14 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                         ],
                         "MP": ["Sacred Geometry", "Vintage", "Dusty"],
                     }
+                    if item == "Effigy":
+                        amts = [8, 16, 32, 64, 128, 256, 512]
+                        money_received: int
+                        if count > len(amts):
+                            money_received = amts[-1]
+                        else:
+                            money_received = amts[count - 1]
+                        return f"{item} ({money_received} Money)"
                     if item == "Flask Shard":
                         flask_progress = player.get_item_count(item) % 3
                         return f"{item} ({'Gained Flask!' if flask_progress == 0 else f'{flask_progress}/3'})"
