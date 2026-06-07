@@ -2055,8 +2055,8 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                             if count >= next_required:
                                 continue
                             elif count < next_required:
-                                current_chapter = idx - 1
-                                next_chapter = idx
+                                current_chapter = idx
+                                next_chapter = idx + 1
                                 current_chapter_str = chapters_in_play[current_chapter]
                                 next_chapter_str = chapters_in_play[next_chapter]
                                 break
