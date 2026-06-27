@@ -2044,7 +2044,7 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                         final_bonus = settings["Bonus Arc Chapters"]
                         chapters_in_play = bonus_chapters[: bonus_chapters.index(final_bonus)]
                         medals_per_unlock = settings["Medals Per Chapter"]
-                        goal_required = (len(chapters_in_play[1:]) * medals_per_unlock)
+                        total_required = (len(chapters_in_play[0:]) * medals_per_unlock)
                         next_required: int
                         current_chapter: int = 0
                         current_chapter_str: str
@@ -2061,7 +2061,7 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                                 next_chapter_str = chapters_in_play[next_chapter]
                                 break
                         next_required_string = f" ({count}/{next_required} to {next_chapter_str})" if current_chapter < len(chapters_in_play)-1 else ""
-                        return f"{item} (*{count}/{goal_required}*){next_required_string}"
+                        return f"{item} (*{count}/{total_required}*){next_required_string}"
                 case "Mega Man 2":
                     if item.endswith("Access Codes"):
                         total = 8
