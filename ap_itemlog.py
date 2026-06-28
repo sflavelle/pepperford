@@ -1257,8 +1257,6 @@ def send_log(message):
         if webhook is None or webhook == "":
             continue
         try:
-            if "discord.com" not in webhook:
-                payload["content"] = re.sub(r"<:\S+:\d+>", "", payload["content"])
             if "/slack" in webhook:
                 payload["text"] = payload["content"]
                 payload["text"] = payload["text"].replace("<:progression:1424290927735869461>", ":archipelago_progression:")
@@ -1267,6 +1265,8 @@ def send_log(message):
                 # payload["text"] = payload["text"].replace("<:coin:1469865094665207879>", ":archipelago_currency:")
                 payload["text"] = payload["text"].replace("<:unclassified:1450498207032283357>", ":archipelago_unclassified:")
                 del payload["content"]
+            elif "discord.com" not in webhook:
+                payload["content"] = re.sub(r"<:\S+:\d+>", "", payload["content"])
             response = requests.post(webhook, json=payload, timeout=5)
             response.raise_for_status()
             # log_to_file(message)  # Log the message to a file
