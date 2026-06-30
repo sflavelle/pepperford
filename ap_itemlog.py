@@ -1262,7 +1262,7 @@ def send_log(message):
                 payload["text"] = payload["text"].replace("<:progression:1424290927735869461>", ":archipelago_progression:")
                 payload["text"] = payload["text"].replace("<:trapitem:1450760161286295734>", ":archipelago_trap:")
                 payload["text"] = payload["text"].replace("<:filler:1461179676365164729>", ":archipelago_filler:")
-                # payload["text"] = payload["text"].replace("<:coin:1469865094665207879>", ":archipelago_currency:")
+                payload["text"] = payload["text"].replace("<:coin:1469865094665207879>", ":coin:")
                 payload["text"] = payload["text"].replace("<:unclassified:1450498207032283357>", ":archipelago_unclassified:")
                 del payload["content"]
             elif "discord.com" not in webhook:
