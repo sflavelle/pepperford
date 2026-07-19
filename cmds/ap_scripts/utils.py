@@ -2226,7 +2226,7 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                             required = int(slot_data["required_grass"])
                         else:
                             total = int(settings["Amount Of Grass"])
-                            required = total * (int(settings["Required Grass Percentage"]) / 100)
+                            required = round(total * (int(settings["Required Grass Percentage"]) / 100))
                         return f"{item} ({count}/{required})"
                     if item.startswith("Trigger Cluster") or item.startswith("Cluster "):
                         count = len(
