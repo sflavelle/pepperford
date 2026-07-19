@@ -2221,8 +2221,12 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                         return f"{item} ({count}/{required})"
                 case "Refunct":
                     if item == "Grass":
-                        total = int(slot_data["amount_grass"])
-                        required = int(slot_data["required_grass"])
+                        if len(player.slot_data) > 0:
+                            total = int(slot_data["amount_grass"])
+                            required = int(slot_data["required_grass"])
+                        else:
+                            total = int(settings["Amount Of Grass"])
+                            required = total * (int(settings["Required Grass Percentage"]) / 100)
                         return f"{item} ({count}/{required})"
                     if item.startswith("Trigger Cluster") or item.startswith("Cluster "):
                         count = len(
