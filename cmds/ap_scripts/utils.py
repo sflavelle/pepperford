@@ -2132,13 +2132,13 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                         collected_str = ""
                         if player.has_item("Ocarina A Button"):
                             collected_str += "🅰️"
-                        if player.has_item("Ocarina C Down Button"):
+                        if player.has_item("Ocarina C Down Button") or player.has_item("Ocarina C down Button"):
                             collected_str += "🔽"
-                        if player.has_item("Ocarina C Left Button"):
+                        if player.has_item("Ocarina C Left Button") or player.has_item("Ocarina C left Button"):
                             collected_str += "◀️️"
-                        if player.has_item("Ocarina C Right Button"):
+                        if player.has_item("Ocarina C Right Button") or player.has_item("Ocarina C right Button"):
                             collected_str += "▶️"
-                        if player.has_item("Ocarina C Up Button"):
+                        if player.has_item("Ocarina C Up Button") or player.has_item("Ocarina C up Button"):
                             collected_str += "🔼"
                         return f"{item} ({collected_str})"
 
