@@ -1544,6 +1544,17 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                     if item == "Fragment":
                         total = settings["Fragment Count"]
                         return f"{item} ({count}/{total})"
+                case "Dark Souls Remastered":
+                    if item == "Progressive Soul Multiplier":
+                        start_mult = settings["Soul Multiplier - Base Percentage"]
+                        max_mult = settings["Soul Multiplier - Maximum Percentage"]
+                        mult_steps = settings["Soul Multiplier Steps"]
+
+                        mult_per_step = (1 / mult_steps) * (max_mult - start_mult)
+
+                        current_mult = start_mult + (mult_per_step * count)
+                        return f"{item} ({current_mult}% Soul Gain)"
+
                 case "Donkey Kong 64":
                     kongs = ["Donkey", "Diddy", "Lanky", "Tiny", "Chunky"]
                     shopkeepers = ["Candy", "Cranky", "Funky", "Snide"]
