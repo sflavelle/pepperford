@@ -232,8 +232,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                 await interaction.response.send_message(self.messages["has_role_already"], ephemeral=True)
                 return False
             else:
-                user_roles_new = user.roles.extend(role)
-                await user.edit(roles=user_roles_new, reason="requested role addition")
+                await user.add_roles(role, reason="requested role addition")
                 await interaction.response.send_message(f"You now have the {role.mention} role!", ephemeral=True)
                 logger.info(f"Gave ping role to {user.name}")
                 return True
