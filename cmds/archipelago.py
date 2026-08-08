@@ -238,7 +238,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                 return True
         else:
             if role in user.roles:
-                user_roles_new user.roles.remove(role)
+                user_roles_new = user.roles.remove(role)
                 await user.edit(roles=user_roles_new, reason="requested role removal")
                 await interaction.response.send_message(f"You no longer have the {role.mention} role.", ephemeral=True)
                 return True
