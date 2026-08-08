@@ -84,9 +84,11 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
 
     messages = {
         "no_slots_linked": """None of your linked Archipelago slots are linked to this game.
-            **Maybe you haven't linked a slot to your Discord account yet?**
-            Use `/archipelago room link_slot` to link any of your slots in this game,
-            and then try using this command again.""",
+        **Maybe you haven't linked a slot to your Discord account yet?**
+        Use `/archipelago room link_slot` to link any of your slots in this game,
+        and then try using this command again.""",
+        "has_role_already": "You already have this notification role.",
+        "has_no_role_already": "You don't have this notification role already.",
     }
 
     async def cog_command_error(self, ctx: Context[BotT], error: Exception) -> None:
@@ -211,6 +213,38 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
         )
 
         return True
+
+    @app_commands.command()
+    @app_commands.guilds(1424283904260706378)
+    @app_commands.describe(
+        wants_role="True gives the role, False takes away"
+    )
+    async def role(self, interaction: discord.Interaction, wants_role: bool):
+        """Give yourself the Async Players role to be pinged for upcoming games."""
+
+        ndcap = self.ctx.get_guild(1424283904260706378)
+
+        user = interaction.user
+        role = ndcap.get_role(1424288912549089290)
+
+        if wants_role:
+            if role in user.roles:
+                await interaction.response.send_message(self.messages["has_role_already"], ephemeral=True)
+                return False
+            else:
+                user_roles_new = user.roles.extend(role)
+                await user.edit(roles=user_roles_new, reason="requested role addition")
+                await interaction.response.send_message(f"You now have the {role.mention} role!", ephemeral=True)
+                return True
+        else:
+            if role in user.roles:
+                user_roles_new user.roles.remove(role)
+                await user.edit(roles=user_roles_new, reason="requested role removal")
+                await interaction.response.send_message(f"You no longer have the {role.mention} role.", ephemeral=True)
+                return True
+            else:
+                await interaction.response.send_message(self.messages["has_no_role_already"], ephemeral=True)
+                return False
 
     @app_commands.command()
     @app_commands.describe(
@@ -576,7 +610,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                 await interaction.followup.send(final_reply, ephemeral=True)
             return
 
-        if "%" in item or r"?" in item:
+        if "%" in item or "?" in item:
             cursor.execute(
                 "UPDATE archipelago.item_classifications SET classification = %s where game = %s and item like %s RETURNING item",
                 (classification.lower(), game, item),
