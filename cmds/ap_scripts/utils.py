@@ -1554,6 +1554,15 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
 
                         current_mult = start_mult + (mult_per_step * count)
                         return f"{item} ({current_mult}% Soul Gain)"
+                    if item == "Progressive Weight Reducer":
+                        start_weight = settings["Weight Multiplier - Base Percentage"]
+                        min_weight = settings["Weight Multiplier - Minimum Percentage"]
+                        weight_steps = settings["Weight Multiplier Steps"]
+
+                        reduction_per_step = (1 / weight_steps) * (min_weight - start_weight)
+                        old_weight = start_weight - (reduction_per_step * (count-1))
+                        current_weight = start_weight - (reduction_per_step * count)
+                        return f"{item} ({old_weight}%→{current_weight}% Equipment Weight)"
 
                 case "Donkey Kong 64":
                     kongs = ["Donkey", "Diddy", "Lanky", "Tiny", "Chunky"]
