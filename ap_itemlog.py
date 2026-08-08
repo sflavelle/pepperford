@@ -1493,6 +1493,7 @@ def watch_log(url, interval):
             new_lines = current_lines[last_line:]
             if len(new_lines) > 0:
                 process_new_log_lines(new_lines)
+                tracker_sleep_count += 1
             if message_buffer:
                 try:
                     # Join all messages with newlines
@@ -1610,7 +1611,6 @@ def watch_log(url, interval):
             while True:
                 time.sleep(600)
         logger.debug(f"Message buffer has {len(message_buffer)} messages queued.")
-        tracker_sleep_count += 1
 
 
 def process_releases():
