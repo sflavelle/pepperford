@@ -235,11 +235,13 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                 user_roles_new = user.roles.extend(role)
                 await user.edit(roles=user_roles_new, reason="requested role addition")
                 await interaction.response.send_message(f"You now have the {role.mention} role!", ephemeral=True)
+                logger.info(f"Gave ping role to {user.name}")
                 return True
         else:
             if role in user.roles:
                 await user.remove_roles(role, reason="requested role removal")
                 await interaction.response.send_message(f"You no longer have the {role.mention} role.", ephemeral=True)
+                logger.info(f"Removed ping role from {user.name}")
                 return True
             else:
                 await interaction.response.send_message(self.messages["has_no_role_already"], ephemeral=True)
