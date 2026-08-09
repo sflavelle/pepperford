@@ -1552,7 +1552,7 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                             collected = ""
                             for dir in ["Up", "Down", "Left", "Right"]:
                                 if player.has_item(f"{dir} Dash"): collected += f":arrow_{dir.lower()}:"
-                                else collected += ":red_square:"
+                                else: collected += ":red_square:"
                             return f"{item} ({collected})"
                 case "Chrono Trigger Jets of Time":
                     if item == "Fragment":
