@@ -1540,6 +1540,20 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                     if item.startswith("The Summit A - Gem"):
                         total = 6
                         return f"{item} ({count}/{total})"
+                    if item in ["Left Climb", "Right Climb"]:
+                        collected = ""
+                        if player.has_item("Left Climb"): collected += ":leftwards_pushing_hand:"
+                        else collected += "_"
+                        if player.has_item("Right Climb"): collected += ":rightwards_pushing_hand:"
+                        else collected += "_"
+                        return f"{item} ({collected})"
+                    if item in [f"{dir} Dash" for dir in ["Up", "Down", "Left", "Right", "Up-Left", "Up-Right", "Down-Left", "Down-Right"]]:
+                        if settings["Dash Shuffle"] == "Cardinal Loose": 
+                            collected = ""
+                            for dir in ["Up", "Down", "Left", "Right"]:
+                                if player.has_item(f"{dir} Dash"): collected += f":arrow_{dir.lower()}:"
+                                else collected += ":red_square:"
+                            return f"{item} ({collected})"
                 case "Chrono Trigger Jets of Time":
                     if item == "Fragment":
                         total = settings["Fragment Count"]
