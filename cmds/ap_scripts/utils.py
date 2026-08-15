@@ -1530,6 +1530,8 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                             else:
                                 collected_string += "_"
                         return f"{item} ({collected_string})"
+                # case "Bloons TD6":
+                #     return item.replace("_", " ").replace("-", " - ")
                 case "Celeste (Open World)":
                     if item == "Strawberry":
                         total = settings["Total Strawberries"]
@@ -2323,6 +2325,19 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                             * (settings["Endless Stairs Star %"] / 100)
                         )
                         return f"{item} ({count}/{required})"
+                case "Super Mario Sunshine":
+                    if item == "Blue Coin":
+                        state = ""
+                        to_next_shine = count % 10
+                        if to_next_shine == 0:
+                            state = "New Shine Sprite Available!"
+                        else:
+                            state = f"{to_next_shine} to next Shine Sprite"
+                        return f"{item} ({state})"
+                    if item == "Shine Sprite":
+                        required = settings["Corona Mountain Shines"]
+                        return f"{item} ({count}/{required})"
+
                 case "Super Mario World" | "SMW: Spicy Mycena Waffles":
                     switches = [f"{color} Switch Palace" for color in ["Red", "Green", "Blue", "Yellow"]]
                     if item == "Progressive Powerup":
