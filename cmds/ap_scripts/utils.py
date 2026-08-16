@@ -2328,8 +2328,8 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                 case "Super Mario Sunshine":
                     if item == "Blue Coin":
                         state = ""
-                        to_next_shine = count % 10
-                        if to_next_shine == 0:
+                        to_next_shine = abs((count % 10) - 10)
+                        if to_next_shine == 10:
                             state = "New Shine Sprite Available!"
                         else:
                             state = f"{to_next_shine} to next Shine Sprite"
