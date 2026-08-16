@@ -1530,8 +1530,13 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                             else:
                                 collected_string += "_"
                         return f"{item} ({collected_string})"
-                # case "Bloons TD6":
-                #     return item.replace("_", " ").replace("-", " - ")
+                case "Bloons TD6":
+                    if item == "Medal":
+                        total =  settings["Total Medals"]
+                        required = round(
+                            total * (settings["Medal Requirement Percentage"] / 100)
+                        )
+                        return f"{item} *({count}/{required})*"
                 case "Celeste (Open World)":
                     if item == "Strawberry":
                         total = settings["Total Strawberries"]
