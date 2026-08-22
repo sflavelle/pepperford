@@ -2334,7 +2334,7 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                     if item == "Blue Coin":
                         state = ""
                         to_next_trade = (count % 10)
-                        if to_next_trade == 10:
+                        if to_next_trade == 0:
                             state = "New Trade Available!"
                         else:
                             state = f"{to_next_trade}/10"
