@@ -3190,6 +3190,19 @@ def handle_state_tracking(player: Player, game: Game):
                             "Conquer Farewell's Hardest Challenge"
                         )
 
+            case "Death's Door":
+                goal = settings["Goal"]
+                match goal:
+                    case "Lord Of Doors":
+                        goal_str = "Defeat the Lord of Doors"
+                    case "True Ending":
+                        goal_str = "Share Ancient Knowledge with the Free Crows"
+                    case "Green Tablet":
+                        life_seeds_to_pot = settings["Plant Pot Number"]
+                        goal_str = f"Plant {int(life_seeds_to_pot)} Life Seeds to open the Family Tomb door"
+                    case "Any":
+                        goal_str = "Reach any goal: Lord of Doors, Green Tablet, or True Ending"
+
             case "Donkey Kong 64":
                 goal = settings["Goal"]
 
