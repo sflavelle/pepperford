@@ -2323,13 +2323,19 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                     if item == "Strange Cat":
                         total = 17
                         return f"{item} ({count}/{total})"
-                case "Super Mario 64":
+                case "Super Mario 64" | "SM64: Spicy Mycena 64":
                     if item == "Power Star":
                         required = round(
                             settings["Total Power Stars"]
                             * (settings["Endless Stairs Star %"] / 100)
                         )
                         return f"{item} ({count}/{required})"
+                    # The rest of this is basically Mycena adds,
+                    # Just makes sense to group it up with the original game
+                    # even though Mycena has no Power Star items
+                    if item == "Progressive Bowser Arena Bomb":
+                        total = 5
+                        return f"{item} ({count}/{total})"
                 case "Super Mario Sunshine":
                     if item == "Blue Coin":
                         state = ""
@@ -3132,6 +3138,18 @@ def handle_state_tracking(player: Player, game: Game):
                     case "Ending C":
                         goal_str = "Reach the Cradle of Affliction with all Thorn Upgrades, and the Holy Wound of Abnegation"
 
+            case "Bloons TD6":
+                required_medals = settings["Total Medals"] * (settings["Medal Requirement Percentage"] / 100)
+                goal_with_medals = lambda string: (f"Unlock your final map with {int(required_medals)} Medals, then " + string)
+                match settings["Goal"]:
+                    case "Default":
+                        goal_str = goal_with_medals(f"Complete it")
+                    case "Boss":
+                        goal_str = goal_with_medals(f"Defeat a randomly chosen Boss Bloon event")
+                    case "Elite Boss":
+                        goal_str = goal_with_medals(f"Defeat a randomly chosen Elite Boss Bloon event")
+
+
             case "Celeste (Open World)":
                 goal = settings["Goal Area"]
 
@@ -3474,14 +3492,34 @@ def handle_state_tracking(player: Player, game: Game):
                     case _:
                         goal_str = settings["Completion Goal"]
 
+            case "Subnautica":
+                match settings["Goal"]:
+                    case "Launch":
+                        goal_str = "Leave the Planet"
+                    case "Free":
+                        goal_str = "Disable the Quarantine"
+                    case "Infected":
+                        goal_str = "Reach the maximum infection level"
+                    case "Drive":
+                        goal_str = "Repair the Aurora's Drive Core"
+
             case "Super Cat Planet":
                 match settings["Goal Ending"]:
                     case "Crows":
                         goal_str = "Evade Crows and Rescue the King of the Cats"
                     case "Final Boss":
                         goal_str = "Best the Dark Angel"
+            
+            case "Super Mario 64" | "SM64: Spicy Mycena 64":
+                match settings["Completion Goal"]:
+                    case "Last Bowser Stage":
+                        goal_str = "Reach the Top of the Castle and defeat Bowser in the Sky"
+                    case "All Bowser Stages":
+                        goal_str = "Trounce Bowser at every opportunity"
+                    case _:
+                        pass
 
-            case "Super Mario World":
+            case "Super Mario World" | "SMW: Spicy Mycena World":
                 match settings["Goal"]:
                     case "Yoshi Egg Hunt":
                         eggs = player.get_item_count("Yoshi Egg")
