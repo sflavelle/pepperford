@@ -444,6 +444,11 @@ def process_spoiler_log(seed_url):
                             game.players[working_player].settings[key]
                         )
 
+                    # Mycena Settings
+                    if key == "Required eggs" and game.players[working_player].game == "SMW: Spicy Mycena World":
+                        value = value.split(" ")
+                        game.players[working_player].settings["Yoshi Egg Count"] = value[-1]
+
                 except ValueError as e:
                     logger.error(f"Error parsing line:")
                     logger.error(line)
