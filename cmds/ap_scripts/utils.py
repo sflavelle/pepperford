@@ -2371,8 +2371,8 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                             else: switchcol += "_"
                         return f"{item} ({switchcol})"
                     if item == "Golden Yoshi Egg":
-                        required = slot_data["required_egg_count"]
-                        total = slot_data["actual_egg_count"]
+                        total = settings["Yoshi Egg Count"]
+                        required = round(total * (settings["Required Percentage of Golden Yoshi Eggs"] / 100))
                         return f"{item} (*{count}/{required}*)"
                     if item == "Progressive Swim" and game == "SMW: Spicy Mycena Waffles":
                         upgrades = ["Swimming", "Carry Speed"]
