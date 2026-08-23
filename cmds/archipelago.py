@@ -356,7 +356,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
         cursor = sqlcon.cursor()
         game_selection = ctx.data["options"][0]["options"][0]["options"][0]["value"]
         cursor.execute(
-            f"select item from archipelago.item_classifications where game = '{str(game_selection)}';"
+            "select item from archipelago.item_classifications where game = %s;", str(game_selection)
         )
         response = sorted([opt[0] for opt in cursor.fetchall()])
         if len(current) == 0:
@@ -378,7 +378,8 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
         cursor = sqlcon.cursor()
         game_selection = ctx.data["options"][0]["options"][0]["options"][0]["value"]
         cursor.execute(
-            f"select DISTINCT unnest(group_name) from archipelago.item_classifications where game = '{str(game_selection)}' and group_name is not null group by group_name;"
+            f"select DISTINCT unnest(group_name) from archipelago.item_classifications where game = %s and group_name is not null group by group_name;",
+            str(game_selection)
         )
         response = sorted([opt[0] for opt in cursor.fetchall()])
 
