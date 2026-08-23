@@ -1958,7 +1958,8 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                                 if i.startswith(f"{level} - Flowerbed")
                             ]
                         )
-                        return f"{item} ({count}/{required})"
+                        if required != 0:
+                            return f"{item} ({count}/{required})"
 
                     if (
                         item == "Gary's Garden Seed"
