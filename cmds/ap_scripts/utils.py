@@ -1955,7 +1955,7 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                             [
                                 i
                                 for i in spoiler.keys()
-                                if i.startswith(f"{level} - Flowerbed")
+                                if (i.startswith(f"{level} - ") and "Flowerbed" in i)
                             ]
                         )
                         if required != 0:
