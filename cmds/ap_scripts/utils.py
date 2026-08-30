@@ -2115,6 +2115,12 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                             ]
                         )
                         return f"{item} ({count}/{total})"
+                case "The Minish Cap":
+                    if item == "Piece of Heart":
+                        if count % 4 == 0:
+                            return f"{item} (+1 Heart Container)"
+                        else:
+                            return f"{item} ({count % 4}/4)"
                 case "Muse Dash":
                     if item == "Music Sheet":
                         song_count = (
