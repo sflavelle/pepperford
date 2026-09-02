@@ -980,6 +980,7 @@ class Location(dict):
 
     name: str = None
     game: str = None
+    id: int = None
     player: Player = None
 
     entrance: str = None
@@ -997,6 +998,7 @@ class Location(dict):
         self.player = player
         self.name = name
         self.game = game
+        self.id = self.fetch_id()
         self.entrance = entrance
         self.item = item
         self.requirements, self.description = handle_location_hinting(
@@ -1012,6 +1014,7 @@ class Location(dict):
         return {
             "name": self.name,
             "game": self.game,
+            "id": self.id,
             "player": str(self.player) if hasattr(self.player, "name") else self.player,
             "entrance": self.entrance,
             "item": str(self.item),  # Item is this location's parent, avoid recursion
@@ -1178,6 +1181,7 @@ class Item(dict):
             else self.receiver,
             "name": self.name,
             "game": self.game,
+            "id": self.id,
             "location": self.location.to_dict(),
             "classification": self.classification,
             "count": self.count,
