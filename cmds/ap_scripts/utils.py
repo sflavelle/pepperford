@@ -2056,6 +2056,14 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                             return f"{item} (+1 Heart Container)"
                         else:
                             return f"{item} ({count % 4}/4)"
+                    if item == "Progressive Sword":
+                        swords: list[str] = [
+                            "Fighter's Sword",
+                            "Master Sword",
+                            "Tempered Sword",
+                            "Golden Sword"
+                        ]
+                        return f"{item} ({swords[count-1]})"
                 case "Marble It Up! Ultra":
                     if item == "Completion Medal":
                         chapters = [
