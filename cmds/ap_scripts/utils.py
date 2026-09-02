@@ -378,9 +378,31 @@ class Game(dict):
         logger.warning(f"Invalid player parameter type: {type(player)}")
         return None
 
+    def get_item_by_id(self, sender, receiver, game, location_id: int, item_id: int, entrance):
+        """Get an item object by its game and its location and item IDs."""
+        if not sqlcon:
+            # logger.debug(
+            #     "No database connection available, cannot fetch location ID."
+            # )
+            return None
+        with sqlcon.cursor() as cursor:
+            cursor.execute(
+                "SELECT item FROM archipelago.item_classifications WHERE game = %s AND item_id = %s;",
+                (game, item_id),
+            )
+            item = cursor.fetchone()
+            cursor.execute(
+                "SELECT location FROM archipelago.game_locations WHERE game = %s AND location_id = %s;",
+                (game, location_id),
+            )
+            location = cursor.fetchone()
+
+            itemObject = self.get_or_create_item(sender, receiver, item, location, entrance)
+            return itemObject if itemObject else None
+
     def fetch_room_api(self):
         """Fetch room API data and update the Game instance accordingly."""
-        api_url = f"http://{self.hostname}/api/room_status/{self.room_id}"
+        api_url = f"https://{self.hostname}/api/room_status/{self.room_id}"
         logger.info(f"Fetching room info from {api_url}.")
         room_api = requests.get(api_url).json()
         self.tracker_id = room_api["tracker"]
@@ -399,7 +421,7 @@ class Game(dict):
     def fetch_static_tracker(self) -> bool:
         """Grab static tracker data from the Archipelago server for this room.
         This should only be called once on boot, as the static data does not change."""
-        tracker_url = f"http://{self.hostname}/api/static_tracker/{self.tracker_id}"
+        tracker_url = f"https://{self.hostname}/api/static_tracker/{self.tracker_id}"
 
         logger.info(f"Fetching static tracker data from {tracker_url}")
         tracker_data = requests.get(tracker_url)
@@ -450,7 +472,7 @@ class Game(dict):
 
     def fetch_tracker(self) -> bool:
         """Grab dynamic tracker data from the Archipelago server for this room."""
-        tracker_url = f"http://{self.hostname}/api/tracker/{self.tracker_id}"
+        tracker_url = f"https://{self.hostname}/api/tracker/{self.tracker_id}"
 
         logger.info(f"Fetching dynamic tracker data from {tracker_url}")
         tracker_data = requests.get(tracker_url)
@@ -499,6 +521,18 @@ class Game(dict):
 
         for p in tracker_json["hints"]:
             player = self.get_player(p["player"])
+
+            for hint in p["hints"]:
+                receiver, sender, location_id, item_id, found, entrance, classification, status = hint
+                try:
+                    sender = self.get_player(sender)
+                    receiver = self.get_player(receiver)
+                    item = self.get_item_by_id(sender, receiver, sender.game, location_id, item_id, entrance)
+                    if item:
+                        if status == 40:
+                            item.found = True
+                finally:
+                    pass
 
             # Can't do anything with this yet, but here's the structure:
             ### receiving_player: int # player ID
@@ -572,7 +606,7 @@ class Game(dict):
 
     def fetch_slot_data(self) -> bool:
         """Fetch slot data from the Archipelago server for this room."""
-        slot_url = f"http://{self.hostname}/api/slot_data_tracker/{self.tracker_id}"
+        slot_url = f"https://{self.hostname}/api/slot_data_tracker/{self.tracker_id}"
 
         logger.info(f"Fetching slot data from {slot_url}")
         slot_data = requests.get(slot_url)
