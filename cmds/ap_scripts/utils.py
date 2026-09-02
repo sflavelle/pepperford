@@ -3731,13 +3731,13 @@ def import_datapackage_from_checksum(
 
     # Check if this checksum is already imported
     cursor.execute(
-        "SELECT COUNT(*) FROM archipelago.item_classifications WHERE datapackage_checksum = %s AND group_name IS NOT NULL AND item_id IS NOT NULL;",
+        "SELECT COUNT(*) FROM archipelago.item_classifications WHERE datapackage_checksum = %s;",
         (checksum,),
     )
     items_imported = cursor.fetchone()[0]
     
     cursor.execute(
-        "SELECT COUNT(*) FROM archipelago.game_locations WHERE datapackage_checksum = %s AND location_id IS NOT NULL;",
+        "SELECT COUNT(*) FROM archipelago.game_locations WHERE datapackage_checksum = %s;",
         (checksum,),
     )
     locations_imported = cursor.fetchone()[0]
