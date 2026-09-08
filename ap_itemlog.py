@@ -906,11 +906,11 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
                 if Item.classification == "trap":
                     trap_messages = []
 
-                    def random_nontrap_item(player: Player):
+                    def random_nontrap_item(player: Player) -> str:
                         """Get the name of a random non-trap item from the player's spoiler log.
                         Useful for extra flavor in trap messages."""
 
-                        non_trap_items = [
+                        non_trap_items: list[str] = [
                             it.name
                             for it in game.item_instance_cache.values()
                             if it.classification not in ["trap", "currency", "filler"]
@@ -920,11 +920,11 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
 
                         if len(non_trap_items) == 0:
                             return "a mysterious item"
-                        return random.choice(non_trap_items)
+                        return str(random.choice(non_trap_items))
 
                     def trapmsg_substvars(
                         string: str, sender: str, receiver: str, trap: str
-                    ):
+                    )  -> str:
                         string = string.replace("$s", sender)
                         string = string.replace("$r", receiver)
 
