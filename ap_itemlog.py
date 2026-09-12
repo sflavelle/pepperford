@@ -904,7 +904,7 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
 
                 # Update the message appropriately
                 if Item.classification == "trap":
-                    trap_messages = []
+                    trap_messages: list[str] = []
 
                     def random_nontrap_item(player: Player) -> str:
                         """Get the name of a random non-trap item from the player's spoiler log.
@@ -950,6 +950,8 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
                             "A **$t** destroyed **$s's** world (and everything inside)",
                             "**$s** tested out **their own $t**. It works!",
                             "Let **$s** appreciate you the subtle strategy of taking this **$t**",
+                            "**$s**? Is... is that the **$t**...?",
+                            "**$s** is here for a **$T** time, not a long time",
                         ]
                     else:
                         trap_messages = [
@@ -961,6 +963,8 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
                             "**$r** received a demo of what it's like to get a **$t** from $s",
                             "$s destroyed **$r's** world (and everything inside) with a **$t**",
                             "**$r**: Do you have $i? Because $s has **$t**",
+                            "$s offered **$r** a **$t** they have no chance of avoiding",
+                            "$s innovates **$r's** game - look how our new **$t** changes the experience",
                         ]
 
                     message = random.choice(trap_messages)
