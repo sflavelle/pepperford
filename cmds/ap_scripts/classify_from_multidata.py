@@ -67,6 +67,10 @@ def main() -> int:
     ap.add_argument("--db-csv")
     ap.add_argument("--db-dsn")
     ap.add_argument("--evidence-csv", help="write the seed's census for the evidence table")
+    ap.add_argument("--include-downgrades", action="store_true",
+                    help="ALSO apply held-back downgrades (only with --apply and --only-game; "
+                         "use after a human has reviewed the classes this prints)")
+    ap.add_argument("--only-game", help="restrict --include-downgrades to one game")
     ap.add_argument("--min-instances", type=int, default=1,
                     help="only propose values for items seen at least this many times in the seed")
     ap.add_argument("--limit", type=int, default=25, help="examples to print per category")
@@ -165,12 +169,24 @@ def main() -> int:
     for game, item, current, derived, why in review[:a.limit]:
         print(f"  [REVIEW ] {game[:24]:24} {item[:30]:30} keeps {current}   ({why})")
 
+    approved = []
+    if a.include_downgrades:
+        if not a.only_game:
+            print("\n--include-downgrades needs --only-game: refusing to apply downgrades unscoped.")
+            return 2
+        for game, item, current, derived, why in held:
+            if game == a.only_game and derived and "no automatic downgrade" in why:
+                approved.append((game, item, current, derived, why))
+        print(f"\n=== approved downgrades for {a.only_game!r}: {len(approved)} ===")
+        for game, item, current, derived, why in approved[:a.limit]:
+            print(f"  [DOWNGRADE] {game[:24]:24} {item[:30]:30} {current} -> {derived}")
+
     if a.apply:
         import psycopg2
         conn = psycopg2.connect(a.db_dsn) if a.db_dsn else psycopg2.connect()
         changed = 0
         with conn, conn.cursor() as cur:
-            for bucket in (fills, world_changes, upgrades):
+            for bucket in (fills, world_changes, upgrades, approved):
                 for game, item, _c, propose, _w in bucket:
                     cur.execute("UPDATE archipelago.item_classifications SET classification = %s "
                                 "WHERE game = %s AND rtrim(item) = %s;", (propose, game, item))
