@@ -1152,6 +1152,15 @@ class Location(dict):
         self.is_checkable = self.fetch_islocation_checkable()
 
 
+_CLASSIFICATION_RANK = {"trap": 0, "filler": 1, "currency": 1, "useful": 2,
+                        "conditional progression": 3, "progression": 4}
+
+
+def classification_rank(value: str) -> int:
+    """Ordering used only to decide whether an automated update is a downgrade (see multidata.decide)."""
+    return _CLASSIFICATION_RANK.get(value, 0)
+
+
 class Item(dict):
     """An Archipelago item in the multiworld"""
 
@@ -1398,7 +1407,7 @@ class Item(dict):
         return classification_cache[self.game][self.name][0]
         # return response
 
-    def update_item_classification(self, classification: str) -> bool:
+    def update_item_classification(self, classification: str, source: str = "manual") -> bool:
         # Abort if already set
         if classification == self.classification:
             return True
@@ -1416,6 +1425,20 @@ class Item(dict):
                 f"Tried to update classification for {self.game}: {self.name} (value '{classification}' not permitted)"
             )
             return False
+
+        # Provenance-aware policy (see cmds/ap_scripts/multidata.py). An automated source - a seed's
+        # multidata, or flags read off the room - may fill an empty row or raise a value, but must not
+        # lower one by itself: a curated value can be deliberately stricter than the world's own view
+        # (the world calls OoT Heart Containers 'useful' even when the bridge needs hearts). A world
+        # version change is the exception, since then it is the world itself speaking.
+        if source != "manual":
+            current = self.classification
+            if current is not None and classification_rank(classification) <= classification_rank(current):
+                logger.info(
+                    f"Not auto-applying {self.game}: {self.name} {current} -> {classification} "
+                    f"(source='{source}', no automatic downgrade - review the drift report instead)"
+                )
+                return False
 
         logger.info(
             f"Request to update classification for {self.game}: {self.name} (to: {classification})"
