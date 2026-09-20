@@ -2423,6 +2423,16 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                     if item == "Progressive Bowser Arena Bomb":
                         total = 5
                         return f"{item} ({count}/{total})"
+                    if item.startswith("Bowser Arena Bomb"):
+                        total = 4
+                        count = len(
+                            [
+                                i
+                                for i in player.inventory
+                                if (str(i).startswith("Bowser Arena Bomb "))
+                            ]
+                        )
+                        return f"{item} ({count}/{total})"
                 case "Super Mario Sunshine":
                     if item == "Blue Coin":
                         state = ""
