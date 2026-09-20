@@ -1148,7 +1148,7 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
             if Item.is_filler() or Item.is_currency():
                 continue
             # Balatro shop items are hinted as soon as they appear and are usually bought right away, so skip their hints
-            if Item.game == "Balatro" and any(
+            if Item.location.game == "Balatro" and any(
                 [
                     Item.location.name.startswith(shop)
                     for shop in ["Shop Item", "Consumable Item"]
