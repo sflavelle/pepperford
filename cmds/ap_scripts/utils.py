@@ -3010,7 +3010,7 @@ def handle_location_hinting(
     the tracking functions to provide info on costs etc."""
 
     l = location
-    location = location.name
+    location = str(location.name)
 
     requirements = []
     extra_info = ""
@@ -3019,146 +3019,150 @@ def handle_location_hinting(
         settings = player.settings
         game_name = l.game
 
-        # --- Handler dispatch ---
-        handler = get_handler_fuzzy(game_name)
-        if handler is not None and hasattr(handler, "handle_location_hinting"):
-            result = handler.handle_location_hinting(player, l)
-            if result is not None:
-                return result
+        try:
 
-        match game_name:
-            case "Here Comes Niko!":
-                contact_lists = {
-                    "1": [
-                        f"Hairball City - {npc}"
-                        for npc in ["Mitch", "Mai", "Moomy", "Blippy Dog", "Nina"]
-                    ]
-                    + [
-                        f"Turbine Town - {npc}"
-                        for npc in ["Mitch", "Mai", "Blippy Dog"]
-                    ]
-                    + [
-                        f"Salmon Creek Forest - {npc}"
-                        for npc in (
-                            ["SPORTVIVAL", "Mai"]
-                            + [
-                                "Fish with Fischer",
-                                "Bass",
-                                "Catfish",
-                                "Pike",
-                                "Salmon",
-                                "Trout",
-                            ]
-                        )
-                    ],
-                    "2": [
-                        f"Hairball City - {npc}"
-                        for npc in ["Game Kid", "Blippy", "Serschel & Louist"]
-                    ]
-                    + [
-                        f"Turbine Town - {npc}"
-                        for npc in ["Blippy", "Serschel & Louist"]
-                    ]
-                    + [
-                        f"Salmon Creek Forest - {npc}"
-                        for npc in ["Game Kid", "Blippy", "Serschel & Louist"]
-                    ]
-                    + [
-                        f"Public Pool - {npc}"
-                        for npc in (
-                            ["Mitch", "SPORTVIVAL VOLLEY", "Blessley"]
-                            + ["Little Gabi's Flowers"]
-                            + [f"Flowerbed {num + 1}" for num in range(3)]
-                        )
-                    ]
-                    + [
-                        f"Bathhouse - {npc}"
-                        for npc in (
-                            ["Blessley", "Blippy", "Blippy Dog"]
-                            + ["Little Gabi's Flowers"]
-                            + [f"Flowerbed {num + 1}" for num in range(3)]
-                            + [
-                                "Fish with Fischer",
-                                "Anglerfish",
-                                "Clione",
-                                "Jellyfish",
-                                "Little Wiggly Guy",
-                                "Pufferfish",
-                            ]
-                        )
-                    ],
-                }
+            # --- Handler dispatch ---
+            handler = get_handler_fuzzy(game_name)
+            if handler is not None and hasattr(handler, "handle_location_hinting"):
+                result = handler.handle_location_hinting(player, l)
+                if result is not None:
+                    return result
 
-                level = None
-                npc = None
-                try:
-                    level, npc = location.split(" - ")
-                except ValueError:
-                    level = location
-                    npc = None
-
-                if f"{location} Cassette Cost" in settings:
-                    # Get the cassette cost
-                    cost = settings[f"{location} Cassette Cost"]
-
-                    # Cassette Requirements
-                    if settings["Cassette Logic"] == "Level Based":
-                        requirements.append(f"{cost} {level} Cassettes")
-                    else:
-                        requirements.append(f"{cost} Cassettes")
-
-                if f"Kiosk {level} Cost" in settings and location == f"{level} - Kiosk":
-                    # Get the kiosk cost
-                    cost = settings[f"Kiosk {level} Cost"]
-
-                    requirements.append(f"{cost} Coins")
-
-                # Contact List Requirements
-                if location in contact_lists["1"]:
-                    requirements.append("Contact List 1")
-                if location in contact_lists["2"]:
-                    requirements.append("Contact List 2")
-
-                if "Chatsanity" in location and settings["Textbox"] is True:
-                    requirements.append("Textbox")
-
-            case "Hollow Knight":
-                # Some items that are bought have costs in the slot data
-                if bool(player.slot_data) and bool(
-                    player.slot_data.get("location_costs")
-                ):
-                    loc_costs = player.slot_data["location_costs"]
-                    if location in loc_costs:
-                        for k, v in loc_costs[location].items():
-                            requirements.append(
-                                f"{v} {k.replace('RANCIDEGGS', 'Rancid Eggs').title()}"
+            match game_name:
+                case "Here Comes Niko!":
+                    contact_lists = {
+                        "1": [
+                            f"Hairball City - {npc}"
+                            for npc in ["Mitch", "Mai", "Moomy", "Blippy Dog", "Nina"]
+                        ]
+                        + [
+                            f"Turbine Town - {npc}"
+                            for npc in ["Mitch", "Mai", "Blippy Dog"]
+                        ]
+                        + [
+                            f"Salmon Creek Forest - {npc}"
+                            for npc in (
+                                ["SPORTVIVAL", "Mai"]
+                                + [
+                                    "Fish with Fischer",
+                                    "Bass",
+                                    "Catfish",
+                                    "Pike",
+                                    "Salmon",
+                                    "Trout",
+                                ]
                             )
+                        ],
+                        "2": [
+                            f"Hairball City - {npc}"
+                            for npc in ["Game Kid", "Blippy", "Serschel & Louist"]
+                        ]
+                        + [
+                            f"Turbine Town - {npc}"
+                            for npc in ["Blippy", "Serschel & Louist"]
+                        ]
+                        + [
+                            f"Salmon Creek Forest - {npc}"
+                            for npc in ["Game Kid", "Blippy", "Serschel & Louist"]
+                        ]
+                        + [
+                            f"Public Pool - {npc}"
+                            for npc in (
+                                ["Mitch", "SPORTVIVAL VOLLEY", "Blessley"]
+                                + ["Little Gabi's Flowers"]
+                                + [f"Flowerbed {num + 1}" for num in range(3)]
+                            )
+                        ]
+                        + [
+                            f"Bathhouse - {npc}"
+                            for npc in (
+                                ["Blessley", "Blippy", "Blippy Dog"]
+                                + ["Little Gabi's Flowers"]
+                                + [f"Flowerbed {num + 1}" for num in range(3)]
+                                + [
+                                    "Fish with Fischer",
+                                    "Anglerfish",
+                                    "Clione",
+                                    "Jellyfish",
+                                    "Little Wiggly Guy",
+                                    "Pufferfish",
+                                ]
+                            )
+                        ],
+                    }
 
-            case "Refunct":
-                minigames = [game for game in settings["Likeliness of minigames"].keys()]
-                cubes_setting = settings["Cubes"]
-                excubes_setting = settings["Extra Cubes"]
+                    level = None
+                    npc = None
+                    try:
+                        level, npc = location.split(" - ")
+                    except ValueError:
+                        level = location
+                        npc = None
 
-                if any([location.startswith(minigame) for minigame in minigames]):
-                    for minigame in minigames:
-                        if location.startswith(minigame):
-                            requirements.append(minigame)
+                    if f"{location} Cassette Cost" in settings:
+                        # Get the cassette cost
+                        cost = settings[f"{location} Cassette Cost"]
 
-                if location.startswith("Cube") and cubes_setting.endswith("Cubes Bag"):
-                    requirements.append(cubes_setting)
-                if location.startswith("Extra Cube") and excubes_setting.endswith("Cubes Bag"):
-                    requirements.append(excubes_setting)
+                        # Cassette Requirements
+                        if settings["Cassette Logic"] == "Level Based":
+                            requirements.append(f"{cost} {level} Cassettes")
+                        else:
+                            requirements.append(f"{cost} Cassettes")
 
-            case "Ship of Harkinian":
-                if bool(player.slot_data) and bool(player.slot_data.get("shop_prices")):
-                    shop_prices = player.slot_data["shop_prices"]
-                    if location in shop_prices:
-                        requirements.append(f"{shop_prices[location]} Rupees")
+                    if f"Kiosk {level} Cost" in settings and location == f"{level} - Kiosk":
+                        # Get the kiosk cost
+                        cost = settings[f"Kiosk {level} Cost"]
 
-            case "TUNIC":
-                if location.startswith("Shop - Potion") or location.startswith("Shop - Coin"):
-                    price = 300 # fixed price for rando items
-                    requirements.append(f"{price} Money")
+                        requirements.append(f"{cost} Coins")
+
+                    # Contact List Requirements
+                    if location in contact_lists["1"]:
+                        requirements.append("Contact List 1")
+                    if location in contact_lists["2"]:
+                        requirements.append("Contact List 2")
+
+                    if "Chatsanity" in location and settings["Textbox"] is True:
+                        requirements.append("Textbox")
+
+                case "Hollow Knight":
+                    # Some items that are bought have costs in the slot data
+                    if bool(player.slot_data) and bool(
+                        player.slot_data.get("location_costs")
+                    ):
+                        loc_costs = player.slot_data["location_costs"]
+                        if location in loc_costs:
+                            for k, v in loc_costs[location].items():
+                                requirements.append(
+                                    f"{v} {k.replace('RANCIDEGGS', 'Rancid Eggs').title()}"
+                                )
+
+                case "Refunct":
+                    minigames = [game for game in settings["Likeliness of minigames"].keys()]
+                    cubes_setting = settings["Cubes"]
+                    excubes_setting = settings["Extra Cubes"]
+
+                    if any([location.startswith(minigame) for minigame in minigames]):
+                        for minigame in minigames:
+                            if location.startswith(minigame):
+                                requirements.append(minigame)
+
+                    if location.startswith("Cube") and cubes_setting.endswith("Cubes Bag"):
+                        requirements.append(cubes_setting)
+                    if location.startswith("Extra Cube") and excubes_setting.endswith("Cubes Bag"):
+                        requirements.append(excubes_setting)
+
+                case "Ship of Harkinian":
+                    if bool(player.slot_data) and bool(player.slot_data.get("shop_prices")):
+                        shop_prices = player.slot_data["shop_prices"]
+                        if location in shop_prices:
+                            requirements.append(f"{shop_prices[location]} Rupees")
+
+                case "TUNIC":
+                    if location.startswith("Shop - Potion") or location.startswith("Shop - Coin"):
+                        price = 300 # fixed price for rando items
+                        requirements.append(f"{price} Money")
+        except AttributeError as err:
+            logging.error(f"Error handling location '{location}': {str(err)}", err)
 
     if bool(requirements):
         logger.info(
