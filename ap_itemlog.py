@@ -57,6 +57,50 @@ else:
     logger.setLevel(logging.INFO)
 logger.addHandler(handler)
 
+# Hollow Knight: Silksong (world v0.4.5) declares these items at one value and then re-grades them
+# at generation time according to the slot's options - see silksong/__init__.py create_item()
+# lines 773-842. The lists mirror the world's own tables, so live_classification() can resolve a
+# `conditional progression` row into this seed's real value.
+SILKSONG_SCROUNGE_RELICS = frozenset({
+    'Relic: Weaver Effigy (Keelal, Shellwood)',
+    'Relic: Bone Scroll (Wisp Thicket)',
+    'Relic: Weaver Effigy (Camora, Moss Grotto)',
+    'Relic: Choral Commandment (Jubilana)',
+    'Relic: Rune Harp (High Halls)',
+    'Relic: Choral Commandment (Western Whiteward)',
+    'Relic: Rune Harp (Weavenest Cindril)',
+    'Relic: Rune Harp (Weavenest Atla)',
+    'Relic: Bone Scroll (Underworks)',
+    'Relic: Bone Scroll (Far Fields)',
+    'Relic: Choral Commandment (Moss Grotto)',
+    'Relic: Choral Commandment (Eastern Whiteward)',
+    'Relic: Bone Scroll (Greymoor)',
+    'Relic: Weaver Effigy (Atla, The Slab)',
+    'Relic: Arcane Egg',
+})
+# The 21 individual turn-ins = the 15 scrounge relics + the five Psalm Cylinders.
+# 'Relic: Sacred Cylinder' is deliberately absent: the world declares it progression and its
+# branch sets progression again, so its stored classification is a plain progression.
+SILKSONG_RELIC_TURN_INS = SILKSONG_SCROUNGE_RELICS | frozenset({
+    'Relic: Psalm Cylinder (East Whispering Vaults)',
+    'Relic: Psalm Cylinder (Grindle)',
+    'Relic: Psalm Cylinder (High Halls)',
+    'Relic: Psalm Cylinder (Underworks)',
+    'Relic: Psalm Cylinder (Vaultkeeper Cardinius)',
+})
+SILKSONG_CREST_SLOT_ITEMS = frozenset({
+    'Crest Slot: Architect (Blue 1)',
+    'Crest Slot: Architect (Blue 2)',
+    'Crest Slot: Architect (Yellow 1)',
+    'Crest Slot: Architect (Yellow 2)',
+    'Crest Slot: Beast (Yellow 1)',
+    'Crest Slot: Beast (Yellow 2)',
+    'Crest Slot: Shaman (Blue 1)',
+    'Crest Slot: Shaman (Blue 2)',
+    'Crest Slot: Wanderer (Blue 1)',
+    'Crest Slot: Wanderer (Blue 2)',
+})
+
 
 with open("config.yaml", "r", encoding="UTF-8") as file:
     cfg = yaml.safe_load(file)
@@ -774,6 +818,47 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
                         response = "progression"
                     else:
                         response = "useful"
+            if item.game == "Hollow Knight: Silksong":
+                # Mirrors silksong v0.4.5 create_item() (__init__.py:773-842). Each branch repeats
+                # the world's own condition; a setting the log could not read falls back to the
+                # value the world's default would have produced, never to a guess.
+                goal = str(setting.get("Goal", "")).lower().replace(" ", "_")
+                relic_mode = str(setting.get("Relic Randomization", "vanilla")).lower()
+                crest_mode = str(setting.get("Crest Slot Randomization", "vanilla")).lower()
+                locket_mode = str(setting.get("Memory Locket Randomization", "vanilla")).lower()
+                if item.name == "Scuttlebrace":
+                    # __init__.py:792-796
+                    response = (
+                        "progression" if setting.get("Scuttlebrace Logic") else "useful"
+                    )
+                elif item.name == "Simple Key (Green Prince)":
+                    # __init__.py:797-801 - only the Act 3 goal gates on it
+                    response = "progression" if goal == "act_3" else "useful"
+                elif item.name.startswith("Letter: "):
+                    # __init__.py:780-786 - letters stay progression except under the Spelling
+                    # Bee goal, where only the letters in the phrase are needed
+                    phrase = str(setting.get("Spelling Bee Phrase", "") or "").upper()
+                    letter = item.name.removeprefix("Letter: ").upper()
+                    response = (
+                        "useful"
+                        if goal == "spelling_bee" and letter not in phrase
+                        else "progression"
+                    )
+                elif item.name in SILKSONG_CREST_SLOT_ITEMS:
+                    # __init__.py:802-815
+                    response = (
+                        "useful"
+                        if crest_mode == "vanilla"
+                        or (crest_mode == "shuffle" and locket_mode == "vanilla")
+                        else "progression"
+                    )
+                elif item.name in SILKSONG_RELIC_TURN_INS:
+                    # __init__.py:816-826 - a scrounge relic counts once Relic Randomization is
+                    # not vanilla; the individual turn-ins option covers all 21 of them
+                    promoted = bool(setting.get("Individual Relic Turn-ins")) or (
+                        item.name in SILKSONG_SCROUNGE_RELICS and relic_mode != "vanilla"
+                    )
+                    response = "progression" if promoted else "useful"
             # After checking everything, if not re-classified, it's probably progression
             if response == "conditional progression":
                 response = "progression"
