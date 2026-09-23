@@ -712,6 +712,12 @@ def process_spoiler_log(seed_url):
                 #     player.settings['Win conditions']['specific-maps'] = goal_working_list
             except KeyError as err:
                 logger.error(err, exc_info=True)
+        if player.game == "SMW: Spicy Mycena Waffles" and not len(player.slot_data):
+            try:
+                total_egg_requirement = int(player.settings["Yoshi Egg Count"] + len([l for l in player.spoilers["locations"] if l.name.endswith("(Hidden Egg)")]))
+                logger.info(f"Player {player.name}'s Golden Egg Requirement calculated as {total_egg_requirement}")
+            except Exception as err:
+                logger.error(f"Failed to calculate true Golden Egg Requirement for {player.name}: {str(err)}", err)
 
     logger.info("Done parsing the spoiler log")
 

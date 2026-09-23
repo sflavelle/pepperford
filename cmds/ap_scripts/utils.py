@@ -2468,7 +2468,7 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
                             else: switchcol += "_"
                         return f"{item} ({switchcol})"
                     if item == "Golden Yoshi Egg":
-                        total = settings["Yoshi Egg Count"]
+                        total = settings["Yoshi Egg Count"] + len([l for l in player.spoilers["locations"] if l.name.endswith("(Hidden Egg)")])
                         required = round(total * (settings["Required Percentage of Golden Yoshi Eggs"] / 100))
                         return f"{item} (*{count}/{required}*)"
                     if item == "Progressive Swim" and game == "SMW: Spicy Mycena Waffles":
