@@ -134,6 +134,19 @@ must explain it. Buckets are "claimed by a handler", "claimed by a still-inline 
 "unexplained" — the last bucket is the one to investigate, because a migrated rule must not lose a
 line.
 
+## Migrated so far
+
+| game | hook | used to live |
+|---|---|---|
+| Spyro 3 | `should_post_item_send` | the Skill Point branch in `process_new_log_lines()` |
+| Simon Tatham's Portable Puzzle Collection | `should_post_item_send` | the "every location posts" branch |
+| Here Comes Niko! | `should_post_item_send` | the friends-list branch (`FRIENDS_LOCATIONS` moved out of `utils.py`) |
+| Hollow Knight: Silksong | `resolve_conditional_progression` | the 41-line block in `live_classification()` |
+
+`_selfcheck.py --corpus` proves the move: all 698 posted filler/currency lines in the #item-log
+archive are claimed by these handlers, and the check fails if one stops being claimed (so the inline
+fallbacks cannot quietly take over again).
+
 ## Migrating a rule out of the core
 
 1. Freeze the interface first (this file) — do not bulk-move onto an interface that is still moving.
@@ -145,5 +158,10 @@ line.
 5. Delete the inline branch only when the handler is registered *and* the corpus still explains every
    line it used to.
 
-**Known gap:** `is_location_checkable` and `should_skip_hint` are declared in the protocol but have
-no call site anywhere yet — nothing consumes them, so they are inert until something does.
+**Known gaps:**
+- `is_location_checkable` is declared in the protocol but has no call site anywhere — inert until
+  something consumes it.
+- `should_skip_hint` now has its call site (the hint branch), but the Balatro shop-item rule it was
+  placed beside is still inline in `ap_itemlog.py`; moving it to `balatro.py` would retire it.
+- `on_item_send` has its call site at the end of a send, but no handler implements it yet, so nothing
+  is announced today.

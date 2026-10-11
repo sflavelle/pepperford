@@ -30,6 +30,7 @@ from cmds.ap_scripts.game_handlers import (
     HandlerContext,
     SendEvent,
     dispatch,
+    dispatch_announcements,
     get_handler_fuzzy,
 )
 from cmds.ap_scripts.utils import (
@@ -41,7 +42,6 @@ from cmds.ap_scripts.utils import (
     handle_item_tracking,
     handle_location_hinting,
     handle_location_tracking,
-    hcn_friends_locations,
 )
 
 DEBUG = (
@@ -64,49 +64,8 @@ else:
     logger.setLevel(logging.INFO)
 logger.addHandler(handler)
 
-# Hollow Knight: Silksong (world v0.4.5) declares these items at one value and then re-grades them
-# at generation time according to the slot's options - see silksong/__init__.py create_item()
-# lines 773-842. The lists mirror the world's own tables, so live_classification() can resolve a
-# `conditional progression` row into this seed's real value.
-SILKSONG_SCROUNGE_RELICS = frozenset({
-    'Relic: Weaver Effigy (Keelal, Shellwood)',
-    'Relic: Bone Scroll (Wisp Thicket)',
-    'Relic: Weaver Effigy (Camora, Moss Grotto)',
-    'Relic: Choral Commandment (Jubilana)',
-    'Relic: Rune Harp (High Halls)',
-    'Relic: Choral Commandment (Western Whiteward)',
-    'Relic: Rune Harp (Weavenest Cindril)',
-    'Relic: Rune Harp (Weavenest Atla)',
-    'Relic: Bone Scroll (Underworks)',
-    'Relic: Bone Scroll (Far Fields)',
-    'Relic: Choral Commandment (Moss Grotto)',
-    'Relic: Choral Commandment (Eastern Whiteward)',
-    'Relic: Bone Scroll (Greymoor)',
-    'Relic: Weaver Effigy (Atla, The Slab)',
-    'Relic: Arcane Egg',
-})
-# The 21 individual turn-ins = the 15 scrounge relics + the five Psalm Cylinders.
-# 'Relic: Sacred Cylinder' is deliberately absent: the world declares it progression and its
-# branch sets progression again, so its stored classification is a plain progression.
-SILKSONG_RELIC_TURN_INS = SILKSONG_SCROUNGE_RELICS | frozenset({
-    'Relic: Psalm Cylinder (East Whispering Vaults)',
-    'Relic: Psalm Cylinder (Grindle)',
-    'Relic: Psalm Cylinder (High Halls)',
-    'Relic: Psalm Cylinder (Underworks)',
-    'Relic: Psalm Cylinder (Vaultkeeper Cardinius)',
-})
-SILKSONG_CREST_SLOT_ITEMS = frozenset({
-    'Crest Slot: Architect (Blue 1)',
-    'Crest Slot: Architect (Blue 2)',
-    'Crest Slot: Architect (Yellow 1)',
-    'Crest Slot: Architect (Yellow 2)',
-    'Crest Slot: Beast (Yellow 1)',
-    'Crest Slot: Beast (Yellow 2)',
-    'Crest Slot: Shaman (Blue 1)',
-    'Crest Slot: Shaman (Blue 2)',
-    'Crest Slot: Wanderer (Blue 1)',
-    'Crest Slot: Wanderer (Blue 2)',
-})
+# Silksong's conditional-progression tables now live with its handler:
+# cmds/ap_scripts/game_handlers/silksong.py
 
 
 with open("config.yaml", "r", encoding="UTF-8") as file:
@@ -730,16 +689,21 @@ def process_spoiler_log(seed_url):
 
 
 def _handler_context_for(
-    item: Any, timestamp: Any = None, item_index: Any = None
+    item: Any, timestamp: Any = None, item_index: Any = None, player: Any = None
 ) -> HandlerContext:
-    """Build the HandlerContext for one send (protocol v2 game handlers).
+    """Build the HandlerContext for one event (protocol v2 game handlers).
+
+    `player` selects whose settings the context carries: the location's owner on the send path (the
+    slot that owns the check, e.g. where "Completion Goal" lives for a Niko friend check), or
+    `item.receiver` for classification, which is keyed on the item's own game and the receiver's
+    options - matching what live_classification() has always read.
 
     `item_index` is the line's absolute position in the room's log buffer (the counter
     `pepper.ap_all_rooms.last_line` stores), passed down from process_new_log_lines so a handler's
     dedupe_key survives a replayed prefix.
     """
     location = getattr(item, "location", None)
-    owner = getattr(location, "player", None)
+    owner = player if player is not None else getattr(location, "player", None)
     to_epoch = getattr(timestamp, "timestamp", None)
     if callable(to_epoch):
         ts: Optional[float] = float(to_epoch())
@@ -748,7 +712,10 @@ def _handler_context_for(
     else:
         ts = None
     return HandlerContext(
-        game=getattr(location, "game", None) or getattr(item, "game", None) or "",
+        game=getattr(owner, "game", None)
+        or getattr(location, "game", None)
+        or getattr(item, "game", None)
+        or "",
         player=owner,
         itemlog=globals().get("game"),
         slot=getattr(owner, "id", None),
@@ -801,11 +768,27 @@ def process_new_log_lines(new_lines, skip_msg: bool = False, line_offset: int = 
         ),
     }
 
-    def live_classification(item):
+    def live_classification(item, item_index=None, timestamp=None):
         response = item.classification
         setting = item.receiver.settings
 
         if response == "conditional progression":
+            # A game handler gets first refusal (see cmds/ap_scripts/game_handlers/); the inline
+            # rules below are the fallback for games that have not migrated yet. Silksong is the
+            # first migration - its tables moved to game_handlers/silksong.py.
+            proposal = None
+            if get_handler_fuzzy(item.game) is not None:
+                proposal = dispatch(
+                    item.game,
+                    "resolve_conditional_progression",
+                    _handler_context_for(
+                        item, timestamp, item_index, player=item.receiver
+                    ),
+                    item,
+                    default=None,
+                )
+            if proposal is not None:
+                response = proposal.classification
             # Progression in certain settings, otherwise useful/filler
             # if item.game == "gzDoom":
             #     # Weapons : extra copies can be filler
@@ -867,47 +850,8 @@ def process_new_log_lines(new_lines, skip_msg: bool = False, line_offset: int = 
                         response = "progression"
                     else:
                         response = "useful"
-            if item.game == "Hollow Knight: Silksong":
-                # Mirrors silksong v0.4.5 create_item() (__init__.py:773-842). Each branch repeats
-                # the world's own condition; a setting the log could not read falls back to the
-                # value the world's default would have produced, never to a guess.
-                goal = str(setting.get("Goal", "")).lower().replace(" ", "_")
-                relic_mode = str(setting.get("Relic Randomization", "vanilla")).lower()
-                crest_mode = str(setting.get("Crest Slot Randomization", "vanilla")).lower()
-                locket_mode = str(setting.get("Memory Locket Randomization", "vanilla")).lower()
-                if item.name == "Scuttlebrace":
-                    # __init__.py:792-796
-                    response = (
-                        "progression" if setting.get("Scuttlebrace Logic") else "useful"
-                    )
-                elif item.name == "Simple Key (Green Prince)":
-                    # __init__.py:797-801 - only the Act 3 goal gates on it
-                    response = "progression" if goal == "act_3" else "useful"
-                elif item.name.startswith("Letter: "):
-                    # __init__.py:780-786 - letters stay progression except under the Spelling
-                    # Bee goal, where only the letters in the phrase are needed
-                    phrase = str(setting.get("Spelling Bee Phrase", "") or "").upper()
-                    letter = item.name.removeprefix("Letter: ").upper()
-                    response = (
-                        "useful"
-                        if goal == "spelling_bee" and letter not in phrase
-                        else "progression"
-                    )
-                elif item.name in SILKSONG_CREST_SLOT_ITEMS:
-                    # __init__.py:802-815
-                    response = (
-                        "useful"
-                        if crest_mode == "vanilla"
-                        or (crest_mode == "shuffle" and locket_mode == "vanilla")
-                        else "progression"
-                    )
-                elif item.name in SILKSONG_RELIC_TURN_INS:
-                    # __init__.py:816-826 - a scrounge relic counts once Relic Randomization is
-                    # not vanilla; the individual turn-ins option covers all 21 of them
-                    promoted = bool(setting.get("Individual Relic Turn-ins")) or (
-                        item.name in SILKSONG_SCROUNGE_RELICS and relic_mode != "vanilla"
-                    )
-                    response = "progression" if promoted else "useful"
+            # Silksong's conditional items are resolved by its own handler now: the tables and the
+            # world's conditions live in cmds/ap_scripts/game_handlers/silksong.py.
             # After checking everything, if not re-classified, it's probably progression
             if response == "conditional progression":
                 response = "progression"
@@ -962,7 +906,7 @@ def process_new_log_lines(new_lines, skip_msg: bool = False, line_offset: int = 
             game.update_locations()
 
             # Live-Classify if the item is Conditional Progression
-            Item = live_classification(Item)
+            Item = live_classification(Item, line_no, timestamp)
 
             icon: str = None
             item_with_icon = lambda item, icon: f"{icon} {item}" if bool(icon) else item
@@ -988,32 +932,31 @@ def process_new_log_lines(new_lines, skip_msg: bool = False, line_offset: int = 
 
             # By vote of spotzone: if it's filler, don't post it.
             # 2026-01-15 amendment: specific locations might be important (goal-bearing). Game
-            # handlers get first refusal on that call now - see cmds/ap_scripts/game_handlers/
-            # (the Spyro 3 Skill Point rule lives in spyro3.py). The two rules still inline below
-            # are TODO(handler): migrate them the same way, then delete them here.
+            # handlers decide that now - Spyro 3 Skill Points (spyro3.py), Simon Tatham's
+            # (simon_tathams.py) and Here Comes Niko! friends (here_comes_niko.py) are the first
+            # migrations. One context is built for the whole send: the post decision below and the
+            # announcements at the end of this branch both use it.
             send_game = getattr(Item.location, "game", None) or getattr(Item, "game", None)
-            handler_decision = None
+            handler_ctx = None
+            send_event = None
             if get_handler_fuzzy(send_game) is not None:
-                ctx = _handler_context_for(Item, timestamp, line_no)
-                handler_decision = dispatch(
-                    send_game,
-                    "should_post_item_send",
-                    ctx,
-                    SendEvent(
-                        ctx=ctx,
-                        sender=sender,
-                        receiver=receiver,
-                        item=Item,
-                        location=Item.location,
-                        classification=Item.classification,
-                        is_filler=Item.is_filler(),
-                        is_currency=Item.is_currency(),
-                        skip_msg=skip_msg,
-                        in_release=sender in release_buffer,
-                        in_collect=receiver in collect_buffer,
-                    ),
-                    default=None,
+                handler_ctx = _handler_context_for(Item, timestamp, line_no)
+                send_event = SendEvent(
+                    ctx=handler_ctx,
+                    sender=sender,
+                    receiver=receiver,
+                    item=Item,
+                    location=Item.location,
+                    classification=Item.classification,
+                    is_filler=Item.is_filler(),
+                    is_currency=Item.is_currency(),
+                    skip_msg=skip_msg,
+                    in_release=sender in release_buffer,
+                    in_collect=receiver in collect_buffer,
                 )
+            handler_decision = dispatch(
+                send_game, "should_post_item_send", handler_ctx, send_event, default=None
+            )
             if handler_decision is not None:
                 if not handler_decision.post:
                     continue
@@ -1021,16 +964,6 @@ def process_new_log_lines(new_lines, skip_msg: bool = False, line_offset: int = 
                     f"Handler claimed a {Item.classification} send "
                     f"({handler_decision.reason}): {item_location}"
                 )
-            elif Item.location.game == "Simon Tatham's Portable Puzzle Collection":
-                # TODO(handler): every location posts - migrate to its own handler
-                pass
-            elif (
-                Item.location.game == "Here Comes Niko!"
-                and Item.location.name in hcn_friends_locations
-                and Item.location.player.settings["Completion Goal"] == "Friend"
-            ):
-                # TODO(handler): needs the friends list + the Friend goal from the slot's settings
-                pass
             # original rule
             elif Item.is_filler() or Item.is_currency():
                 continue
@@ -1186,10 +1119,24 @@ def process_new_log_lines(new_lines, skip_msg: bool = False, line_offset: int = 
                     case _:
                         pass
 
+                # Last thing this send does: let handlers announce something now that the item has
+                # landed - area access, level completion, or (the motivating example) a hinted item
+                # becoming checkable. Announcements render in the log channel only; they are not
+                # dispatched through the chat handler. Dedupe state lives in each handler's own
+                # namespace, so a replayed prefix after a crash does not repeat one.
+                if handler_ctx is not None and send_event is not None:
+                    for announcement in dispatch_announcements(
+                        send_game, handler_ctx, send_event
+                    ):
+                        logger.info(f"[ANNOUNCE:{announcement.kind}] {announcement.text}")
+                        if not skip_msg:
+                            message_buffer.append(announcement.text)
+
                 # Handle completion milestones
                 # if game.players[sender].collection_percentage == 100 and game.players[sender].is_finished() is False:
                 #     message = f"**That was their last check! They're probably just waiting to finish now...**"
                 #     message_buffer.append(message)
+                # ^ this is the kind of thing that belongs in a handler's on_item_send now.
 
         elif match := regex_patterns["item_hints"].match(line):
             timestamp = match.groups()[0]
@@ -1225,6 +1172,19 @@ def process_new_log_lines(new_lines, skip_msg: bool = False, line_offset: int = 
             game.spoiler_log[sender][item_location].hint()
 
             if Item.is_filler() or Item.is_currency():
+                continue
+
+            # A game handler may suppress this hint (see cmds/ap_scripts/game_handlers/): a hint
+            # fires the moment an item appears in a shop or a pack, usually right before the player
+            # buys it. The Balatro exclusion below is the first case of that rule - migrating it to
+            # balatro.py would retire it from here.
+            if dispatch(
+                getattr(Item.location, "game", None) or getattr(Item, "game", None),
+                "should_skip_hint",
+                _handler_context_for(Item, timestamp, line_no),
+                Item,
+                default=None,
+            ):
                 continue
             # Balatro shop items are hinted as soon as they appear and are usually bought right away, so skip their hints
             if Item.location.game == "Balatro" and any(

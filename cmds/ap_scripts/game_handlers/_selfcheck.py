@@ -152,7 +152,7 @@ def check_hooks() -> tuple[list[str], list[str]]:
             "handle_location_hinting": (ctx.player, send.location),
             "handle_state_tracking": (ctx.player, object()),
             "is_location_checkable": (send.location,),
-            "should_skip_hint": (send.item,),
+            "should_skip_hint": (ctx, send.item),
             "resolve_conditional_progression": (ctx, send.item),
             "should_post_item_send": (ctx, send),
             "on_item_send": (ctx, send),
@@ -306,12 +306,12 @@ def _is_hcn_friend(loc: str, item: str) -> bool:
 
 INLINE_RULES = (
     (
-        "ap_itemlog.py: Simon Tatham's Portable Puzzle Collection — every location posts",
+        "Simon Tatham's Portable Puzzle Collection — migrated to simon_tathams.py",
         lambda loc, item: loc.startswith("Puzzle "),
     ),
     (
-        f"ap_itemlog.py: Here Comes Niko! friends list under the Friend goal "
-        f"({len(HCN_FRIENDS)} locations; a log line cannot confirm the goal)",
+        f"Here Comes Niko! friends list — migrated to here_comes_niko.py "
+        f"({len(HCN_FRIENDS)} locations)",
         _is_hcn_friend,
     ),
 )
@@ -362,10 +362,15 @@ def check_corpus(path: pathlib.Path) -> list[str]:
 
     print(f"  explained by a migrated handler : {len(by_handler)}")
     for name, hits in by_inline.items():
-        print(f"  explained by an inline rule     : {len(hits)}  ← {name}")
+        print(f"  NOT CLAIMED BY ITS HANDLER     : {len(hits)}  ← {name}")
     print(f"  explained by nothing            : {len(unknown)}")
     for loc, item in unknown[:10]:
         print(f"    - {item!r} from {loc!r}")
+    if by_inline:
+        problems.append(
+            "posted filler/currency line(s) that a migrated rule should claim are not claimed by "
+            "its handler — the handler is not firing (see the rule names above)"
+        )
     if unknown:
         print(
             "  ^ investigate these: either a rule that predates the archive, or a behaviour change. "

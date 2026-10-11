@@ -253,8 +253,13 @@ class GameHandler(Protocol):
         """Return True/False to override, or None for default."""
         ...
 
-    def should_skip_hint(self, item: Any) -> Optional[bool]:
-        """Return True/False to override, or None for default."""
+    def should_skip_hint(self, ctx: HandlerContext, item: Any) -> Optional[bool]:
+        """Return True to suppress this hint, or None for the default.
+
+        Call site: the hint branch in ap_itemlog.py, where the Balatro shop-item exclusion sits —
+        a hint fires the moment an item appears in a shop or pack, usually just before the player
+        buys it, so a game can decide some hints are noise.
+        """
         ...
 
     # --- protocol v2 -------------------------------------------------------------------------
@@ -434,6 +439,53 @@ def provides(game_name: Optional[str], hook: str) -> bool:
         hook in implements_of(h) and callable(getattr(h, hook, None))
         for h in _resolve_chain(game_name)
     )
+
+
+def dispatch_announcements(
+    game_name: Optional[str], ctx: HandlerContext, send: Any
+) -> List["Announcement"]:
+    """Collect announcements from every handler in the chain, dropping ones already posted.
+
+    Dedupe state lives in each handler's own namespace (`ctx.state(<module>)`), keyed by the
+    announcement's `dedupe_key`, so a replayed prefix after a crash does not re-announce. Any
+    `Announcement.state` is persisted when the announcement is accepted. The caller renders the
+    returned text — announcements go to the log channel, never through the chat handler.
+    """
+    posted: List["Announcement"] = []
+    for h in _resolve_chain(game_name):
+        if "on_item_send" not in implements_of(h):
+            continue
+        fn = getattr(h, "on_item_send", None)
+        if fn is None:
+            continue
+        try:
+            result = fn(ctx, send)
+        except Exception:
+            if STRICT:
+                raise
+            logger.exception(
+                "Handler %s failed in on_item_send for game %r — skipping its announcements",
+                type(h).__module__.rsplit(".", 1)[-1],
+                game_name,
+            )
+            continue
+        if not result:
+            continue
+        ns = type(h).__module__.rsplit(".", 1)[-1]
+        state = ctx.state(ns)
+        announced = state.get("announced")
+        if not isinstance(announced, dict):
+            announced = {}
+        for a in result if isinstance(result, list) else [result]:
+            key = a.dedupe_key or f"{ns}:{a.kind}:{a.text}"
+            if announced.get(key):
+                continue
+            announced[key] = str(ctx.item_index if ctx.item_index is not None else ctx.timestamp)
+            if a.state:
+                state.update(a.state)
+            state["announced"] = announced
+            posted.append(a)
+    return posted
 
 
 def dispatch_all(game_name: Optional[str], hook: str, *args: Any) -> List[Any]:
