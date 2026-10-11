@@ -33,6 +33,7 @@ from cmds.ap_scripts.game_handlers import (
     dispatch_announcements,
     get_handler_fuzzy,
 )
+from cmds.ap_scripts.requirements import format_requirements
 from cmds.ap_scripts.utils import (
     Game,
     Item,
@@ -1202,7 +1203,10 @@ def process_new_log_lines(new_lines, skip_msg: bool = False, line_offset: int = 
             message = Item.to_hint_text()
 
             if bool(Item.location.requirements):
-                message += f"\n> -# This will require {join_words(Item.location.requirements)} to obtain."
+                message += (
+                    f"\n> -# This will require "
+                    f"{join_words(format_requirements(Item.location.requirements))} to obtain."
+                )
             if bool(Item.location.description):
                 message += f"\n> -# {Item.location.description}"
 

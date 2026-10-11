@@ -15,6 +15,14 @@ import yaml
 from cmds.ap_scripts.emitter import event_emitter
 from cmds.ap_scripts.game_handlers import dispatch, provides
 from cmds.ap_scripts.name_translations import gzDoomMapNames
+from cmds.ap_scripts.requirements import (
+    Requirement,
+    Requirements,
+    check_requirements,
+    format_requirements,
+    normalise,
+    parse_requirement_string,
+)
 
 # setup logging
 logger = logging.getLogger("ap_itemlog")
@@ -944,7 +952,9 @@ class Location(dict):
 
     entrance: str = None
     item: "Item" = None
-    requirements: list[str] = []
+    # Item-name -> count requirements (see cmds/ap_scripts/requirements.py). Games that have not
+    # migrated yet still return list[str] here; normalise()/format_requirements() handle both.
+    requirements: "Requirements" = {}
     description: str = None
 
     is_checkable: bool = None
@@ -2931,8 +2941,19 @@ def handle_location_hinting(
     l = location
     location = str(location.name)
 
-    requirements = []
+    # Item name -> count (see cmds/ap_scripts/requirements.py). Legacy display strings are parsed
+    # into that shape where they carry a count; anything else stays a gate we cannot verify.
+    requirements: Requirement = {}
     extra_info = ""
+
+    def add_requirement(text: str) -> None:
+        parsed = parse_requirement_string(text)
+        if parsed is None:
+            requirements[str(text)] = None
+        else:
+            name, count = parsed
+            prev = requirements.get(name)
+            requirements[name] = count if prev is None else prev + count
 
     if isinstance(player, Player) and bool(player.settings):
         settings = player.settings
@@ -3020,26 +3041,28 @@ def handle_location_hinting(
                         # Get the cassette cost
                         cost = settings[f"{location} Cassette Cost"]
 
-                        # Cassette Requirements
-                        if settings["Cassette Logic"] == "Level Based":
-                            requirements.append(f"{cost} {level} Cassettes")
-                        else:
-                            requirements.append(f"{cost} Cassettes")
+                        # Cassette Requirements. Level Based logic counts each level's own cassettes,
+                        # whose item name is "<Level> Cassette"; otherwise there is one "Cassette" item.
+                        cassette_item = (
+                            f"{level} Cassette"
+                            if settings["Cassette Logic"] == "Level Based"
+                            else "Cassette"
+                        )
+                        requirements[cassette_item] = cost
 
                     if f"Kiosk {level} Cost" in settings and location == f"{level} - Kiosk":
                         # Get the kiosk cost
-                        cost = settings[f"Kiosk {level} Cost"]
-
-                        requirements.append(f"{cost} Coins")
+                        requirements["Coin"] = settings[f"Kiosk {level} Cost"]
 
                     # Contact List Requirements
                     if location in contact_lists["1"]:
-                        requirements.append("Contact List 1")
+                        requirements["Contact List 1"] = 1
                     if location in contact_lists["2"]:
-                        requirements.append("Contact List 2")
+                        requirements["Contact List 2"] = 1
 
                     if "Chatsanity" in location and settings["Textbox"] is True:
-                        requirements.append("Textbox")
+                        # A setting, not an item: present as a gate that cannot be counted.
+                        requirements["Textbox"] = None
 
                 case "Hollow Knight":
                     # Some items that are bought have costs in the slot data
@@ -3049,7 +3072,7 @@ def handle_location_hinting(
                         loc_costs = player.slot_data["location_costs"]
                         if location in loc_costs:
                             for k, v in loc_costs[location].items():
-                                requirements.append(
+                                add_requirement(
                                     f"{v} {k.replace('RANCIDEGGS', 'Rancid Eggs').title()}"
                                 )
 
@@ -3061,23 +3084,23 @@ def handle_location_hinting(
                     if any([location.startswith(minigame) for minigame in minigames]):
                         for minigame in minigames:
                             if location.startswith(minigame):
-                                requirements.append(minigame)
+                                add_requirement(minigame)
 
                     if location.startswith("Cube") and cubes_setting.endswith("Cubes Bag"):
-                        requirements.append(cubes_setting)
+                        add_requirement(cubes_setting)
                     if location.startswith("Extra Cube") and excubes_setting.endswith("Cubes Bag"):
-                        requirements.append(excubes_setting)
+                        add_requirement(excubes_setting)
 
                 case "Ship of Harkinian":
                     if bool(player.slot_data) and bool(player.slot_data.get("shop_prices")):
                         shop_prices = player.slot_data["shop_prices"]
                         if location in shop_prices:
-                            requirements.append(f"{shop_prices[location]} Rupees")
+                            add_requirement(f"{shop_prices[location]} Rupees")
 
                 case "TUNIC":
                     if location.startswith("Shop - Potion") or location.startswith("Shop - Coin"):
                         price = 300 # fixed price for rando items
-                        requirements.append(f"{price} Money")
+                        add_requirement(f"{price} Money")
         except AttributeError as err:
             logging.error(f"Error handling location '{location}': {str(err)}", err)
 

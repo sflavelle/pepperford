@@ -140,8 +140,14 @@ line.
 |---|---|---|
 | Spyro 3 | `should_post_item_send` | the Skill Point branch in `process_new_log_lines()` |
 | Simon Tatham's Portable Puzzle Collection | `should_post_item_send` | the "every location posts" branch |
-| Here Comes Niko! | `should_post_item_send` | the friends-list branch (`FRIENDS_LOCATIONS` moved out of `utils.py`) |
+| Here Comes Niko! | `should_post_item_send`, `on_item_send` | the friends-list branch (`FRIENDS_LOCATIONS` moved out of `utils.py`); the announcement is new |
 | Hollow Knight: Silksong | `resolve_conditional_progression` | the 41-line block in `live_classification()` |
+
+Location requirements are now `{item name: count}` (`cmds/ap_scripts/requirements.py`) rather than
+free text, which is what makes an announcement like "a hinted check behind 50 Cassettes is now
+reachable" possible: the handler compares the requirement to the player's inventory instead of
+comparing strings. `format_requirements()` renders the old text for the hints and the tracker API, so
+nothing a player reads changes.
 
 `_selfcheck.py --corpus` proves the move: all 698 posted filler/currency lines in the #item-log
 archive are claimed by these handlers, and the check fails if one stops being claimed (so the inline
@@ -160,8 +166,6 @@ fallbacks cannot quietly take over again).
 
 **Known gaps:**
 - `is_location_checkable` is declared in the protocol but has no call site anywhere — inert until
-  something consumes it.
+  something consumes it (`Location.fetch_islocation_checkable()` in utils.py is where it belongs).
 - `should_skip_hint` now has its call site (the hint branch), but the Balatro shop-item rule it was
   placed beside is still inline in `ap_itemlog.py`; moving it to `balatro.py` would retire it.
-- `on_item_send` has its call site at the end of a send, but no handler implements it yet, so nothing
-  is announced today.

@@ -27,6 +27,8 @@ from discord.ext.commands._types import BotT
 from psycopg2.extras import Json as psql_json
 from tabulate import tabulate
 
+from cmds.ap_scripts.requirements import format_requirements, normalise
+
 # from cmds.ap_scripts.archilogger import ItemLog
 from cmds.ap_scripts.emitter import event_emitter
 
@@ -1905,7 +1907,10 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                                 "receiver": item["receiver"],
                                 "classification": item["classification"],
                                 "entrance": item["location"]["entrance"],
-                                "costs": item["location"]["requirements"],
+                                "costs": format_requirements(
+                                    item["location"]["requirements"]
+                                ),
+                                "cost_items": normalise(item["location"]["requirements"]),
                             }
                         }
                     )
@@ -1931,7 +1936,10 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                                 "receiver": item["receiver"],
                                 "classification": item["classification"],
                                 "entrance": item["location"]["entrance"],
-                                "costs": item["location"]["requirements"],
+                                "costs": format_requirements(
+                                    item["location"]["requirements"]
+                                ),
+                                "cost_items": normalise(item["location"]["requirements"]),
                             }
                         }
                     )

@@ -20,10 +20,12 @@ from __future__ import annotations
 
 from cmds.ap_scripts.game_handlers import (
     PROTOCOL_VERSION,
+    Announcement,
     HandlerContext,
     PostDecision,
     SendEvent,
 )
+from cmds.ap_scripts.requirements import check_requirements, normalise
 
 # The 77 friend locations that count under the Friend goal.
 FRIENDS_LOCATIONS: list[str] = [
@@ -112,7 +114,7 @@ FRIEND_GOAL = "Friend"
 class HereComesNikoHandler:
     game = "Here Comes Niko!"
     PROTOCOL_VERSION = PROTOCOL_VERSION
-    implements = frozenset({"should_post_item_send"})
+    implements = frozenset({"should_post_item_send", "on_item_send"})
 
     def should_post_item_send(
         self, ctx: HandlerContext, send: SendEvent
@@ -126,5 +128,121 @@ class HereComesNikoHandler:
             )
         return None
 
+    def on_item_send(
+        self, ctx: HandlerContext, send: SendEvent
+    ) -> list[Announcement] | None:
+        """Announce a hinted location in the receiver's world becoming reachable.
+
+        Cassettes (and Coins, and Contact Lists) gate friend checks, and a hint for one of those
+        locations can sit unmet for most of a seed. When the item that a location is waiting on
+        arrives for the player who owns that location - "<Level> Cassette" per level under Level
+        Based cassette logic, "Cassette" otherwise, "Coin" for a kiosk - and the count is now met,
+        say so. Nothing else about the send changes; the core renders this in the log channel and
+        drops repeats by dedupe_key.
+        """
+        # The player who gains the item is the one whose own locations may have just opened up.
+        receiver = getattr(send.item, "receiver", None)
+        if receiver is None or getattr(receiver, "game", None) != self.game:
+            return None
+        if getattr(receiver, "is_finished", None) and receiver.is_finished():
+            return None
+
+        gained = normalise({send.item_name: 1})  # the item this send delivers
+        announcements: list[Announcement] = []
+        for hint in getattr(receiver, "hints", {}).get("sending", []):
+            location = getattr(hint, "location", None)
+            requirements = getattr(location, "requirements", None)
+            if not location or not requirements:
+                continue
+            req = normalise(requirements)
+            if not any(name in req for name in gained):
+                continue  # this location is not waiting on what was just sent
+            check = check_requirements(receiver, req)
+            if not check.met:
+                continue
+            announcements.append(
+                Announcement(
+                    kind="location_checkable",
+                    text=(
+                        f"**{getattr(receiver, 'name', 'a player')}** can now check "
+                        f"**{location.name}** for **{getattr(hint, 'name', 'an item')}** "
+                        f"({check.describe()})"
+                    ),
+                    dedupe_key=ctx.dedupe_key("hcn-checkable", location.name),
+                )
+            )
+        return announcements or None
+
 
 handler = HereComesNikoHandler()
+
+
+def _selftest() -> int:
+    """`python -m cmds.ap_scripts.game_handlers.here_comes_niko` — the announcement rule."""
+    import types
+
+    from cmds.ap_scripts.game_handlers import HandlerContext, SendEvent
+
+    def player(counts, requirements, game="Here Comes Niko!"):
+        location = types.SimpleNamespace(
+            name="Salmon Creek Forest - Nina", requirements=requirements, game=game
+        )
+        hint = types.SimpleNamespace(name="Cassette", location=location)
+        p = types.SimpleNamespace(
+            name="BeckyNiko",
+            game=game,
+            hints={"sending": [hint]},
+            counts=counts,
+            is_finished=lambda: False,
+        )
+        p.get_item_count = lambda item: p.counts.get(item, 0)
+        return p
+
+    def send(p, item_name="Cassette", ctx=None):
+        ctx = ctx or HandlerContext(game=game_name_of(p), player=p, seed_name="S", item_index=5)
+        item = types.SimpleNamespace(name=item_name, receiver=p, location=None)
+        return ctx, SendEvent(ctx=ctx, sender="Someone", receiver=p.name, item=item)
+
+    def game_name_of(p):
+        return p.game
+
+    h = HereComesNikoHandler()
+    failures = []
+
+    # met, and the send is the item it was waiting on
+    ctx, ev = send(player({"Cassette": 50}, {"Cassette": 50}))
+    out = h.on_item_send(ctx, ev)
+    if not out or len(out) != 1 or "Salmon Creek Forest - Nina" not in out[0].text:
+        failures.append(f"expected one announcement, got {out}")
+
+    # still short
+    ctx, ev = send(player({"Cassette": 30}, {"Cassette": 50}))
+    if h.on_item_send(ctx, ev) is not None:
+        failures.append("announced while the requirement is still unmet")
+
+    # not the item this location waits on
+    ctx, ev = send(player({"Coin": 999}, {"Cassette": 50}), item_name="Coin")
+    if h.on_item_send(ctx, ev) is not None:
+        failures.append("announced for an item the location does not require")
+
+    # the player taking the item is not a Niko slot
+    ctx, ev = send(player({"Cassette": 50}, {"Cassette": 50}, game="Other Game"))
+    if h.on_item_send(ctx, ev) is not None:
+        failures.append("announced for a player of a different game")
+
+    # a gate that cannot be counted still shows up in the text
+    ctx, ev = send(player({"Cassette": 50}, {"Cassette": 50, "Textbox": None}))
+    out = h.on_item_send(ctx, ev)
+    if not out or "Textbox" not in out[0].text:
+        failures.append(f"uncountable gate not reported: {out}")
+
+    for f in failures:
+        print("FAIL:", f)
+    print(f"here_comes_niko announcement self-test: 5 cases, {len(failures)} failure(s)")
+    return 1 if failures else 0
+
+
+if __name__ == "__main__":
+    import sys
+
+    sys.exit(_selftest())
