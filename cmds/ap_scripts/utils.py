@@ -14,6 +14,11 @@ import yaml
 
 from cmds.ap_scripts.emitter import event_emitter
 from cmds.ap_scripts.game_handlers import dispatch, provides
+from cmds.ap_scripts.game_handlers.here_comes_niko import (
+    PROGRESSIVE_CONTACT_LIST_SETTING,
+    contact_list_requirement,
+    option_enabled,
+)
 from cmds.ap_scripts.name_translations import gzDoomMapNames
 from cmds.ap_scripts.requirements import (
     Requirement,
@@ -3054,11 +3059,18 @@ def handle_location_hinting(
                         # Get the kiosk cost
                         requirements["Coin"] = settings[f"Kiosk {level} Cost"]
 
-                    # Contact List Requirements
+                    # Contact List Requirements. With Progressive Contact List on - the world's own
+                    # default - it hands out "Progressive Contact List" twice (list 1, then list 2)
+                    # rather than the two numbered items, so the requirement becomes a count of the
+                    # progressive item: the same gate, different item name (splatsune, 2026-10-03).
+                    # The world's own Rules.has_contact_list() accepts either form.
+                    progressive_lists = option_enabled(
+                        settings, PROGRESSIVE_CONTACT_LIST_SETTING, default=True
+                    )
                     if location in contact_lists["1"]:
-                        requirements["Contact List 1"] = 1
+                        requirements.update(contact_list_requirement(1, progressive_lists))
                     if location in contact_lists["2"]:
-                        requirements["Contact List 2"] = 1
+                        requirements.update(contact_list_requirement(2, progressive_lists))
 
                     if "Chatsanity" in location and settings["Textbox"] is True:
                         # A setting, not an item: present as a gate that cannot be counted.

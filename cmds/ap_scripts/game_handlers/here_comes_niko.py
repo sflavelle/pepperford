@@ -109,6 +109,45 @@ FRIENDS_LOCATIONS: list[str] = [
 ]
 
 FRIEND_GOAL = "Friend"
+# The option that decides which item gates a contact-list location. Source of truth: the world's own
+# Options.py (hcniko 0.8.5 in /home/hermes/Archipelago/custom_worlds/):
+#
+#     class ProgressiveContactList(DefaultOnToggle):
+#         """If this option is enabled, the Contact Lists will not be separate, so you cannot get
+#         Contact List 2 before Contact List 1."""
+#         display_name = "Progressive Contact List"
+#
+# A DefaultOnToggle, so the world's default is ON: the fallback below has to match that, not "off".
+# Items.py gates the two item sets on the same option (`can_create=lambda options: not
+# options.progressive_contact_list.value` for the numbered pair), and Rules.py:has_contact_list()
+# accepts either (numbered item, or `count` copies of the progressive one).
+PROGRESSIVE_CONTACT_LIST_SETTING = "Progressive Contact List"
+
+
+def option_enabled(settings: dict, name: str, default: bool = False) -> bool:
+    """Read a toggle from the slot's settings, tolerating bools, 0/1 and "true"/"false" strings.
+
+    The spoiler-derived settings are display-name -> value, and a toggle can arrive as either a bool
+    or its text form, so `bool(settings.get(name))` is not safe: it reads the string "false" as on.
+    """
+    value = settings.get(name, default)
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, float)):
+        return bool(value)
+    return str(value).strip().lower() in {"1", "true", "yes", "on", "enabled"}
+
+
+def contact_list_requirement(which: int, progressive: bool) -> dict[str, int]:
+    """The item a contact-list location is gated on.
+
+    With Progressive Contact List off, the world hands out `Contact List 1` and `Contact List 2` as
+    separate items. With it on - the world's default - the player receives `Progressive Contact List`
+    twice, list 1 first, so a location needing the second list means holding two of them.
+    """
+    if progressive:
+        return {"Progressive Contact List": which}
+    return {f"Contact List {which}": 1}
 
 
 class HereComesNikoHandler:
@@ -236,9 +275,52 @@ def _selftest() -> int:
     if not out or "Textbox" not in out[0].text:
         failures.append(f"uncountable gate not reported: {out}")
 
+    # contact lists: the same gate, named for the progressive option
+    from cmds.ap_scripts.requirements import format_requirements
+
+    for which, progressive, expected, expected_text in [
+        (1, False, {"Contact List 1": 1}, ["Contact List 1"]),
+        (2, False, {"Contact List 2": 1}, ["Contact List 2"]),
+        (1, True, {"Progressive Contact List": 1}, ["Progressive Contact List"]),
+        (2, True, {"Progressive Contact List": 2}, ["2 Progressive Contact Lists"]),
+    ]:
+        req = contact_list_requirement(which, progressive)
+        if req != expected:
+            failures.append(f"contact_list_requirement({which}, {progressive}) = {req} != {expected}")
+        if format_requirements(req) != expected_text:
+            failures.append(
+                f"rendering {req} = {format_requirements(req)} != {expected_text}"
+            )
+
+    # reading the option itself: the world's default is ON (DefaultOnToggle), and the text form
+    # "false" must not read as on
+    for settings, expected in [
+        ({}, True),
+        ({PROGRESSIVE_CONTACT_LIST_SETTING: False}, False),
+        ({PROGRESSIVE_CONTACT_LIST_SETTING: True}, True),
+        ({PROGRESSIVE_CONTACT_LIST_SETTING: "False"}, False),
+        ({PROGRESSIVE_CONTACT_LIST_SETTING: "false"}, False),
+        ({PROGRESSIVE_CONTACT_LIST_SETTING: 0}, False),
+        ({PROGRESSIVE_CONTACT_LIST_SETTING: 1}, True),
+    ]:
+        got = option_enabled(settings, PROGRESSIVE_CONTACT_LIST_SETTING, default=True)
+        if got is not expected:
+            failures.append(f"option_enabled({settings}) = {got} != {expected}")
+
+    # a progressive list location: the second list needs two of the item
+    prog = {"Progressive Contact List": 2}
+    ctx, ev = send(player({"Progressive Contact List": 1}, prog),
+                   item_name="Progressive Contact List")
+    if h.on_item_send(ctx, ev) is not None:
+        failures.append("announced the second list with only one progressive list held")
+    ctx, ev = send(player({"Progressive Contact List": 2}, prog),
+                   item_name="Progressive Contact List")
+    out = h.on_item_send(ctx, ev)
+    if not out or "2 Progressive Contact Lists" not in out[0].text:
+        failures.append(f"progressive list announcement wrong: {out}")
     for f in failures:
         print("FAIL:", f)
-    print(f"here_comes_niko announcement self-test: 5 cases, {len(failures)} failure(s)")
+    print(f"here_comes_niko self-test: {len(failures)} failure(s)")
     return 1 if failures else 0
 
 

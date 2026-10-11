@@ -27,7 +27,9 @@ from typing import Any, Dict, Iterable, List, Mapping, Optional, Union
 
 # item name -> count; None means "a gate that is not a countable item"
 Requirement = Dict[str, Optional[int]]
-Requirements = Union[None, Requirement, List[str], str]
+# Anything a caller or an old code path may hand over. Mapping (not Dict) so a plain dict[str, int]
+# is accepted wherever these are expected.
+Requirements = Union[None, Mapping[str, Optional[int]], List[str], str]
 
 
 def format_one(name: str, count: Optional[int]) -> str:
@@ -104,6 +106,7 @@ class RequirementCheck:
     unmet: Dict[str, int] = field(default_factory=dict)  # item -> shortfall
     held: Dict[str, int] = field(default_factory=dict)  # item -> how many the player has
     unknown: List[str] = field(default_factory=list)  # gates that cannot be verified
+    required: Requirement = field(default_factory=dict)  # the requirement that was checked
 
     @property
     def certain(self) -> bool:
@@ -111,12 +114,24 @@ class RequirementCheck:
         return not self.unknown
 
     def describe(self) -> str:
-        parts = []
-        for name, missing in self.unmet.items():
-            parts.append(f"{missing} more {name}")
+        """One line for a log message or an announcement.
+
+            "requirements met: 50 Cassettes, Contact List 1"
+            "still needs 12 Cassettes"
+            "requirements met: 2 Progressive Contact Lists; also gated by Textbox"
+        """
+        if self.unmet:
+            parts = [format_one(name, missing) for name, missing in self.unmet.items()]
+            text = "still needs " + ", ".join(parts)
+        else:
+            # Only the countable items belong in "met": uncountable gates are reported separately
+            # below, so a gate-only requirement describes as just "requirements met".
+            countable = {k: v for k, v in self.required.items() if v is not None}
+            satisfied = format_requirements(countable)
+            text = "requirements met" + (f": {', '.join(satisfied)}" if satisfied else "")
         if self.unknown:
-            parts.append("also gated by " + ", ".join(self.unknown))
-        return "; ".join(parts) or "requirements met"
+            text += "; also gated by " + ", ".join(self.unknown)
+        return text
 
 
 def check_requirements(
@@ -148,7 +163,7 @@ def check_requirements(
         if have < count:
             unmet[name] = count - have
 
-    return RequirementCheck(met=not unmet, unmet=unmet, held=held_out, unknown=unknown)
+    return RequirementCheck(met=not unmet, unmet=unmet, held=held_out, unknown=unknown, required=req)
 
 
 def _selftest() -> int:
@@ -197,6 +212,16 @@ def _selftest() -> int:
     gate = check_requirements(p, {"Textbox": None})
     if not gate.met or gate.certain or gate.unknown != ["Textbox"]:
         failures.append(f"non-count gate mishandled: {gate}")
+
+    described = check_requirements(p, {"Cassette": 38, "Coin": 76}).describe()
+    if described != "requirements met: 38 Cassettes, 76 Coins":
+        failures.append(f"met description wrong: {described!r}")
+    described = check_requirements(p, {"Cassette": 50}).describe()
+    if described != "still needs 12 Cassettes":
+        failures.append(f"shortfall description wrong: {described!r}")
+    described = check_requirements(p, {"Textbox": None}).describe()
+    if described != "requirements met; also gated by Textbox":
+        failures.append(f"gate description wrong: {described!r}")
 
     for f in failures:
         print("FAIL:", f)
