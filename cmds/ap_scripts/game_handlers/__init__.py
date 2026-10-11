@@ -85,7 +85,7 @@ class HandlerContext:
     room_id: Optional[str] = None
     datapackage_checksum: Optional[str] = None
     timestamp: Optional[float] = None
-    item_index: Optional[int] = None  # position in the DM stream; None when unknown
+    item_index: Optional[int] = None  # absolute index in the room's log buffer; None when unknown
     settings: Mapping[str, Any] = field(default_factory=dict)
 
     def dedupe_key(self, *extra: Any) -> str:
@@ -203,14 +203,14 @@ class ClassificationProposal:
 class Announcement:
     """Returned by `on_item_send` — an area unlock, a level completion, a milestone.
 
-    Handlers return text; the core renders and posts it, so formatting, goaled-player dimming and
-    rate limiting stay in one place. `dedupe_key` must be stable for the same underlying event: the
-    logger resumes from a stored line number, so a crash mid-seed replays a prefix.
+    Handlers return text; the core renders and posts it **in the log channel** — announcements are
+    not routed through the chat handler (splatsune, 2026-10-03), so formatting, goaled-player dimming
+    and rate limiting all stay in the core. `dedupe_key` must be stable for the same underlying
+    event: the logger resumes from a stored line number, so a crash mid-seed replays a prefix.
     """
 
     kind: str  # 'area_access' | 'level_complete' | 'milestone' | 'custom'
     text: str
-    channel: str = "item-log"  # or 'war-room'
     dedupe_key: Optional[str] = None
     state: Optional[Mapping[str, Any]] = None  # state to persist if the announcement is posted
 
@@ -421,6 +421,19 @@ def dispatch(
         if result is not None:
             return result
     return default
+
+
+def provides(game_name: Optional[str], hook: str) -> bool:
+    """Does any handler in the chain implement `hook`?
+
+    Needed for side-effecting hooks that return None (`handle_state_tracking`): `dispatch` cannot
+    distinguish "did nothing" from "did it and returned None", so the caller has to decide whether
+    the handler owns the behaviour *before* calling it.
+    """
+    return any(
+        hook in implements_of(h) and callable(getattr(h, hook, None))
+        for h in _resolve_chain(game_name)
+    )
 
 
 def dispatch_all(game_name: Optional[str], hook: str, *args: Any) -> List[Any]:

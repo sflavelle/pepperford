@@ -13,7 +13,7 @@ import requests
 import yaml
 
 from cmds.ap_scripts.emitter import event_emitter
-from cmds.ap_scripts.game_handlers import get_handler_fuzzy
+from cmds.ap_scripts.game_handlers import dispatch, provides
 from cmds.ap_scripts.name_translations import gzDoomMapNames
 
 # setup logging
@@ -1520,13 +1520,9 @@ def handle_item_tracking(game: Game, player: Player, item: Item):
         count = player.get_item_count(item)
 
         # --- Handler dispatch ---
-        handler = get_handler_fuzzy(game_name)
-        if handler is not None and hasattr(handler, "handle_item_tracking"):
-            result = handler.handle_item_tracking(
-                itemlog, player, ItemObject
-            )
-            if result is not None:
-                return result
+        result = dispatch(game_name, "handle_item_tracking", itemlog, player, ItemObject)
+        if result is not None:
+            return result
 
         try:
             match game:
@@ -2869,13 +2865,11 @@ def handle_location_tracking(
         slot_data = player.slot_data
 
         # --- Handler dispatch ---
-        handler = get_handler_fuzzy(game_name)
-        if handler is not None and hasattr(handler, "handle_location_tracking"):
-            result = handler.handle_location_tracking(
-                itemlog, player, ItemObject, use_everywhere
-            )
-            if result is not None:
-                return result
+        result = dispatch(
+            game_name, "handle_location_tracking", itemlog, player, ItemObject, use_everywhere
+        )
+        if result is not None:
+            return result
 
         match game_name:
             case "A Hat in Time":
@@ -3022,11 +3016,9 @@ def handle_location_hinting(
         try:
 
             # --- Handler dispatch ---
-            handler = get_handler_fuzzy(game_name)
-            if handler is not None and hasattr(handler, "handle_location_hinting"):
-                result = handler.handle_location_hinting(player, l)
-                if result is not None:
-                    return result
+            result = dispatch(game_name, "handle_location_hinting", player, l)
+            if result is not None:
+                return result
 
             match game_name:
                 case "Here Comes Niko!":
@@ -3186,9 +3178,10 @@ def handle_state_tracking(player: Player, game: Game):
         return
 
     # --- Handler dispatch ---
-    handler = get_handler_fuzzy(player_game)
-    if handler is not None and hasattr(handler, "handle_state_tracking"):
-        handler.handle_state_tracking(player, game)
+    # handle_state_tracking mutates player.stats and returns None, so ask whether a handler owns it
+    # rather than testing a return value (dispatch's first-non-None rule does not fit side effects).
+    if provides(player_game, "handle_state_tracking"):
+        dispatch(player_game, "handle_state_tracking", player, game)
         return  # handler already set player.stats.goal_str
 
     try:

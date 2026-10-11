@@ -252,6 +252,16 @@ def check_chain_and_containment() -> list[str]:
     if get_handler_fuzzy("GZDoom (Doom 64)") is not get_handler_fuzzy("GZDoom"):
         print("  note no GZDoom handler registered — prefix fallback untested")
 
+    from cmds.ap_scripts.game_handlers import provides
+
+    if not provides("Probe Game", "should_post_item_send"):
+        problems.append("provides() said no to a hook a registered handler implements")
+    if provides("Probe Game", "on_item_send"):
+        problems.append("provides() said yes to a hook no registered handler implements")
+    if provides("No Such Game At All", "should_post_item_send"):
+        problems.append("provides() said yes for an unregistered game")
+    print("  ok   provides() reflects what handlers actually declare")
+
     if get_handler_fuzzy("Manual_NewSuperMarioBrosDS_zuils") is not None:
         print("  ok   Manual_* prefix fallback resolves")
     return problems

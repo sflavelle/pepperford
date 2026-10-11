@@ -56,6 +56,8 @@ HandlerContext(
 - `ctx.settings` / `ctx.setting("Goal")` — the slot's own resolved options, keyed by **display
   name** (the room's names, not the YAML keys). A missing setting should fall back to the world's
   default, never to a guess.
+- `ctx.item_index` — the line's absolute position in the room's log buffer, so `ctx.dedupe_key()`
+  is stable across a replay.
 - `ctx.player` — the live `Player` object (for `inventory`, `spoilers`, `slot_data`).
 - `ctx.state("my_game")` — a dict persisted for this handler via `Player.stats`, so conditions
   survive a restart instead of living in a module global.
@@ -96,8 +98,9 @@ human review rather than applied.
 
 ### `on_item_send` — announce things
 
-Return announcements; the core renders and posts them, so formatting, goaled-player dimming and
-rate limiting stay in one place:
+Return announcements; the core renders and posts them **in the log channel** (announcements are not
+routed through the chat handler), so formatting, goaled-player dimming and rate limiting stay in one
+place:
 
 ```python
 def on_item_send(self, ctx, send):
@@ -111,6 +114,10 @@ def on_item_send(self, ctx, send):
         )]
     return None
 ```
+
+For a hook that *mutates* and returns `None` (`handle_state_tracking`), the caller cannot use
+`dispatch`'s first-non-None rule — ask `provides(game, hook)` first and then dispatch, which is what
+`utils.py` now does.
 
 ## Checking your work
 
@@ -138,6 +145,5 @@ line.
 5. Delete the inline branch only when the handler is registered *and* the corpus still explains every
    line it used to.
 
-**Known gap:** the v1 call sites (`handle_item_tracking` et al. in `utils.py`) still call the handler
-directly rather than through `dispatch()`, so they do not get error containment yet. Route them
-through `dispatch()` as they are touched.
+**Known gap:** `is_location_checkable` and `should_skip_hint` are declared in the protocol but have
+no call site anywhere yet — nothing consumes them, so they are inert until something does.

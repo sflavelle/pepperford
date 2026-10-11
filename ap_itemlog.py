@@ -734,8 +734,9 @@ def _handler_context_for(
 ) -> HandlerContext:
     """Build the HandlerContext for one send (protocol v2 game handlers).
 
-    `item_index` is the position of the line in the DM stream; it is None here because the send
-    parser does not carry one yet, so a handler's dedupe_key falls back to timestamp + location.
+    `item_index` is the line's absolute position in the room's log buffer (the counter
+    `pepper.ap_all_rooms.last_line` stores), passed down from process_new_log_lines so a handler's
+    dedupe_key survives a replayed prefix.
     """
     location = getattr(item, "location", None)
     owner = getattr(location, "player", None)
@@ -759,7 +760,12 @@ def _handler_context_for(
     )
 
 
-def process_new_log_lines(new_lines, skip_msg: bool = False):
+def process_new_log_lines(new_lines, skip_msg: bool = False, line_offset: int = 0):
+    """Process a slice of the room's log buffer.
+
+    `line_offset` is the position of `new_lines[0]` in the full buffer, so a handler can key on the
+    absolute line number (the same counter `pepper.ap_all_rooms.last_line` stores).
+    """
     global release_buffer
     global players
     global seed_address
@@ -909,7 +915,7 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
             item.classification = response
         return item
 
-    for line in new_lines:
+    for line_no, line in enumerate(new_lines, start=line_offset):
         line_start_time = time.time_ns()  # for performance logging
         if match := regex_patterns["sent_items"].match(line):
             timestamp, sender, item, receiver, item_location = match.groups()
@@ -988,7 +994,7 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
             send_game = getattr(Item.location, "game", None) or getattr(Item, "game", None)
             handler_decision = None
             if get_handler_fuzzy(send_game) is not None:
-                ctx = _handler_context_for(Item, timestamp)
+                ctx = _handler_context_for(Item, timestamp, line_no)
                 handler_decision = dispatch(
                     send_game,
                     "should_post_item_send",
@@ -1595,7 +1601,7 @@ def watch_log(url, interval):
                 # Last Line probably hasn't been set yet; this room is new
                 pass
 
-    process_new_log_lines(previous_lines[:last_line], True)  # Read for hints etc
+    process_new_log_lines(previous_lines[:last_line], True, line_offset=0)  # Read for hints etc
 
     if pathlib.Path(f".cache/{room_id}").exists() and pathlib.Path(f".cache/{room_id}/spoiled_items.json").exists():
         with open(f".cache/{room_id}/spoiled_items.json", "r") as file:
@@ -1659,7 +1665,7 @@ def watch_log(url, interval):
         elif len(current_lines) > last_line:
             new_lines = current_lines[last_line:]
             if len(new_lines) > 0:
-                process_new_log_lines(new_lines)
+                process_new_log_lines(new_lines, line_offset=last_line)
                 tracker_sleep_count += 1
             if message_buffer:
                 try:
