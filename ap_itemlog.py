@@ -12,6 +12,7 @@ import time
 from collections import defaultdict
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
+from typing import Any, Optional
 
 import dateparser
 import graphviz
@@ -25,6 +26,12 @@ from flask_cors import CORS
 from word2number import w2n
 
 from cmds.ap_scripts.emitter import event_emitter
+from cmds.ap_scripts.game_handlers import (
+    HandlerContext,
+    SendEvent,
+    dispatch,
+    get_handler_fuzzy,
+)
 from cmds.ap_scripts.utils import (
     Game,
     Item,
@@ -722,6 +729,36 @@ def process_spoiler_log(seed_url):
     logger.info("Done parsing the spoiler log")
 
 
+def _handler_context_for(
+    item: Any, timestamp: Any = None, item_index: Any = None
+) -> HandlerContext:
+    """Build the HandlerContext for one send (protocol v2 game handlers).
+
+    `item_index` is the position of the line in the DM stream; it is None here because the send
+    parser does not carry one yet, so a handler's dedupe_key falls back to timestamp + location.
+    """
+    location = getattr(item, "location", None)
+    owner = getattr(location, "player", None)
+    to_epoch = getattr(timestamp, "timestamp", None)
+    if callable(to_epoch):
+        ts: Optional[float] = float(to_epoch())
+    elif isinstance(timestamp, (int, float)):
+        ts = float(timestamp)
+    else:
+        ts = None
+    return HandlerContext(
+        game=getattr(location, "game", None) or getattr(item, "game", None) or "",
+        player=owner,
+        itemlog=globals().get("game"),
+        slot=getattr(owner, "id", None),
+        player_name=getattr(owner, "name", None),
+        seed_name=globals().get("seed_address"),
+        timestamp=ts,
+        item_index=item_index,
+        settings=getattr(owner, "settings", None) or {},
+    )
+
+
 def process_new_log_lines(new_lines, skip_msg: bool = False):
     global release_buffer
     global players
@@ -943,20 +980,50 @@ def process_new_log_lines(new_lines, skip_msg: bool = False):
                     f"{sender}: ({str(game.players[sender].collected_locations)}/{str(game.players[sender].total_locations)}/{str(round(game.players[sender].collection_percentage, 2))}%) {item_location} -> {receiver}'s {item} ({Item.classification})"
                 )
 
-            # By vote of spotzone: if it's filler, don't post it
-            # 2026-01-15 amendment: specific locations might be important (goal-bearing),
-            # We'll handle individual cases for now but this might become a function
-            if Item.location.game == "Spyro 3" and Item.location.name.endswith(
-                "(Skill Point)"
-            ):
-                pass
+            # By vote of spotzone: if it's filler, don't post it.
+            # 2026-01-15 amendment: specific locations might be important (goal-bearing). Game
+            # handlers get first refusal on that call now - see cmds/ap_scripts/game_handlers/
+            # (the Spyro 3 Skill Point rule lives in spyro3.py). The two rules still inline below
+            # are TODO(handler): migrate them the same way, then delete them here.
+            send_game = getattr(Item.location, "game", None) or getattr(Item, "game", None)
+            handler_decision = None
+            if get_handler_fuzzy(send_game) is not None:
+                ctx = _handler_context_for(Item, timestamp)
+                handler_decision = dispatch(
+                    send_game,
+                    "should_post_item_send",
+                    ctx,
+                    SendEvent(
+                        ctx=ctx,
+                        sender=sender,
+                        receiver=receiver,
+                        item=Item,
+                        location=Item.location,
+                        classification=Item.classification,
+                        is_filler=Item.is_filler(),
+                        is_currency=Item.is_currency(),
+                        skip_msg=skip_msg,
+                        in_release=sender in release_buffer,
+                        in_collect=receiver in collect_buffer,
+                    ),
+                    default=None,
+                )
+            if handler_decision is not None:
+                if not handler_decision.post:
+                    continue
+                logger.debug(
+                    f"Handler claimed a {Item.classification} send "
+                    f"({handler_decision.reason}): {item_location}"
+                )
             elif Item.location.game == "Simon Tatham's Portable Puzzle Collection":
+                # TODO(handler): every location posts - migrate to its own handler
                 pass
             elif (
                 Item.location.game == "Here Comes Niko!"
                 and Item.location.name in hcn_friends_locations
                 and Item.location.player.settings["Completion Goal"] == "Friend"
             ):
+                # TODO(handler): needs the friends list + the Friend goal from the slot's settings
                 pass
             # original rule
             elif Item.is_filler() or Item.is_currency():

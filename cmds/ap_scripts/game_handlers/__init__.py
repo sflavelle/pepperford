@@ -1,39 +1,235 @@
 """
-Game handler registry for game-specific tracking logic.
+Game handler registry — all game-specific itemlog logic lives here, not in ap_itemlog.py.
 
-Each module in this directory that exposes a module-level `handler`
-attribute (an object with a `.game` attribute and any of the
-handle_* methods) is automatically registered on import.
+Each module in this directory that exposes a module-level `handler` attribute is auto-registered on
+import. A handler declares the game(s) it covers and the hooks it implements:
 
-Handlers are keyed by exact game name string. To handle multiple games
-from one file, set `handler.game` to a tuple of strings.
+    class MyHandler:
+        game = "Some Game"                 # or a tuple of game names
+        PROTOCOL_VERSION = PROTOCOL_VERSION
+        implements = frozenset({"should_post_item_send", "on_item_send"})
+
+        def should_post_item_send(self, ctx, send) -> PostDecision | None: ...
+
+    handler = MyHandler()
+
+Protocol v2 (2026-10-03) adds `HandlerContext`, the three hooks at the bottom of `GameHandler`,
+chained dispatch and error containment. Everything from v1 keeps working unchanged: hooks are still
+duck-typed and optional, and a handler declaring neither `PROTOCOL_VERSION` nor `implements` is
+treated as a legacy handler (candidate for every hook, no context object).
+
+Why a context object: the v1 hooks each took a different slice of the world — `(game, player, item)`,
+`(player, game)`, `(item,)` — so anything new had to be threaded through every call site, and adding
+a parameter to an existing hook silently breaks every handler implementing it. A frozen
+`HandlerContext` is extended by adding a field; no existing handler changes.
+
+Hook contract: return a value to claim the decision, or `None` to fall through to the next handler
+and finally to the default logic in ap_itemlog.py / utils.py. Handlers never write to the database:
+for classifications they return a `ClassificationProposal` and the core applies it under the usual
+policy (fill blanks or raise; manual edits win; downgrades held for review).
 """
 
 from __future__ import annotations
 
 import importlib
 import logging
+import os
 import pkgutil
+from collections.abc import Iterator, Mapping, MutableMapping
+from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Protocol, Tuple
 
 logger = logging.getLogger("ap_itemlog.game_handlers")
+
+PROTOCOL_VERSION = 2
+
+# Re-raise handler exceptions instead of falling back to the default. Off in production: one broken
+# handler must not take the item log down mid-seed. Turn it on in tests (`_selfcheck.py`, or
+# AP_HANDLERS_STRICT=1).
+STRICT = os.environ.get("AP_HANDLERS_STRICT", "").strip().lower() in {"1", "true", "yes", "on"}
+
+HOOKS: Tuple[str, ...] = (
+    # --- protocol v1 -------------------------------------------------------------------------
+    "handle_item_tracking",
+    "handle_location_tracking",
+    "handle_location_hinting",
+    "handle_state_tracking",
+    "is_location_checkable",
+    "should_skip_hint",
+    # --- protocol v2 -------------------------------------------------------------------------
+    "resolve_conditional_progression",
+    "should_post_item_send",
+    "on_item_send",
+)
+
+
+# ---------------------------------------------------------------------------
+# Values hooks exchange
+# ---------------------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class HandlerContext:
+    """Everything a hook may need about the event being processed.
+
+    Frozen on purpose: a hook can read the world here but cannot rewrite identity mid-dispatch.
+    Mutable state goes through `ctx.state(ns)` (persisted) or `ctx.player` (the live object).
+    """
+
+    game: str
+    player: Any = None  # the acting Player; for a send, the slot that owns the location
+    itemlog: Any = None  # the running logger/Game object, for escape hatches
+    slot: Optional[int] = None
+    player_name: Optional[str] = None
+    seed_name: Optional[str] = None
+    room_id: Optional[str] = None
+    datapackage_checksum: Optional[str] = None
+    timestamp: Optional[float] = None
+    item_index: Optional[int] = None  # position in the DM stream; None when unknown
+    settings: Mapping[str, Any] = field(default_factory=dict)
+
+    def dedupe_key(self, *extra: Any) -> str:
+        """Stable key for 'act once per thing' — survives a replayed prefix after a crash."""
+        parts = [
+            str(self.seed_name or "?"),
+            str(self.slot if self.slot is not None else "?"),
+            str(self.item_index if self.item_index is not None else "?"),
+            *(str(e) for e in extra),
+        ]
+        return ":".join(parts)
+
+    def setting(self, name: str, default: Any = None) -> Any:
+        """Read one of the player's settings (display-name keys, as the room reports them)."""
+        try:
+            return self.settings[name]
+        except (KeyError, TypeError):
+            return default
+
+    def state(self, namespace: str) -> "NamespacedState":
+        """A persisted dict for one handler, surviving restarts via Player.stats serialisation."""
+        store = getattr(getattr(self.player, "stats", None), "stats", None)
+        if not isinstance(store, dict):  # detached / fixture context
+            store = _FIXTURE_STATE.setdefault(id(self), {})
+        return NamespacedState(store, namespace)
+
+
+_FIXTURE_STATE: Dict[int, Dict[str, Any]] = {}
+
+
+class NamespacedState(MutableMapping):
+    """Dict-like view into a player's persisted stats, scoped to one handler namespace."""
+
+    __slots__ = ("_store", "_key")
+
+    def __init__(self, store: Dict[str, Any], namespace: str) -> None:
+        self._store = store
+        self._key = f"handler_state:{namespace}"
+        if not isinstance(store.get(self._key), dict):
+            store[self._key] = {}
+
+    def __getitem__(self, k: str) -> Any:
+        return self._store[self._key][k]
+
+    def __setitem__(self, k: str, v: Any) -> None:
+        self._store[self._key][k] = v
+
+    def __delitem__(self, k: str) -> None:
+        del self._store[self._key][k]
+
+    def __iter__(self) -> Iterator[str]:
+        return iter(self._store[self._key])
+
+    def __len__(self) -> int:
+        return len(self._store[self._key])
+
+
+@dataclass(frozen=True)
+class SendEvent:
+    """One 'X sent Y to Z (location)' line, at the moment the send log decides what to do with it."""
+
+    ctx: HandlerContext
+    sender: str = ""
+    receiver: str = ""
+    item: Any = None
+    location: Any = None
+    classification: Optional[str] = None
+    is_filler: bool = False
+    is_currency: bool = False
+    skip_msg: bool = False
+    in_release: bool = False  # a release for this sender is already buffered
+    in_collect: bool = False  # a collect for this receiver is already buffered
+
+    @property
+    def location_name(self) -> str:
+        return str(getattr(self.location, "name", "") or "")
+
+    @property
+    def item_name(self) -> str:
+        return str(getattr(self.item, "name", "") or "")
+
+
+@dataclass(frozen=True)
+class PostDecision:
+    """Returned by `should_post_item_send`.
+
+    `post=True` posts even though the default rule would suppress it (filler/currency); `post=False`
+    suppresses. The core still applies release/collect batching either way — claiming a post does not
+    mean 'ignore the buffers'. `reason` is kept for the log line and for tests.
+    """
+
+    post: bool
+    reason: Optional[str] = None
+    icon: Optional[str] = None
+    dedupe_key: Optional[str] = None
+
+
+@dataclass(frozen=True)
+class ClassificationProposal:
+    """Returned by `resolve_conditional_progression` (and by any future classification hook).
+
+    The handler proposes, the core decides. `downgrade=True` marks a proposal that would lower an
+    existing stored value — those are held for review rather than applied, matching the policy in
+    classify_from_multidata.py.
+    """
+
+    classification: str
+    reason: str
+    source: str = "handler"
+    confidence: str = "high"  # 'high' | 'review'
+    downgrade: bool = False
+
+
+@dataclass(frozen=True)
+class Announcement:
+    """Returned by `on_item_send` — an area unlock, a level completion, a milestone.
+
+    Handlers return text; the core renders and posts it, so formatting, goaled-player dimming and
+    rate limiting stay in one place. `dedupe_key` must be stable for the same underlying event: the
+    logger resumes from a stored line number, so a crash mid-seed replays a prefix.
+    """
+
+    kind: str  # 'area_access' | 'level_complete' | 'milestone' | 'custom'
+    text: str
+    channel: str = "item-log"  # or 'war-room'
+    dedupe_key: Optional[str] = None
+    state: Optional[Mapping[str, Any]] = None  # state to persist if the announcement is posted
+
 
 # ---------------------------------------------------------------------------
 # Protocol (duck typing – no strict inheritance required)
 # ---------------------------------------------------------------------------
 
+
 class GameHandler(Protocol):
     """Interface each handler module is expected to satisfy.
 
-    Every method is optional — return None / pass to fall through to
-    the default logic in utils.py.
+    Every method is optional — return None / pass to fall through to the default logic in
+    ap_itemlog.py and utils.py.
     """
 
     game: str | Tuple[str, ...]
 
-    def handle_item_tracking(
-        self, game: Any, player: Any, item: Any
-    ) -> Optional[str]:
+    def handle_item_tracking(self, game: Any, player: Any, item: Any) -> Optional[str]:
         """Return a replacement item name string, or None to use default."""
         ...
 
@@ -61,56 +257,222 @@ class GameHandler(Protocol):
         """Return True/False to override, or None for default."""
         ...
 
+    # --- protocol v2 -------------------------------------------------------------------------
+
+    def resolve_conditional_progression(
+        self, ctx: HandlerContext, item: Any, default: str = "conditional progression"
+    ) -> Optional[ClassificationProposal]:
+        """Resolve a row the DB stores as `conditional progression` into this seed's real class.
+
+        Return a ClassificationProposal when the world's own rule is known, else None to leave the
+        row conditional. Read the condition from `ctx.settings` (the slot's own resolved options)
+        and fall back to the world's default, never to a guess.
+        """
+        ...
+
+    def should_post_item_send(
+        self, ctx: HandlerContext, send: SendEvent
+    ) -> Optional[PostDecision]:
+        """Override the 'filler is not posted' rule for this one send, or None for the default."""
+        ...
+
+    def on_item_send(self, ctx: HandlerContext, send: SendEvent) -> Optional[List[Announcement]]:
+        """Return announcements (area access, level completion) triggered by this send, or None."""
+        ...
+
+
 # ---------------------------------------------------------------------------
-# Registry
+# Registry (a chain per game: base → game → overlay; first claim wins)
 # ---------------------------------------------------------------------------
 
-_handlers: Dict[str, "GameHandler"] = {}
+_handlers: Dict[str, List[Any]] = {}
 
 
-def register_handler(handler: "GameHandler") -> None:
-    """Register a handler instance for its game(s)."""
-    games = handler.game if isinstance(handler.game, tuple) else (handler.game,)
+def _games_of(handler: Any) -> Tuple[str, ...]:
+    games = getattr(handler, "game", None)
+    if games is None:
+        return ()
+    if isinstance(games, (tuple, list, set)):
+        return tuple(games)
+    return (games,)
+
+
+def implements_of(handler: Any) -> frozenset:
+    """The hooks a handler claims. No declaration = legacy, so every hook is a candidate."""
+    declared = getattr(handler, "implements", None)
+    if declared is None:
+        return frozenset(HOOKS)
+    if isinstance(declared, str):
+        declared = (declared,)
+    return frozenset(declared)
+
+
+def _check_protocol(handler: Any, modname: str) -> bool:
+    declared = getattr(handler, "PROTOCOL_VERSION", None)
+    if declared is None:
+        logger.info(
+            "Handler %s declares no PROTOCOL_VERSION — treating as legacy (candidate for every "
+            "hook, no context object); consider declaring implements=...",
+            modname,
+        )
+        return True
+    if declared != PROTOCOL_VERSION:
+        logger.error(
+            "Handler %s declares PROTOCOL_VERSION=%s but this registry is v%s — hooks may be called "
+            "with an unexpected signature",
+            modname,
+            declared,
+            PROTOCOL_VERSION,
+        )
+        return not STRICT
+    return True
+
+
+def register_handler(handler: Any, priority: int = 0) -> None:
+    """Register a handler for its game(s). Handlers for one game form a chain, first claim wins."""
+    games = _games_of(handler)
+    if not games:
+        logger.warning("Handler %r has no .game — not registered", type(handler).__module__)
+        return
     for g in games:
-        existing = _handlers.get(g)
-        if existing is not None:
-            logger.warning(
-                f"Handler for game {g!r} already registered "
-                f"(existing={type(existing).__module__}), overwriting"
+        chain = _handlers.setdefault(g, [])
+        if any(h is handler for h in chain):
+            continue
+        if priority:
+            chain.insert(0, handler)
+        else:
+            chain.append(handler)
+        if len(chain) > 1:
+            logger.info(
+                "Game %r now has a handler chain: %s",
+                g,
+                " -> ".join(type(h).__module__.rsplit(".", 1)[-1] for h in chain),
             )
-        _handlers[g] = handler
 
 
-def get_handler(game_name: str) -> Optional["GameHandler"]:
-    """Look up a handler by exact game name."""
-    return _handlers.get(game_name)
+def get_handlers(game_name: str) -> List[Any]:
+    """The full chain for an exact game name (never None; empty list when unhandled)."""
+    return list(_handlers.get(game_name, ()))
 
 
-def get_handler_fuzzy(game_name: str) -> Optional["GameHandler"]:
-    """Look up a handler by exact game name, then by prefix for GZDoom variants."""
-    # Exact match first
-    h = _handlers.get(game_name)
-    if h is not None:
-        return h
-    # GZDoom variants: "GZDoom (Doom 64)" etc. — try "GZDoom" prefix
+def get_handler(game_name: Optional[str]) -> Optional[Any]:
+    """Back-compat: the first handler in the chain, or None."""
+    chain = _handlers.get(game_name) if game_name else None
+    return chain[0] if chain else None
+
+
+def get_handler_fuzzy(game_name: Optional[str]) -> Optional[Any]:
+    """Back-compat: first handler for an exact name, then the GZDoom/Manual prefix chains."""
+    chain = _resolve_chain(game_name)
+    return chain[0] if chain else None
+
+
+def _resolve_chain(game_name: Optional[str]) -> List[Any]:
+    if not game_name:
+        return []
+    chain = _handlers.get(game_name)
+    if chain:
+        return list(chain)
+    # GZDoom variants: "GZDoom (Doom 64)" etc. — fall back to the "GZDoom" chain
     if game_name.startswith("GZDoom"):
-        h = _handlers.get("GZDoom")
-        if h is not None:
-            return h
+        return list(_handlers.get("GZDoom", ()))
     # Manual games: "Manual_NewSuperMarioBrosDS_zuils" etc.
     if game_name.startswith("Manual_"):
-        h = _handlers.get("Manual")
-        if h is not None:
-            return h
-    return None
+        return list(_handlers.get("Manual", ()))
+    return []
+
+
+# ---------------------------------------------------------------------------
+# Dispatch
+# ---------------------------------------------------------------------------
+
+
+def dispatch(
+    game_name: Optional[str],
+    hook: str,
+    *args: Any,
+    default: Any = None,
+    fuzzy: bool = True,
+) -> Any:
+    """Walk the chain for `hook`, returning the first non-None result.
+
+    A handler that raises is logged and skipped (production) or re-raised (AP_HANDLERS_STRICT=1), so
+    a broken handler degrades to the default rule instead of losing the week's log.
+    """
+    chain = _resolve_chain(game_name) if fuzzy else get_handlers(game_name or "")
+    for h in chain:
+        if hook not in implements_of(h):
+            continue
+        fn = getattr(h, hook, None)
+        if fn is None:
+            continue
+        try:
+            result = fn(*args)
+        except Exception:
+            if STRICT:
+                raise
+            logger.exception(
+                "Handler %s failed in %s for game %r — falling back to default",
+                type(h).__module__.rsplit(".", 1)[-1],
+                hook,
+                game_name,
+            )
+            continue
+        if result is not None:
+            return result
+    return default
+
+
+def dispatch_all(game_name: Optional[str], hook: str, *args: Any) -> List[Any]:
+    """Call `hook` on every handler in the chain and collect the non-None results (broadcast)."""
+    results: List[Any] = []
+    for h in _resolve_chain(game_name):
+        if hook not in implements_of(h):
+            continue
+        fn = getattr(h, hook, None)
+        if fn is None:
+            continue
+        try:
+            r = fn(*args)
+        except Exception:
+            if STRICT:
+                raise
+            logger.exception("Handler %s failed in %s", type(h).__module__, hook)
+            continue
+        if r is not None:
+            results.extend(r if isinstance(r, list) else [r])
+    return results
+
+
+def describe() -> List[Dict[str, Any]]:
+    """Registry inventory, for the self-check and for a startup log line."""
+    out = []
+    for game, chain in sorted(_handlers.items()):
+        for h in chain:
+            out.append(
+                {
+                    "game": game,
+                    "handler": type(h).__module__.rsplit(".", 1)[-1],
+                    "protocol": getattr(h, "PROTOCOL_VERSION", None),
+                    "implements": sorted(implements_of(h))
+                    if getattr(h, "implements", None)
+                    else None,
+                }
+            )
+    return out
 
 
 # ---------------------------------------------------------------------------
 # Auto-discovery
 # ---------------------------------------------------------------------------
 
+
 def _discover() -> None:
-    """Walk all modules in this package and auto-register those with a handler."""
+    """Walk all modules in this package and auto-register those with a handler.
+
+    Modules whose name starts with `_` are skipped on purpose (the self-check lives here), as are
+    subpackages.
+    """
     pkg_path = __path__[0] if __path__ else __path__._path[0]  # type: ignore[attr-defined]
     for finder, modname, ispkg in pkgutil.iter_modules([pkg_path]):
         if ispkg or modname.startswith("_"):
@@ -128,6 +490,8 @@ def _discover() -> None:
             logger.warning(
                 f"Module {modname!r} has `handler` but it lacks `.game`, skipping"
             )
+            continue
+        if not _check_protocol(handler, modname):
             continue
         register_handler(handler)
         logger.info(
