@@ -384,10 +384,10 @@ def process_spoiler_log(seed_url):
                     )
                     if sqlcon:
                         with sqlcon.cursor() as cursor:
-                            game.pushdb(cursor, "pepper.ap_all_rooms", "seed", game.seed)
+                            game.pushdb(cursor, "archipelago.ap_all_rooms", "seed", game.seed)
                             game.pushdb(
                                 cursor,
-                                "pepper.ap_all_rooms",
+                                "archipelago.ap_all_rooms",
                                 "version",
                                 game.version_generator,
                             )
@@ -700,7 +700,7 @@ def _handler_context_for(
     options - matching what live_classification() has always read.
 
     `item_index` is the line's absolute position in the room's log buffer (the counter
-    `pepper.ap_all_rooms.last_line` stores), passed down from process_new_log_lines so a handler's
+    `archipelago.ap_all_rooms.last_line` stores), passed down from process_new_log_lines so a handler's
     dedupe_key survives a replayed prefix.
     """
     location = getattr(item, "location", None)
@@ -732,7 +732,7 @@ def process_new_log_lines(new_lines, skip_msg: bool = False, line_offset: int = 
     """Process a slice of the room's log buffer.
 
     `line_offset` is the position of `new_lines[0]` in the full buffer, so a handler can key on the
-    absolute line number (the same counter `pepper.ap_all_rooms.last_line` stores).
+    absolute line number (the same counter `archipelago.ap_all_rooms.last_line` stores).
     """
     global release_buffer
     global players
@@ -1278,7 +1278,7 @@ def process_new_log_lines(new_lines, skip_msg: bool = False, line_offset: int = 
                     with sqlcon.cursor() as cursor:
                         game.pushdb(
                             cursor,
-                            "pepper.ap_all_rooms",
+                            "archipelago.ap_all_rooms",
                             "port",
                             seed_address.split(":")[1],
                         )
@@ -1573,7 +1573,7 @@ def watch_log(url, interval):
     if not DEBUG:
         with sqlcon.cursor() as cursor:
             try:
-                last_line = int(game.pulldb(cursor, "pepper.ap_all_rooms", "last_line"))
+                last_line = int(game.pulldb(cursor, "archipelago.ap_all_rooms", "last_line"))
             except TypeError:
                 # Last Line probably hasn't been set yet; this room is new
                 pass
@@ -1611,7 +1611,7 @@ def watch_log(url, interval):
         with sqlcon.cursor() as cursor:
             try:
                 game.pushdb(
-                    cursor, "pepper.ap_all_rooms", "port", seed_address.split(":")[1]
+                    cursor, "archipelago.ap_all_rooms", "port", seed_address.split(":")[1]
                 )
                 sqlcon.commit()
             except AttributeError:
@@ -1694,7 +1694,7 @@ def watch_log(url, interval):
                         with sqlcon.cursor() as cursor:
                             game.pushdb(
                                 cursor,
-                                "pepper.ap_all_rooms",
+                                "archipelago.ap_all_rooms",
                                 "last_line",
                                 len(current_lines),
                             )
@@ -2003,7 +2003,7 @@ def run_flask():
                 if sqlcon:
                     with sqlcon.cursor() as cursor:
                         cursor.execute(
-                            "SELECT COUNT(*) FROM pepper.ap_all_rooms WHERE flask_port = %s AND room_id != %s AND active = 'true'",
+                            "SELECT COUNT(*) FROM archipelago.ap_all_rooms WHERE flask_port = %s AND room_id != %s AND active = 'true'",
                             (port, room_id),
                         )
                         if cursor.fetchone()[0] == 0:
@@ -2023,7 +2023,7 @@ def run_flask():
     # Store the selected port in the database for use elsewhere
     if sqlcon:
         with sqlcon.cursor() as cursor:
-            game.pushdb(cursor, "pepper.ap_all_rooms", "flask_port", port)
+            game.pushdb(cursor, "archipelago.ap_all_rooms", "flask_port", port)
             sqlcon.commit()
     webview.run(host="0.0.0.0", port=port, debug=False, use_reloader=False)
 

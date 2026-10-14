@@ -526,7 +526,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
         is_playing = False
         is_playing_game = False
         # cursor.execute(
-        #     "SELECT ls.discord_user, ar.game FROM pepper.ap_players ls JOIN pepper.ap_room_players ar ON ls.room_id = ar.room_id WHERE ls.discord_user = %s AND ar.game = %s AND ar.active = 'true' LIMIT 1;",
+        #     "SELECT ls.discord_user, ar.game FROM archipelago.ap_players ls JOIN archipelago.ap_room_players ar ON ls.room_id = ar.room_id WHERE ls.discord_user = %s AND ar.game = %s AND ar.active = 'true' LIMIT 1;",
         #     (interaction.user.id, game),
         # )
         # match = cursor.fetchone()
@@ -579,7 +579,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
             attempted = 0
             try:
                 cursor.execute(
-                    "SELECT flask_port FROM pepper.ap_all_rooms WHERE active = 'true' AND flask_port IS NOT NULL;"
+                    "SELECT flask_port FROM archipelago.ap_all_rooms WHERE active = 'true' AND flask_port IS NOT NULL;"
                 )
                 ports = [r[0] for r in cursor.fetchall()]
             except Exception:
@@ -642,7 +642,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
             attempted = 0
             try:
                 cursor.execute(
-                    "SELECT flask_port FROM pepper.ap_all_rooms WHERE active = 'true' AND flask_port IS NOT NULL;"
+                    "SELECT flask_port FROM archipelago.ap_all_rooms WHERE active = 'true' AND flask_port IS NOT NULL;"
                 )
                 ports = [r[0] for r in cursor.fetchall()]
             except Exception:
@@ -695,7 +695,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                 attempted = 0
                 try:
                     cursor.execute(
-                        "SELECT flask_port FROM pepper.ap_all_rooms WHERE active = 'true' AND flask_port IS NOT NULL;"
+                        "SELECT flask_port FROM archipelago.ap_all_rooms WHERE active = 'true' AND flask_port IS NOT NULL;"
                     )
                     ports = [r[0] for r in cursor.fetchall()]
                 except Exception:
@@ -1191,10 +1191,10 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
             cursor.execute(
                 """
                 SELECT player_name
-                FROM pepper.ap_room_players
+                FROM archipelago.ap_room_players
                 WHERE guild = %s
                 AND player_name IN (
-                    SELECT player_name FROM pepper.ap_players WHERE discord_user IS NULL
+                    SELECT player_name FROM archipelago.ap_players WHERE discord_user IS NULL
                 )
             """,
                 (ctx.guild_id,),
@@ -1238,10 +1238,10 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
             cursor.execute(
                 """
                 SELECT player_name
-                FROM pepper.ap_room_players
+                FROM archipelago.ap_room_players
                 WHERE guild = %s
                 AND player_name IN (
-                    SELECT player_name FROM pepper.ap_players WHERE discord_user = %s
+                    SELECT player_name FROM archipelago.ap_players WHERE discord_user = %s
                 )
             """,
                 (ctx.guild_id, ctx.user.id),
@@ -1266,7 +1266,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
 
         user = interaction.user
 
-        cmd = "UPDATE pepper.ap_players SET discord_user = %s WHERE player_name = %s"
+        cmd = "UPDATE archipelago.ap_players SET discord_user = %s WHERE player_name = %s"
         with sqlcon.cursor() as cursor:
             cursor.execute(cmd, (user.id, slot_name))
             # sqlcon.commit()
@@ -1336,10 +1336,10 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                 (
                     # This is a PostgreSQL function that deals with updating
                     # all the various tables that need to be updated
-                    # Master room table: pepper.ap_all_rooms
-                    # Master players table: pepper.ap_players
-                    # Active rooms/players table: pepper.ap_room_players
-                    """SELECT pepper.create_aproom(%s, %s, %s, %s, %s);""",
+                    # Master room table: archipelago.ap_all_rooms
+                    # Master players table: archipelago.ap_players
+                    # Active rooms/players table: archipelago.ap_room_players
+                    """SELECT archipelago.create_aproom(%s, %s, %s, %s, %s);""",
                     (room_id, interaction.guild_id, players, hostname, room_port),
                 ),
             ]
@@ -1457,7 +1457,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
         with sqlcon.cursor() as cursor:
             try:
                 cursor.execute(
-                    "SELECT room_id, host, port from pepper.ap_all_rooms WHERE active = 'true' AND guild = %s;",
+                    "SELECT room_id, host, port from archipelago.ap_all_rooms WHERE active = 'true' AND guild = %s;",
                     (interaction.guild_id,),
                 )
                 room_id, host, port = cursor.fetchone()
@@ -1480,7 +1480,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
         linked_slots = []
         with sqlcon.cursor() as cursor:
             cursor.execute(
-                "SELECT rp.player_name FROM pepper.ap_room_players rp JOIN pepper.ap_players p ON rp.player_name = p.player_name WHERE rp.room_id = %s AND rp.guild = %s AND p.discord_user = %s;",
+                "SELECT rp.player_name FROM archipelago.ap_room_players rp JOIN archipelago.ap_players p ON rp.player_name = p.player_name WHERE rp.room_id = %s AND rp.guild = %s AND p.discord_user = %s;",
                 (room["room_id"], interaction.guild_id, interaction.user.id),
             )
             linked_slots = [row[0] for row in cursor.fetchall()]
@@ -1599,7 +1599,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
         linked_slots = []
         with sqlcon.cursor() as cursor:
             cursor.execute(
-                "SELECT rp.player_name FROM pepper.ap_room_players rp JOIN pepper.ap_players p ON rp.player_name = p.player_name WHERE rp.room_id = %s AND rp.guild = %s AND p.discord_user = %s;",
+                "SELECT rp.player_name FROM archipelago.ap_room_players rp JOIN archipelago.ap_players p ON rp.player_name = p.player_name WHERE rp.room_id = %s AND rp.guild = %s AND p.discord_user = %s;",
                 (room["room_id"], interaction.guild_id, interaction.user.id),
             )
             linked_slots = [row[0] for row in cursor.fetchall()]
@@ -1856,7 +1856,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
         linked_slots = []
         with sqlcon.cursor() as cursor:
             cursor.execute(
-                "SELECT rp.player_name FROM pepper.ap_room_players rp JOIN pepper.ap_players p ON rp.player_name = p.player_name WHERE rp.room_id = %s AND rp.guild = %s AND p.discord_user = %s;",
+                "SELECT rp.player_name FROM archipelago.ap_room_players rp JOIN archipelago.ap_players p ON rp.player_name = p.player_name WHERE rp.room_id = %s AND rp.guild = %s AND p.discord_user = %s;",
                 (room["room_id"], interaction.guild_id, interaction.user.id),
             )
             linked_slots = [row[0] for row in cursor.fetchall()]
@@ -2116,7 +2116,7 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
         else:
             with sqlcon.cursor() as cursor:
                 cursor.execute(
-                    "SELECT * FROM pepper.ap_all_rooms WHERE guild = %s and active = 'true' LIMIT 1",
+                    "SELECT * FROM archipelago.ap_all_rooms WHERE guild = %s and active = 'true' LIMIT 1",
                     (guild_id,),
                 )
                 result = cursor.fetchone()
