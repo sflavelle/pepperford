@@ -55,11 +55,31 @@ class Splatbot(commands.Bot):
         return wrapper
 
 
+# Extensions to load. Override per deployment in config.yaml:
+#   bot:
+#     modules: ["cmds.archipelago", "cmds.quotes"]
+# Absent or empty keeps DEFAULT_MODULES, i.e. what the published file loaded before
+# the list became configurable; a deployment that wants a different set (Sanford does
+# not load raocow, Pepper does not load quotes) says so in its own config.
+DEFAULT_MODULES = [
+    "cmds.archipelago",
+    "cmds.raocow",
+]
+
+
+def resolve_modules(cfg: dict | None) -> list:
+    """Return the extensions to load, honouring config.yaml `bot.modules`."""
+    modules = ((cfg or {}).get("bot") or {}).get("modules") or DEFAULT_MODULES
+    if isinstance(modules, str):
+        # a bare string is an easy typo and would otherwise iterate characters
+        modules = [modules]
+    return list(modules)
+
+
 async def load_extensions(bot: commands.Bot):
-    for ext in [
-        "cmds.archipelago",
-        "cmds.raocow",
-    ]:
+    modules = resolve_modules(cfg)
+    logger.info(f"Loading extensions: {', '.join(modules)}")
+    for ext in modules:
         await bot.load_extension(ext,package=ext)
 
 async def ext_autocomplete(ctx: discord.Interaction, current: str) -> typing.List[app_commands.Choice[str]]:
