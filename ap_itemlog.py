@@ -1446,6 +1446,10 @@ def send_release_messages():
                         for item, count in item_counts.items()
                     ]
                 )
+                # A receiver whose whole share was filler/currency has nothing to list;
+                # an empty "receives:" line is noise, so skip that receiver entirely.
+                if not item_counts:
+                    continue
                 running_message += (
                     f"\n{dim_if_goaled(receiver)}**{receiver}** receives: {item_list}"
                 )
@@ -1456,7 +1460,12 @@ def send_release_messages():
                 else:
                     message = running_message
             if message == initial_msg:
-                return
+                # Nothing summarisable went to a player who still needs it (all filler, or
+                # every receiver already finished). Drop the entry: it used to `return`
+                # here, which abandoned the whole buffer - one empty release then blocked
+                # every later release summary for the rest of the seed.
+                del release_buffer[sender]
+                continue
             else:
                 send_log(message)
                 logger.info(f"{sender} release sent.")
@@ -1485,7 +1494,10 @@ def send_collection_messages():
                 else:
                     message = running_message
             if message == initial_msg:
-                return
+                # Same deadlock as send_release_messages(): drop the entry instead of
+                # abandoning every sender still queued behind it.
+                del collect_buffer[receiver]
+                continue
             else:
                 send_log(message)
                 logger.info(f"{receiver} collection sent.")
@@ -1519,6 +1531,7 @@ event_emitter.on("milestone", handle_milestone_message)
 
 def watch_log(url, interval):
     global collect_buffer
+    global release_buffer
     global players
     global game
 
