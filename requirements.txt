@@ -1,10 +1,21 @@
-discord==2.3.2
 discord.py==2.4.0
 PyYAML==6.0.2
 requests==2.32.3
 
-psycopg2~=2.9.10
+# Postgres. The binary wheel keeps a clean clone installable without libpq-dev; switch back to
+# psycopg2 if the host builds against its own libpq.
+psycopg2-binary~=2.9.10
 aioconsole~=0.8.1
 regex~=2024.11.6
 word2number~=1.1
 paho-mqtt~=2.1.0
+
+# Imported by the bot, previously missing from this file.
+flask
+flask-cors
+dateparser
+graphviz
+tabulate
+
+# discord.py imports the stdlib audioop module, which Python 3.13 removed.
+audioop-lts; python_version >= "3.13"
