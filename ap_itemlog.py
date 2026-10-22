@@ -192,6 +192,9 @@ def parse_to_datetime(timestamp_str: str) -> datetime:
 
 
 def join_words(words):
+    if type(words) != "list":
+        logger.error(f"join_words: Data is not List type: '{words}'")
+        return words
     if len(words) > 2:
         return "%s, and %s" % (", ".join(words[:-1]), words[-1])
     elif len(words) == 2:
