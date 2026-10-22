@@ -1,3 +1,4 @@
+from ast import List
 import ast
 import fnmatch
 import json
@@ -192,7 +193,7 @@ def parse_to_datetime(timestamp_str: str) -> datetime:
 
 
 def join_words(words):
-    if type(words) != "list":
+    if type(words) != List:
         logger.error(f"join_words: Data is not List type: '{words}' (is {type(words)})")
         return words
     if len(words) > 2:
@@ -200,7 +201,7 @@ def join_words(words):
     elif len(words) == 2:
         return " and ".join(words)
     else:
-        return words[0]
+        return str(words)
 
 
 def is_int(s) -> bool:
