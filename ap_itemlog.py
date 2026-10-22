@@ -193,16 +193,16 @@ def parse_to_datetime(timestamp_str: str) -> datetime:
 
 
 def join_words(words: list):
-    if len(words) == 0: return words
-    if type(words) != list:
-        logger.error(f"join_words: Data is not List type: '{words}' (is {type(words)})")
-        return words
+    if not words:
+        return ""
+    if not isinstance(words, list):
+        logger.error(...)
+        return str(words)
     if len(words) > 2:
         return "%s, and %s" % (", ".join(words[:-1]), words[-1])
-    elif len(words) == 2:
+    if len(words) == 2:
         return " and ".join(words)
-    else:
-        return str(words)
+    return str(words[0])
 
 
 def is_int(s) -> bool:
