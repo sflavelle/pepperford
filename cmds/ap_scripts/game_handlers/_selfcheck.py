@@ -52,7 +52,13 @@ SUPPRESSED_ICONS = {
     "<:coin:1469865094665207879>": "currency",
 }
 V2_HOOKS = frozenset(
-    {"resolve_conditional_progression", "should_post_item_send", "on_item_send"}
+    {
+        "resolve_classification",
+        "resolve_conditional_progression",
+        "should_post_item_send",
+        "on_item_send",
+        "on_slot_loaded",
+    }
 )
 POSTED_LINE = re.compile(
     r"^(?P<sender>.+?) sent \*\*(?P<icon><:[a-z]+:\d+>)?\s*(?P<item>.+?)\*\* to "
@@ -69,6 +75,11 @@ def fixture_ctx(game: str = "Fixture Game", settings: dict | None = None) -> Han
         slot_data={},
         stats=types.SimpleNamespace(stats={}),
         spoilers={"locations": []},
+        inventory=[],
+        get_item_count=lambda item_name: 0,
+        get_collected_items=lambda names: [],
+        has_item=lambda item_name: False,
+        get_item_worldtotal=lambda item_name: 1,
     )
     return HandlerContext(
         game=game,
@@ -146,16 +157,25 @@ def check_hooks() -> tuple[list[str], list[str]]:
             continue
         ctx = fixture_ctx(row["game"])
         send = fixture_send(ctx)
+        # A minimal stand-in for the itemlog object: the v1 hooks read its spoiler data before they do
+        # anything else, so a bare object() only tests the exception path.
+        stub_log = types.SimpleNamespace(
+            has_spoiler=True,
+            spoiler_log={str(ctx.player): {}},
+            players={ctx.player.name: ctx.player},
+        )
         args_for = {
-            "handle_item_tracking": (object(), ctx.player, send.item),
-            "handle_location_tracking": (object(), ctx.player, send.item),
+            "handle_item_tracking": (stub_log, ctx.player, send.item),
+            "handle_location_tracking": (stub_log, ctx.player, send.item, False),
             "handle_location_hinting": (ctx.player, send.location),
-            "handle_state_tracking": (ctx.player, object()),
+            "handle_state_tracking": (ctx.player, stub_log),
             "is_location_checkable": (send.location,),
             "should_skip_hint": (ctx, send.item),
             "resolve_conditional_progression": (ctx, send.item),
+            "resolve_classification": (ctx, send.item, "conditional progression"),
             "should_post_item_send": (ctx, send),
             "on_item_send": (ctx, send),
+            "on_slot_loaded": (ctx,),
         }
         declared = row["implements"]  # None => legacy: only the hooks it actually defines
         if declared is None:
@@ -179,6 +199,7 @@ def check_hooks() -> tuple[list[str], list[str]]:
                 continue
             expected = {
                 "resolve_conditional_progression": (type(None), ClassificationProposal),
+                "resolve_classification": (type(None), ClassificationProposal),
                 "should_post_item_send": (type(None), PostDecision),
                 "on_item_send": (type(None), list),
             }.get(hook)

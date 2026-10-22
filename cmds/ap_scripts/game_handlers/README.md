@@ -75,14 +75,18 @@ hook lets a game post anyway when the *location* matters. Positional args: `(ctx
 Claiming a post does **not** bypass release/collect batching — the core still applies the buffers.
 The first implementation is `spyro3.py` (Skill Point checks gate the 20-per-level goal).
 
-### `resolve_conditional_progression` — reclassify at seed time
+### `resolve_classification` — reclassify what the database cannot answer
 
-A row stored as `conditional progression` means "progression in some settings/seeds, otherwise
-useful or filler". Resolve it from the seed's own options and return a `ClassificationProposal`;
-return `None` to leave it conditional. Sketched from the Silksong migration:
+Called whenever the stored class is `None` (no row / unclassified) or `conditional progression`
+("progression in some settings/seeds, otherwise useful or filler"). Resolve it from the seed's own
+options and return a `ClassificationProposal`; return `None` to leave it alone.
+
+(`resolve_conditional_progression` is the pre-v2.1 name for the same hook and is still honoured, but
+new handlers should implement `resolve_classification` — it also sees the unclassified rows, which is
+where the "everything in this world is progression" rules belong.) Sketched from the Silksong migration:
 
 ```python
-def resolve_conditional_progression(self, ctx, item, default="conditional progression"):
+def resolve_classification(self, ctx, item, stored=None):
     if item.name == "Simple Key (Green Prince)":
         goal = str(ctx.setting("Goal", "")).lower().replace(" ", "_")
         return ClassificationProposal(
@@ -118,6 +122,67 @@ def on_item_send(self, ctx, send):
 For a hook that *mutates* and returns `None` (`handle_state_tracking`), the caller cannot use
 `dispatch`'s first-non-None rule — ask `provides(game, hook)` first and then dispatch, which is what
 `utils.py` now does.
+
+### `on_slot_loaded(ctx)` — per-seed setup
+
+One call per slot, after its spoiler and settings are loaded. This is for work that is not a
+per-send decision: reading `slot_data` to compute a target (Trackmania's target time), deriving a
+requirement from spoiler locations (SMW's hidden eggs), building a name table (gzDoom maps), or
+priming a layout (SBURBelago). Its return value is ignored; keep any result in
+`ctx.state("<your_handler>")` so it survives the next call.
+
+```python
+def on_slot_loaded(self, ctx):
+    target = ctx.player.slot_data.get("TargetTimeSetting")
+    if target is not None:
+        ctx.state("trackmania")["target_medal"] = int(target) // 100
+```
+
+## Requirements vs costs
+
+Two categories, and the hint renders them the same way:
+
+| | shape | can it block? |
+|---|---|---|
+| `requirements` | `{"Contact List 1": 1}` — what the world's rules actually check | yes |
+| `costs` | `{"Rupee": 138}` — a price the world reports but does not gate on | no, informational |
+
+Decide which by reading the world's `Rules.py`: `state.has("Coin", player, cost)` is a requirement; a
+price that appears only in `slot_data` or the spoiler is a cost. `check_requirements(player, reqs,
+costs=...)` judges the requirements only — costs are appended to the line ("costs 138 Rupees"). Pass
+`held={...}` when the resource really is a countable item and you want `affordable` filled in;
+otherwise it stays `None`, which is the honest answer for currency the player can also earn in-game.
+
+Do **not** assume a currency gate is spent when the check is bought: Niko's world does not deduct
+Coins for a Kiosk check (vanilla does) — splatsune, 2026-10-03 — so there the coin count is a
+persistent stock. Check per world before wording anything as "you can afford it".
+
+A requirement key can also name an item **group**: `{"group:Grubs": 5}` counts every item in that
+group and renders as the world's own wording ("5 Grubs"). Groups are world knowledge, so the handler
+supplies the map — `check_requirements(player, reqs, groups=handler.group_map())`. A group with no map
+is reported as *unknown*, not unmet: no known shortfall, but nothing claims certainty (the same rule
+as a `None` gate). Hollow Knight is the first user: its shop costs gate on Rancid Eggs / Grubs /
+Essence / Charms via `state.count(term)` over its own `item_name_groups`, and Geo is skipped by the
+world ("No geo logic!"), so Geo is a cost there.
+
+## Adding a game
+
+1. Copy `spyro3.py` (smallest) or `here_comes_niko.py` (all three v2 hooks) as a template; name the
+   module after the game.
+2. Set `game` (exact world name, or a tuple if one handler covers variants), `PROTOCOL_VERSION` and
+   `implements` — list only the hooks you actually define.
+3. Read options through `ctx.setting(...)` with the **world's own default** as the fallback, and
+   prefer a bool-safe read (`option_enabled()` in `here_comes_niko.py` handles "false" strings).
+4. Return proposals, never writes: classifications stay proposals, requirements stay data.
+5. Make anything time-dependent idempotent — `ctx.dedupe_key()` exists because the logger resumes
+   from a stored line number.
+6. Add a `_selftest()` in the module (see `here_comes_niko.py`) covering the rules you implemented,
+   and run `python -m ..._selfcheck` plus `--corpus`.
+7. Check the world's own source in `/home/hermes/Archipelago/custom_worlds/*.apworld` rather than
+   guessing option names or item names; if a behaviour is ambiguous, generate a test seed and read
+   the spoiler.
+8. Add the game to the knowledge base (`games/<game>/`) from that same source — the two stay in
+   step, and the item log's answers to players come from the KB, not from the handler.
 
 ## Checking your work
 
@@ -164,8 +229,42 @@ fallbacks cannot quietly take over again).
 5. Delete the inline branch only when the handler is registered *and* the corpus still explains every
    line it used to.
 
+**Testing it** (no Discord and no database needed):
+
+```bash
+python3 -m venv .venv && . .venv/bin/activate
+pip install -r requirements.txt audioop-lts psycopg2-binary flask flask-cors dateparser graphviz tabulate
+printf 'bot:\n  psql: {database: dev, user: dev, password: dev, host: 127.0.0.1, port: 1}\n' > config.yaml
+python -m cmds.ap_scripts.game_handlers._selfcheck --corpus <item-log.jsonl>
+python -m cmds.ap_scripts.requirements
+python -m cmds.ap_scripts.game_handlers.hollow_knight
+```
+
+`audioop-lts` is needed on Python 3.13 — discord.py 2.4 imports the `audioop` module that 3.13 removed.
+`psycopg2-binary` avoids needing `libpq-dev`; `flask`, `flask-cors`, `dateparser`, `graphviz` and
+`tabulate` are imported by the bot but absent from requirements.txt. `config.yaml` is git-ignored, and
+pointing its Postgres settings at an unreachable host makes `utils.sqlcon` fall back to `False`, which
+is enough to build real `Player` / `Item` / `Location` objects and drive every hook.
+
+**Bulk migration tool** (dev only, never imported by the bot):
+`python -m cmds.ap_scripts.game_handlers._migrate list|show|check|migrate|migrate-all <hook>`. It reads
+the arm out of git at the pre-migration baseline, writes the handler module, deletes the inline case,
+then runs the old arm and the new handler over a matrix of the settings/slot/count states the arm
+mentions.
+
+Two things it has taught us the hard way:
+- A `match` whose every case has been migrated has to go as well, or the file stops parsing. The deleter
+  keys off `ast.Match` nodes, so a *nested* match inside a case body can be mistaken for the arm when the
+  same game name appears in it — always compile the file after a batch.
+- A module named after a builtin shadows it inside this package once imported (a game called "Any"
+  produced `any.py`, and `any(...)` in `__init__.py` then resolved to the module). Give such a game a
+  different file name; `__init__.py` calls `builtins.any` explicitly now.
+
 **Known gaps:**
-- `is_location_checkable` is declared in the protocol but has no call site anywhere — inert until
-  something consumes it (`Location.fetch_islocation_checkable()` in utils.py is where it belongs).
-- `should_skip_hint` now has its call site (the hint branch), but the Balatro shop-item rule it was
-  placed beside is still inline in `ap_itemlog.py`; moving it to `balatro.py` would retire it.
+- **SBURBelago is deliberately not migrated** (splatsune, 2026-10-03). It is a meta-world: it rewrites
+  the *shape* of the multiworld — a connection graph built from send and join lines — rather than
+  formatting one game's output, and No Logic and similar worlds belong in the same bucket. Fitting
+  that needs a notice-level hook nobody has designed yet, so its code stays where it is until someone
+  does.
+- `should_skip_hint` has its call site (the hint branch), but the Balatro shop-item rule beside it is
+  still inline in `ap_itemlog.py`; moving it to `balatro.py` retires it.

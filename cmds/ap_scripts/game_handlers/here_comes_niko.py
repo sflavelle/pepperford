@@ -18,6 +18,8 @@ game handler.
 
 from __future__ import annotations
 
+from cmds.ap_scripts.game_handlers import ClassificationProposal
+
 from cmds.ap_scripts.game_handlers import (
     PROTOCOL_VERSION,
     Announcement,
@@ -153,7 +155,7 @@ def contact_list_requirement(which: int, progressive: bool) -> dict[str, int]:
 class HereComesNikoHandler:
     game = "Here Comes Niko!"
     PROTOCOL_VERSION = PROTOCOL_VERSION
-    implements = frozenset({"should_post_item_send", "on_item_send"})
+    implements = frozenset({"handle_item_tracking", "handle_location_hinting", "handle_location_tracking", "on_item_send", "resolve_classification", "should_post_item_send"})
 
     def should_post_item_send(
         self, ctx: HandlerContext, send: SendEvent
@@ -211,6 +213,118 @@ class HereComesNikoHandler:
                 )
             )
         return announcements or None
+
+
+    def handle_location_tracking(self, itemlog, player, item, use_everywhere=False):
+        """Friend locations show their collected count in the location name."""
+        location = item.location.name
+        settings = player.settings
+        spoiler = itemlog.spoiler_log[str(player)]
+        hcn_friends_locations = FRIENDS_LOCATIONS
+
+        if (
+            location in hcn_friends_locations
+            and settings["Completion Goal"] == "Friend"
+            and (not use_everywhere)
+        ):
+            total = len([i for i in spoiler.keys() if i in hcn_friends_locations])
+            count = len(
+                [
+                    i
+                    for i in spoiler.values()
+                    if i.location.name in hcn_friends_locations and i.found is True
+                ]
+            )
+            return f"{location} (*{count}/{total}*)"
+
+
+    def handle_item_tracking(self, itemlog, player, item):
+        item = item.name
+        settings = player.settings
+        slot_data = player.slot_data
+        spoiler = itemlog.spoiler_log[str(player)]
+        count = player.get_item_count(item)
+        game = player.game
+        game_name = player.game
+        if item == 'Cassette':
+            required = max({k: v for k, v in settings.items() if 'Cassette Cost' in k}.values())
+            return f'{item} ({count}/{required})'
+        if item.endswith('Cassette') and settings['Cassette Logic'] == 'Level Based':
+            total = 10
+            return f'{item} ({count}/{total})'
+        if item == 'Coin':
+            required = 76 if settings['Completion Goal'] == 'Employee' else settings['Elevator Cost']
+            return f'{item} (*{count}/{required}*)'
+        if item in ['Hairball City Bone', 'Turbine Town Bone', 'Salmon Creek Forest Bone', 'Public Pool Bone', 'Bathhouse Bone', 'Tadpole HQ Bone'] and settings['Bonesanity'] == 'Insanity':
+            required = 5
+            return f'{item} ({count}/{required})'
+        if item in ['Hairball City Fish', 'Turbine Town Fish', 'Salmon Creek Forest Fish', 'Public Pool Fish', 'Bathhouse Fish', 'Tadpole HQ Fish'] and settings['Fishsanity'] == 'Insanity':
+            required = 5
+            return f'{item} ({count}/{required})'
+        if item in ['Salmon Creek Forest Seed', 'Hairball City Seed', 'Bathhouse Seed'] and settings['Seedsanity'] == 'Insanity':
+            required = 10
+            return f'{item} ({count}/{required})'
+        if item in ['Hairball City Flower', 'Turbine Town Flower', 'Salmon Creek Forest Flower', 'Public Pool Flower', 'Bathhouse Flower', 'Tadpole HQ Flower'] and settings['Flowersanity'] == 'Insanity':
+            level = item.replace(' Flower', '')
+            required = len([i for i in spoiler.keys() if i.startswith(f'{level} - ') and 'Flowerbed' in i])
+            if required != 0:
+                return f'{item} ({count}/{required})'
+        if item == "Gary's Garden Seed" and settings['Completion Goal'] == 'Garden':
+            total = player.get_item_worldtotal(item)
+            return f'{item} (*{count}/{total}*)'
+
+
+    def handle_location_hinting(self, player, location):
+        settings = player.settings
+        slot_data = player.slot_data
+        requirements = {}
+        costs = {}
+        extra_info = ""
+        l = location
+        location = location.name
+        def add_requirement(text):
+            from cmds.ap_scripts.requirements import parse_requirement_string
+
+            parsed = parse_requirement_string(text)
+            if parsed is None:
+                requirements[str(text)] = None
+            else:
+                name, count = parsed
+                prev = requirements.get(name)
+                requirements[name] = count if prev is None else prev + count
+        contact_lists = {'1': [f'Hairball City - {npc}' for npc in ['Mitch', 'Mai', 'Moomy', 'Blippy Dog', 'Nina']] + [f'Turbine Town - {npc}' for npc in ['Mitch', 'Mai', 'Blippy Dog']] + [f'Salmon Creek Forest - {npc}' for npc in ['SPORTVIVAL', 'Mai'] + ['Fish with Fischer', 'Bass', 'Catfish', 'Pike', 'Salmon', 'Trout']], '2': [f'Hairball City - {npc}' for npc in ['Game Kid', 'Blippy', 'Serschel & Louist']] + [f'Turbine Town - {npc}' for npc in ['Blippy', 'Serschel & Louist']] + [f'Salmon Creek Forest - {npc}' for npc in ['Game Kid', 'Blippy', 'Serschel & Louist']] + [f'Public Pool - {npc}' for npc in ['Mitch', 'SPORTVIVAL VOLLEY', 'Blessley'] + ["Little Gabi's Flowers"] + [f'Flowerbed {num + 1}' for num in range(3)]] + [f'Bathhouse - {npc}' for npc in ['Blessley', 'Blippy', 'Blippy Dog'] + ["Little Gabi's Flowers"] + [f'Flowerbed {num + 1}' for num in range(3)] + ['Fish with Fischer', 'Anglerfish', 'Clione', 'Jellyfish', 'Little Wiggly Guy', 'Pufferfish']]}
+        level = None
+        npc = None
+        try:
+            level, npc = location.split(' - ')
+        except ValueError:
+            level = location
+            npc = None
+        if f'{location} Cassette Cost' in settings:
+            cost = settings[f'{location} Cassette Cost']
+            cassette_item = f'{level} Cassette' if settings['Cassette Logic'] == 'Level Based' else 'Cassette'
+            requirements[cassette_item] = cost
+        if f'Kiosk {level} Cost' in settings and location == f'{level} - Kiosk':
+            requirements['Coin'] = settings[f'Kiosk {level} Cost']
+        progressive_lists = option_enabled(settings, PROGRESSIVE_CONTACT_LIST_SETTING, default=True)
+        if location in contact_lists['1']:
+            requirements.update(contact_list_requirement(1, progressive_lists))
+        if location in contact_lists['2']:
+            requirements.update(contact_list_requirement(2, progressive_lists))
+        if 'Chatsanity' in location and settings['Textbox'] is True:
+            requirements['Textbox'] = None
+        return (requirements, extra_info, costs)
+
+    def resolve_classification(self, ctx, item, stored=None):
+        setting = item.receiver.settings
+        response = stored
+        if item.name == "Snail Money" and (
+            setting["Enable Achievements"] == "all_achievements" or setting["Snail Shop"] is True
+        ):
+            response = "progression"
+        else:
+            response = "filler"
+        return ClassificationProposal(classification=response, reason="Snail Money only matters for the Snail Shop/achievements")
 
 
 handler = HereComesNikoHandler()

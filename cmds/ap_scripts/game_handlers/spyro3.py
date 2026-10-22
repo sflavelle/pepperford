@@ -34,7 +34,7 @@ SKILL_POINT_SUFFIX = "(Skill Point)"
 class Spyro3Handler:
     game = "Spyro 3"
     PROTOCOL_VERSION = PROTOCOL_VERSION
-    implements = frozenset({"should_post_item_send"})
+    implements = frozenset({"handle_item_tracking", "handle_location_tracking", "should_post_item_send"})
 
     def should_post_item_send(
         self, ctx: HandlerContext, send: SendEvent
@@ -46,6 +46,33 @@ class Spyro3Handler:
                 dedupe_key=ctx.dedupe_key("skill-point", send.location_name),
             )
         return None
+
+
+    def handle_location_tracking(self, itemlog, player, item, use_everywhere):
+        location = item.location.name
+        settings = player.settings
+        slot_data = player.slot_data
+        spoiler = itemlog.spoiler_log[str(player)]
+        game_name = player.game
+        if 'Skill Point' in location and settings['Completion Goal'] == 'All Skillpoints' and (not use_everywhere):
+            total = 20
+            count = len([l for l in spoiler.values() if 'Skill Point' in l.location.name and l.found is True])
+            return f'{location} (*{count}/{total}*)'
+
+
+    def handle_item_tracking(self, itemlog, player, item):
+        item = item.name
+        settings = player.settings
+        slot_data = player.slot_data
+        spoiler = itemlog.spoiler_log[str(player)]
+        count = player.get_item_count(item)
+        game = player.game
+        game_name = player.game
+        if item == 'Egg':
+            total = 150
+            return f'{item} ({count}/{total})'
+        if item == 'Progressive Sparx Health Upgrade':
+            return f'{item} ({count})'
 
 
 handler = Spyro3Handler()

@@ -64,10 +64,10 @@ CREST_SLOT_ITEMS = frozenset({
 class SilksongHandler:
     game = "Hollow Knight: Silksong"
     PROTOCOL_VERSION = PROTOCOL_VERSION
-    implements = frozenset({"resolve_conditional_progression"})
+    implements = frozenset({"resolve_classification"})
 
-    def resolve_conditional_progression(
-        self, ctx: HandlerContext, item, default="conditional progression"
+    def resolve_classification(
+        self, ctx: HandlerContext, item, stored=None
     ) -> ClassificationProposal | None:
         name = getattr(item, "name", "") or ""
         goal = str(ctx.setting("Goal", "")).lower().replace(" ", "_")

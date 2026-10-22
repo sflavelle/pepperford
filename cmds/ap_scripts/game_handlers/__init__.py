@@ -31,6 +31,7 @@ policy (fill blanks or raise; manual edits win; downgrades held for review).
 
 from __future__ import annotations
 
+import builtins
 import importlib
 import logging
 import os
@@ -57,9 +58,11 @@ HOOKS: Tuple[str, ...] = (
     "is_location_checkable",
     "should_skip_hint",
     # --- protocol v2 -------------------------------------------------------------------------
-    "resolve_conditional_progression",
+    "resolve_classification",
+    "resolve_conditional_progression",  # deprecated alias of resolve_classification
     "should_post_item_send",
     "on_item_send",
+    "on_slot_loaded",
 )
 
 
@@ -264,14 +267,25 @@ class GameHandler(Protocol):
 
     # --- protocol v2 -------------------------------------------------------------------------
 
+    def resolve_classification(
+        self, ctx: HandlerContext, item: Any, stored: Optional[str] = None
+    ) -> Optional[ClassificationProposal]:
+        """Resolve a class the database cannot answer for this seed.
+
+        Called when the stored value is `None` (no row / unclassified) or `"conditional
+        progression"` (progression only under some options). Return a ClassificationProposal when
+        the world's own rule is known, else None to leave it alone. Read conditions from
+        `ctx.settings` and fall back to the world's default, never to a guess.
+        """
+        ...
+
     def resolve_conditional_progression(
         self, ctx: HandlerContext, item: Any, default: str = "conditional progression"
     ) -> Optional[ClassificationProposal]:
-        """Resolve a row the DB stores as `conditional progression` into this seed's real class.
+        """Deprecated alias, kept so handlers written before v2.1 keep working.
 
-        Return a ClassificationProposal when the world's own rule is known, else None to leave the
-        row conditional. Read the condition from `ctx.settings` (the slot's own resolved options)
-        and fall back to the world's default, never to a guess.
+        Implement `resolve_classification` instead: it is called for unclassified rows too, which
+        is where the simple-world rules ("everything here is progression") belong.
         """
         ...
 
@@ -285,12 +299,24 @@ class GameHandler(Protocol):
         """Return announcements (area access, level completion) triggered by this send, or None."""
         ...
 
+    def on_slot_loaded(self, ctx: HandlerContext) -> None:
+        """One call per slot, after the spoiler and settings are loaded.
+
+        This is where per-seed setup belongs when it is not a per-send decision: reading
+        slot_data to compute a target (Trackmania), deriving a requirement from spoiler locations
+        (SMW's hidden eggs), building a name table (gzDoom maps), or priming a layout
+        (SBURBelago). Return value is ignored; do the work as a side effect and keep any result in
+        `ctx.state(<handler>)`.
+        """
+        ...
+
 
 # ---------------------------------------------------------------------------
 # Registry (a chain per game: base → game → overlay; first claim wins)
 # ---------------------------------------------------------------------------
 
 _handlers: Dict[str, List[Any]] = {}
+_failed: List[str] = []
 
 
 def _games_of(handler: Any) -> Tuple[str, ...]:
@@ -341,7 +367,7 @@ def register_handler(handler: Any, priority: int = 0) -> None:
         return
     for g in games:
         chain = _handlers.setdefault(g, [])
-        if any(h is handler for h in chain):
+        if builtins.any(h is handler for h in chain):
             continue
         if priority:
             chain.insert(0, handler)
@@ -532,6 +558,24 @@ def describe() -> List[Dict[str, Any]]:
 # ---------------------------------------------------------------------------
 
 
+def summary() -> str:
+    """One-line registry health report, logged at startup.
+
+    A handler module that fails to import silently loses that game's entire rule set, so the boot
+    log says what loaded, what did not, and which games are covered.
+    """
+    games = sorted(_handlers)
+    loaded = ", ".join(
+        f"{g} ({type(h).__module__.rsplit('.', 1)[-1]})" for g in games for h in _handlers[g]
+    )
+    text = f"game handlers v{PROTOCOL_VERSION}: {len(games)} game(s) covered"
+    if loaded:
+        text += f" — {loaded}"
+    if _failed:
+        text += f" — FAILED TO IMPORT: {', '.join(_failed)}"
+    return text
+
+
 def _discover() -> None:
     """Walk all modules in this package and auto-register those with a handler.
 
@@ -545,6 +589,7 @@ def _discover() -> None:
         try:
             mod = importlib.import_module(f".{modname}", __package__)
         except Exception as exc:
+            _failed.append(modname)
             logger.error(f"Failed to import handler module {modname!r}: {exc}")
             continue
         handler = getattr(mod, "handler", None)
@@ -565,3 +610,4 @@ def _discover() -> None:
 
 
 _discover()
+logger.info(summary())

@@ -1908,9 +1908,11 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                                 "classification": item["classification"],
                                 "entrance": item["location"]["entrance"],
                                 "costs": format_requirements(
-                                    item["location"]["requirements"]
+                                    item["location"]["requirements"],
+                                    item["location"].get("costs"),
                                 ),
                                 "cost_items": normalise(item["location"]["requirements"]),
+                                "price_items": dict(item["location"].get("costs") or {}),
                             }
                         }
                     )
@@ -1937,9 +1939,11 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                                 "classification": item["classification"],
                                 "entrance": item["location"]["entrance"],
                                 "costs": format_requirements(
-                                    item["location"]["requirements"]
+                                    item["location"]["requirements"],
+                                    item["location"].get("costs"),
                                 ),
                                 "cost_items": normalise(item["location"]["requirements"]),
+                                "price_items": dict(item["location"].get("costs") or {}),
                             }
                         }
                     )

@@ -686,6 +686,21 @@ def process_spoiler_log(seed_url):
             except Exception as err:
                 logger.error(f"Failed to calculate true Golden Egg Requirement for {player.name}: {str(err)}", err)
 
+    # One call per slot now that its spoiler and settings are loaded - the home for per-seed setup
+    # that is not a per-send decision (target values from slot_data, requirements derived from
+    # spoiler locations, name tables, layout priming). Handlers keep results in ctx.state().
+    for player in game.players.values():
+        if not isinstance(player, Player) or not player.settings:
+            continue
+        if get_handler_fuzzy(player.game) is None:
+            continue
+        dispatch(
+            player.game,
+            "on_slot_loaded",
+            _handler_context_for(None, player=player),
+            default=None,
+        )
+
     logger.info("Done parsing the spoiler log")
 
 
@@ -773,90 +788,44 @@ def process_new_log_lines(new_lines, skip_msg: bool = False, line_offset: int = 
         response = item.classification
         setting = item.receiver.settings
 
-        if response == "conditional progression":
-            # A game handler gets first refusal (see cmds/ap_scripts/game_handlers/); the inline
-            # rules below are the fallback for games that have not migrated yet. Silksong is the
-            # first migration - its tables moved to game_handlers/silksong.py.
+        # A game handler may resolve any class the database cannot answer: rows stored as NULL and
+        # rows stored as `conditional progression` (progression only under some options). The inline
+        # rules below remain the fallback for games that have not migrated yet.
+        if response is None or response == "conditional progression":
+            ctx = None
             proposal = None
             if get_handler_fuzzy(item.game) is not None:
+                ctx = _handler_context_for(item, timestamp, item_index, player=item.receiver)
                 proposal = dispatch(
-                    item.game,
-                    "resolve_conditional_progression",
-                    _handler_context_for(
-                        item, timestamp, item_index, player=item.receiver
-                    ),
-                    item,
-                    default=None,
+                    item.game, "resolve_classification", ctx, item, response, default=None
                 )
+                if proposal is None and response == "conditional progression":
+                    # Deprecated pre-v2.1 hook name, still honoured.
+                    proposal = dispatch(
+                        item.game,
+                        "resolve_conditional_progression",
+                        ctx,
+                        item,
+                        default=None,
+                    )
             if proposal is not None:
                 response = proposal.classification
+
+        if response == "conditional progression":
             # Progression in certain settings, otherwise useful/filler
             # if item.game == "gzDoom":
             #     # Weapons : extra copies can be filler
             #     if isinstance(item, Item) and player.get_item_count(item.name) > 1:
             #         response = "filler"
-            if item.game == "Here Comes Niko!":
-                if item.name == "Snail Money" and (
-                    setting["Enable Achievements"] == "all_achievements"
-                    or setting["Snail Shop"] is True
-                ):
-                    response = "progression"
-                else:
-                    response = "filler"
-            if item.game == "Ocarina of Time" or item.game == "Ship of Harkinian":
-                if item.name == "Gold Skulltula Token":
-                    if (
-                        item.count > 50 and setting["Shuffle 100 GS Reward"] is False
-                    ):  # No more checks after 50
-                        response = "filler"
-                    else:
-                        response = "progression"
-                if item.name.startswith("Bottle") or item.name == "Empty Bottle":
-                    # Bottles that aren't the one with Ruto's Letter can be progression in certain situations:
-                    # 1. Overworld Skulltulas are shuffled (some hide in dirt patches where bottles with bugs are needed)
-                    # 2. The Big Poe sidequest is enabled
-                    # 3. Zora's Fountain is open from start as Child (need a bottle to get a fish for Jabu Jabu)
-                    if (
-                        setting["Shuffle Tokens"] in ["Overworld", "All"]
-                        or setting["Big Poe Target Count"] > 0
-                        or setting["Zora's Domain"] == "Open"
-                    ):  # misnamed in settings
-                        response = "progression"
-                    else:
-                        response = "useful"
-            if item.game == "Trackmania":
-                medals = ["Bronze Medal", "Silver Medal", "Gold Medal", "Author Medal"]
-                # From TMAP docs:
-                # "The quickest medal equal to or below target difficulty is made the progression medal."
-                if game.has_spoiler:
-                    target_difficulty = setting["Target Time Difficulty"]
-                else:
-                    target_difficulty = int(
-                        item.receiver.slot_data["TargetTimeSetting"] * 100
-                    )
-                progression_medal_lookup = target_difficulty // 100
-                progression_medal = medals[progression_medal_lookup]
-                filler_medals = [
-                    item
-                    for i, item in enumerate(medals)
-                    if i != progression_medal_lookup
-                ]
-                if item.name == progression_medal:
-                    response = "progression"
-                elif item.name in filler_medals:
-                    response = "filler"
-            if item.game == "Pokemon Black and White":
-                if item.name.startswith("TM") or item.name == "HM02 Fly":
-                    if setting["Goal"] in ("tmhm_hunt", "pokemon_master"):
-                        response = "progression"
-                    else:
-                        response = "useful"
             # Silksong's conditional items are resolved by its own handler now: the tables and the
             # world's conditions live in cmds/ap_scripts/game_handlers/silksong.py.
             # After checking everything, if not re-classified, it's probably progression
             if response == "conditional progression":
                 response = "progression"
 
+        # Persist the outcome for every path, not just the conditional one: a handler that resolved a
+        # NULL or conditional row replaced `response`, and the write used to sit inside the guard above.
+        if response is not None:
             item.classification = response
         return item
 
@@ -1202,11 +1171,13 @@ def process_new_log_lines(new_lines, skip_msg: bool = False, line_offset: int = 
 
             message = Item.to_hint_text()
 
-            if bool(Item.location.requirements):
-                message += (
-                    f"\n> -# This will require "
-                    f"{join_words(format_requirements(Item.location.requirements))} to obtain."
+            requirements_text = join_words(
+                format_requirements(
+                    Item.location.requirements, getattr(Item.location, "costs", None)
                 )
+            )
+            if requirements_text:
+                message += f"\n> -# This will require {requirements_text} to obtain."
             if bool(Item.location.description):
                 message += f"\n> -# {Item.location.description}"
 
