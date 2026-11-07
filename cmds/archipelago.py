@@ -1,5 +1,6 @@
 import asyncio
 import io
+import enum
 import json
 import logging
 import os
@@ -14,6 +15,11 @@ from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
 from io import BytesIO
+from itertools import chain
+
+import pathlib
+import zipfile
+import zlib
 
 import discord
 import psycopg2 as psql
@@ -2086,6 +2092,63 @@ class Archipelago(commands.GroupCog, group_name="archipelago"):
                     return await newpost.edit(
                         content="Sorry, I can't use that file - your game doesn't support/need this."
                     )
+                    
+    @aproom.command()
+    @is_aphost()
+    @app_commands.default_permissions(manage_messages=True)
+    @app_commands.describe(
+        datafile="File to upload. Run this command without for more info.",
+        unclassified_only="Only classify items that have no classification at all",
+        upgrade_classifications="Only ever upgrade classifications (useful -> progression, never the opposite)",
+    )
+    async def upload_multidata(
+        self,
+        interaction: discord.Interaction,
+        datafile: discord.Attachment,
+        unclassified_only: bool = True,
+        upgrade_classifications: bool = True,
+    ):
+        """Upload an Archipelago room ZIP to classify items."""
+        
+        def load(path: str | pathlib.Path) -> dict[str,any]:
+            path = pathlib.Path(path)
+            if path.suffix.lower() == ".zip":
+                with zipfile.ZipFile(path) as zf:
+                    for name in zf.namelist():
+                        if name.endswith(".archipelago"):
+                            blob: bytes = path.read_bytes()
+                    else:
+                        raise ValueError(f"no .archipelago member inside {path}")
+            else:
+                blob: bytes = path.read_bytes()
+                
+        # TODO
+
+        deferpost = await interaction.response.defer(
+            ephemeral=True,
+            thinking=True,
+        )
+        newpost = await interaction.original_response()
+
+        if not self.ctx.extras.get("ap_rooms"):
+            self.ctx.extras["ap_rooms"] = {}
+            self.fetch_guild_room(interaction.guild_id)
+            if not self.ctx.extras["ap_rooms"].get(interaction.guild_id):
+                return await newpost.edit(
+                    content="No Archipelago room is currently set for this server."
+                )
+
+        room = self.ctx.extras["ap_rooms"].get(interaction.guild_id)
+        api_port = room["flask_port"]
+        if not room:
+            return await newpost.edit(
+                content="No Archipelago room is currently set for this server."
+            )
+
+        game_table = requests.get(
+            f"http://localhost:{api_port}/inspectgame", timeout=10
+        ).json()
+
 
     # itemlogging = app_commands.Group(name="itemlog",description="Manage an item logging webhook")
 
