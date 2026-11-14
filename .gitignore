@@ -1,6 +1,7 @@
 /.venv/
 .idea
 .vscode
+*.code-workspace
 config.yaml
 facts.db
 **__pycache__
