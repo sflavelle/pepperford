@@ -33,7 +33,7 @@ class CTRHandler:
             collected = ""
             for l in letters:
                 wordsearch[1] = l
-                if player.hasitem(wordsearch.join(" ")):
+                if player.has_item(wordsearch.join(" ")):
                     collected += l
                 else: collected += "_"
             
