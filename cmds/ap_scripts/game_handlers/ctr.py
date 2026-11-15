@@ -26,5 +26,16 @@ class CTRHandler:
         if item.startswith("Progressive Boost"):
             tiers = ["No Boost", "Regular Boost", "Ultimate Sacred Fire", "Blue Fire"]
             return f'{item} ({tiers[count]})'
-
+        if item.startswith("Letter"):
+            words = item.split(" ")
+            wordsearch = list(words)
+            letters = ["C", "T", "R"]
+            collected = ""
+            for l in letters:
+                wordsearch[1] = l
+                if player.hasitem(wordsearch.join(" ")):
+                    collected += l
+                else: collected += "_"
+            
+            return f"{item} ({collected})"
 handler = CTRHandler()
