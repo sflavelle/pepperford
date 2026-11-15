@@ -29,11 +29,11 @@ class CTRHandler:
         if item.startswith("Letter"):
             words = item.split(" ")
             wordsearch = list(words)
-            letters = ["C", "T", "R"]
+            letters: list[str] = ["C", "T", "R"]
             collected = ""
             for l in letters:
                 wordsearch[1] = l
-                if player.has_item(wordsearch.join(" ")):
+                if player.has_item((" ").join(wordsearch)):
                     collected += l
                 else: collected += "_"
             
